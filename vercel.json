@@ -25,12 +25,9 @@
     }
   ],
   "functions": {
-    "api/*.js": {
+    "api/lead.js": {
       "maxDuration": 10,
       "memory": 1024
     }
-  },
-  "env": {
-    "COMPOSIO_API_KEY": "@composio_api_key"
   }
 }

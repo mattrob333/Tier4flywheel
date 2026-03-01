@@ -1,0 +1,25 @@
+{
+  "company": "Tier 4 Intelligence",
+  "tagline": "Agentic Automation for Growth-Stage Businesses",
+  "flagship_offering": "AI Growth Flywheel",
+  "target_market": "PE-backed home services companies, $5M-$50M revenue",
+  "stages": [
+    { "number": 1, "name": "Programmatic SEO & AI Web Presence", "key_metric": "70% reduction in cost-per-lead" },
+    { "number": 2, "name": "AI Voice & Chat Agents", "key_metric": "95%+ answer rate, 24/7" },
+    { "number": 3, "name": "Lead Capture & Intelligent Scoring", "key_metric": "Sub-2-minute speed-to-lead" },
+    { "number": 4, "name": "Intelligent Dispatch & Route Optimization", "key_metric": "10% drive time reduction" },
+    { "number": 5, "name": "Reputation Management & Review Automation", "key_metric": "Compounding loop back to Stage 1" }
+  ],
+  "key_stats": {
+    "ebitda_expansion": "+113% Year 1",
+    "payback_period": "Under 6 months",
+    "portfolio_moic": "4.0x+ over 3-year hold",
+    "deployment_time": "90 days"
+  },
+  "integrations": ["ServiceTitan", "Housecall Pro", "Jobber", "FieldEdge"],
+  "contact": {
+    "email": "matt@tier4intelligence.com",
+    "booking_url": "https://tier4intelligence.com/#book-call",
+    "phone": "+18885444500"
+  }
+}

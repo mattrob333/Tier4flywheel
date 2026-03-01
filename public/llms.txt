@@ -1,0 +1,38 @@
+# Tier 4 Intelligence
+
+> Tier 4 Intelligence is an automation company that designs, builds, and permanently operates agentic AI systems for growth-stage businesses. Our flagship offering — the AI Growth Flywheel — is a 5-stage compounding automation system purpose-built for PE-backed home services companies that expands EBITDA without adding headcount.
+
+Tier 4 Intelligence operates the OpenClaw multi-agent orchestration platform, which powers autonomous AI workers across voice, web, data, dispatch, and reputation systems. The Growth Flywheel is the most proven configuration of this platform, but the underlying engine is industry-agnostic and can be configured for any operational environment where agentic automation creates leverage.
+
+**Target market:** Private equity firms managing home services portfolios ($5M–$50M revenue companies). HVAC, plumbing, electrical, garage door, roofing, pest control, and adjacent trades.
+
+**Delivery model:** Fully managed — Tier 4 builds and permanently operates all AI systems. 90-day deployment. 24/7 managed operations. Monthly impact reporting.
+
+**Platform integration:** Integrates with existing field service management platforms including ServiceTitan, Housecall Pro, Jobber, FieldEdge, and others. No rip-and-replace.
+
+## The AI Growth Flywheel — 5 Stages
+
+- [Stage 1: Programmatic SEO & AI Web Presence](https://tier4intelligence.com/#seo-engine): AI-generated hyper-local landing pages (500–2,000+ per deployment). LLM.txt optimization for AI search visibility. Shifts lead acquisition from $50/lead paid channels to $0/lead organic traffic.
+- [Stage 2: AI Voice & Chat Agents](https://tier4intelligence.com/#ai-agents): 24/7/365 AI voice and chat agents powered by RingCentral. 95%+ answer rate. Captures the 20–40% of calls that currently go unanswered. Syncs directly to client CRM/FSM platform.
+- [Stage 3: Lead Capture & Intelligent Scoring](https://tier4intelligence.com/#lead-scoring): Speed-to-lead under 2 minutes. Rules-based scoring routes high-value jobs to top technicians. Automated follow-up for unsold estimates.
+- [Stage 4: Intelligent Dispatch & Route Optimization](https://tier4intelligence.com/#smart-dispatch): AI-optimized technician routing. 10% drive time reduction. 8–12% utilization and ticket size increase.
+- [Stage 5: Reputation Management & Review Automation](https://tier4intelligence.com/#review-engine): Automated review requests, sentiment routing, AI-written responses with local SEO keywords. Feeds back into Stage 1.
+
+## Key Metrics
+
+- +113% EBITDA expansion projected in Year 1 on $10M revenue baseline
+- Full implementation payback in under 6 months
+- 4.0x+ portfolio MOIC over 3-year hold period
+- 90-day full deployment sequence
+
+## Company Information
+
+- **Founder & CEO:** Matt — commercial airline captain and automation engineer
+- **Location:** Alpharetta, Georgia
+- **Contact:** matt@tier4intelligence.com
+- **Website:** https://tier4intelligence.com
+- **Strategic Partners:** RingCentral (AI Voice + Chat), Tier 4 Advisors
+
+## Additional Capabilities
+
+The OpenClaw agentic platform powers automation systems beyond home services, including logistics, healthcare operations, financial services, and professional services. The Growth Flywheel is simply the most proven configuration of a general-purpose agentic automation engine.

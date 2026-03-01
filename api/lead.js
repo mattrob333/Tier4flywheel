@@ -1,71 +1,79 @@
-// Serverless function example for handling the lead generation API layer
-// Deploys to Vercel as /api/lead or adapt for Netlify / Cloudflare
+// Vercel Serverless Function: /api/lead
+// Routes form submissions → Zoho CRM Leads via Composio
 
 export default async function handler(req, res) {
+    // CORS headers (allow same-origin + Vercel preview URLs)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     const lead = req.body;
 
-    // Validate
-    if (!lead.email || !lead.firstName || !lead.lastName) {
-        return res.status(400).json({ error: 'Name and email required' });
+    // Validate required fields
+    if (!lead.email || !lead.firstName) {
+        return res.status(400).json({ error: 'First name and email are required' });
     }
 
-    // Build webhook list from env vars
-    const webhooks = [];
+    const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY;
+    const CONNECTED_ACCOUNT_ID = '145add7a-8c23-460b-9d81-5bfb05c933c9';
 
-    // Zoho CRM Webhook Integration Pattern (Preferred over raw OAuth APIs for landing pages)
-    if (process.env.WEBHOOK_ZOHO_CRM) {
-        webhooks.push({
-            url: process.env.WEBHOOK_ZOHO_CRM,
-            name: 'Zoho CRM',
-            transform: (data) => ({
-                // Zoho often expects a specific structured JSON array for Leads
-                data: [{
-                    "First_Name": data.firstName,
-                    "Last_Name": data.lastName,
-                    "Email": data.email,
-                    "Phone": data.phone || "",
-                    "Company": data.company || "Unknown Company",
-                    "Description": data.message || "",
-                    "Lead_Source": "Website Integration"
-                }]
-            })
-        });
+    if (!COMPOSIO_API_KEY) {
+        console.error('[lead.js] COMPOSIO_API_KEY is not set');
+        return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    if (process.env.WEBHOOK_SLACK) {
-        webhooks.push({
-            url: process.env.WEBHOOK_SLACK,
-            name: 'Slack',
-            transform: (data) => ({
-                text: `🔔 New Lead: ${data.firstName} ${data.lastName} (${data.email}) — ${data.company || 'No company'} — Msg: ${data.message}`
-            })
-        });
-    }
+    try {
+        const zohoPayload = {
+            connectedAccountId: CONNECTED_ACCOUNT_ID,
+            entityId: 'default',
+            input: {
+                module_api_name: 'Leads',
+                data: [
+                    {
+                        First_Name: lead.firstName || '',
+                        Last_Name: lead.lastName || '',
+                        Email: lead.email,
+                        Phone: lead.phone || '',
+                        Company: lead.company || 'Unknown',
+                        Description: lead.message || '',
+                        Lead_Source: 'Website - Tier4flywheel'
+                    }
+                ]
+            }
+        };
 
-    // Fan out to all configured destinations
-    const results = await Promise.allSettled(
-        webhooks.map(async (hook) => {
-            const payload = hook.transform ? hook.transform(lead) : lead;
-
-            // Console log simulation of the outgoing payload for local testing
-            console.log(`[API MOCK] Firing POST to ${hook.name} webhook with payload:`, JSON.stringify(payload, null, 2));
-
-            /* 
-            // Real fetch execution (commented out until env vars exist)
-            const response = await fetch(hook.url, {
+        const zohoRes = await fetch(
+            'https://backend.composio.dev/api/v2/actions/ZOHO_CREATE_ZOHO_RECORD/execute',
+            {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            return { name: hook.name, status: response.status };
-            */
-            return { name: hook.name, status: 200 }; // Mock success
-        })
-    );
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': COMPOSIO_API_KEY
+                },
+                body: JSON.stringify(zohoPayload)
+            }
+        );
 
-    return res.status(200).json({ success: true, message: 'Lead captured successfully.', results });
+        const zohoData = await zohoRes.json();
+
+        if (!zohoRes.ok) {
+            console.error('[lead.js] Zoho/Composio error:', zohoData);
+            return res.status(502).json({ error: 'CRM submission failed', detail: zohoData });
+        }
+
+        console.log('[lead.js] Lead created in Zoho:', JSON.stringify(zohoData));
+        return res.status(200).json({ success: true, message: 'Lead captured successfully.' });
+
+    } catch (err) {
+        console.error('[lead.js] Unexpected error:', err);
+        return res.status(500).json({ error: 'Internal server error', detail: err.message });
+    }
 }

@@ -27,9 +27,10 @@ const ChatWidget = () => {
             {/* Floating Trigger */}
             <button
                 onClick={() => setIsOpen(true)}
+                aria-label="Open chat"
                 className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-green rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)] magnetic-btn transition-transform ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-pulse-slow'}`}
             >
-                <MessageSquare className="text-white" size={24} />
+                <MessageSquare className="text-white" size={24} aria-hidden="true" />
             </button>
 
             {/* Chat Panel */}
@@ -41,8 +42,8 @@ const ChatWidget = () => {
                         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                         <span className="font-sans font-bold text-white text-sm">Tier 4 Assistant</span>
                     </div>
-                    <button onClick={() => setIsOpen(false)} className="text-white/50 hover:text-white transition-colors">
-                        <X size={18} />
+                    <button onClick={() => setIsOpen(false)} aria-label="Close chat" className="text-white/50 hover:text-white transition-colors">
+                        <X size={18} aria-hidden="true" />
                     </button>
                 </div>
 
@@ -64,8 +65,8 @@ const ChatWidget = () => {
                         placeholder="Type your question..."
                         className="flex-1 bg-navy-deep border border-white/10 rounded-full px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-green/50 transition-colors"
                     />
-                    <button type="submit" className="w-9 h-9 flex items-center justify-center bg-brand-green rounded-full text-white magnetic-btn shrink-0">
-                        <Send size={16} />
+                    <button type="submit" aria-label="Send message" className="w-9 h-9 flex items-center justify-center bg-brand-green rounded-full text-white magnetic-btn shrink-0">
+                        <Send size={16} aria-hidden="true" />
                     </button>
                 </form>
             </div>

@@ -28,7 +28,7 @@ const SocialProof = () => {
     }, []);
 
     return (
-        <section ref={containerRef} className="py-32 px-6 bg-ivory text-navy-deep">
+        <section ref={containerRef} id="results" className="py-32 px-6 bg-ivory text-navy-deep">
             <div className="max-w-6xl mx-auto space-y-32">
 
                 {/* Partnership Row */}

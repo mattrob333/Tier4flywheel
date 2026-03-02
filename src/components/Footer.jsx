@@ -35,7 +35,7 @@ const Footer = () => {
                         <a href="mailto:info@tier4intelligence.com" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
                             info@tier4intelligence.com
                         </a>
-                        <a href="#" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
+                        <a href="https://www.linkedin.com/company/tier4intelligence" target="_blank" rel="noopener noreferrer" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
                             LinkedIn
                         </a>
                     </div>
@@ -55,7 +55,7 @@ const Footer = () => {
                         <span className="font-mono text-xs text-green-400 uppercase tracking-widest">System Operational — Agents Active</span>
                     </div>
                     <div className="font-sans text-xs text-ghost-white/30">
-                        &copy; 2026 Tier 4 Intelligence. Alpharetta, GA.
+                        &copy; {new Date().getFullYear()} Tier 4 Intelligence. Alpharetta, GA.
                     </div>
                 </div>
 

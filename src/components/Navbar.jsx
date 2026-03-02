@@ -25,6 +25,7 @@ const Navbar = () => {
         <div className="fixed top-0 left-0 w-full z-50 flex justify-center mt-6 px-4">
             <nav
                 ref={navRef}
+                aria-label="Main navigation"
                 className="
           flex items-center justify-between
           px-6 py-3 rounded-full
@@ -36,14 +37,14 @@ const Navbar = () => {
         "
             >
                 {/* Logo */}
-                <div className="flex items-center space-x-2 cursor-pointer link-lift">
+                <a href="#home" className="flex items-center space-x-2 cursor-pointer link-lift no-underline text-ghost-white">
                     <span className="font-sans font-extrabold tracking-tight text-xl">
                         TIER <span className="text-brand-green">4</span>
                     </span>
                     <span className="font-sans font-normal tracking-[0.15em] text-sm hidden md:inline-block">
                         INTELLIGENCE
                     </span>
-                </div>
+                </a>
 
                 {/* Links */}
                 <div className="hidden md:flex space-x-8 text-sm font-medium">

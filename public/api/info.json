@@ -19,7 +19,7 @@
   "integrations": ["ServiceTitan", "Housecall Pro", "Jobber", "FieldEdge"],
   "contact": {
     "email": "matt@tier4intelligence.com",
-    "booking_url": "https://tier4intelligence.com/#book-call",
+    "booking_url": "https://tier4intelligence.com/#contact",
     "phone": "+18885444500"
   }
 }

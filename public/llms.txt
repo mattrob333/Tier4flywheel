@@ -12,11 +12,11 @@ Tier 4 Intelligence operates the OpenClaw multi-agent orchestration platform, wh
 
 ## The AI Growth Flywheel — 5 Stages
 
-- [Stage 1: Programmatic SEO & AI Web Presence](https://tier4intelligence.com/#seo-engine): AI-generated hyper-local landing pages (500–2,000+ per deployment). LLM.txt optimization for AI search visibility. Shifts lead acquisition from $50/lead paid channels to $0/lead organic traffic.
-- [Stage 2: AI Voice & Chat Agents](https://tier4intelligence.com/#ai-agents): 24/7/365 AI voice and chat agents powered by RingCentral. 95%+ answer rate. Captures the 20–40% of calls that currently go unanswered. Syncs directly to client CRM/FSM platform.
-- [Stage 3: Lead Capture & Intelligent Scoring](https://tier4intelligence.com/#lead-scoring): Speed-to-lead under 2 minutes. Rules-based scoring routes high-value jobs to top technicians. Automated follow-up for unsold estimates.
-- [Stage 4: Intelligent Dispatch & Route Optimization](https://tier4intelligence.com/#smart-dispatch): AI-optimized technician routing. 10% drive time reduction. 8–12% utilization and ticket size increase.
-- [Stage 5: Reputation Management & Review Automation](https://tier4intelligence.com/#review-engine): Automated review requests, sentiment routing, AI-written responses with local SEO keywords. Feeds back into Stage 1.
+- [Stage 1: Programmatic SEO & AI Web Presence](https://tier4intelligence.com/#the-flywheel): AI-generated hyper-local landing pages (500–2,000+ per deployment). LLM.txt optimization for AI search visibility. Shifts lead acquisition from $50/lead paid channels to $0/lead organic traffic.
+- [Stage 2: Meta Ads & Paid Lead Generation](https://tier4intelligence.com/#how-it-works): Targeted Facebook, Instagram, and Google ads. $18 average cost per qualified lead. Every dollar works harder because the rest of the flywheel makes each lead more likely to convert.
+- [Stage 3: AI Voice & Chat Agents](https://tier4intelligence.com/#how-it-works): 24/7/365 AI voice and chat agents. 95%+ answer rate. Captures the 20–40% of calls that currently go unanswered. Syncs directly to client CRM/FSM platform.
+- [Stage 4: Lead Scoring, Routing & Smart Dispatch](https://tier4intelligence.com/#how-it-works): Speed-to-lead under 2 minutes. AI-optimized technician routing. 10% drive time reduction. 8–12% utilization and ticket size increase.
+- [Stage 5: Reputation Management & Review Automation](https://tier4intelligence.com/#results): Automated review requests, sentiment routing, AI-written responses with local SEO keywords. Feeds back into Stage 1.
 
 ## Key Metrics
 

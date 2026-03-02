@@ -239,7 +239,7 @@ const StageCards = () => {
     };
 
     return (
-        <section ref={containerRef} className="relative w-full bg-[#0B1426] pb-32">
+        <section ref={containerRef} id="how-it-works" className="relative w-full bg-[#0B1426] pb-32">
             {STAGES_DATA.map((stage, i) => (
                 <div
                     key={stage.num}

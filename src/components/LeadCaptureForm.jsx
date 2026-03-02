@@ -68,27 +68,27 @@ const LeadCaptureForm = () => {
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">
                     <label htmlFor="firstName" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">First Name *</label>
-                    <input required type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <input required type="text" id="firstName" name="firstName" autoComplete="given-name" value={formData.firstName} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
                 <div className="col-span-1">
                     <label htmlFor="lastName" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Last Name *</label>
-                    <input required type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <input required type="text" id="lastName" name="lastName" autoComplete="family-name" value={formData.lastName} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
             </div>
 
             <div className="mb-4">
                 <label htmlFor="email" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Work Email *</label>
-                <input required type="email" id="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                <input required type="email" id="email" name="email" autoComplete="email" value={formData.email} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">
                     <label htmlFor="company" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company</label>
-                    <input type="text" id="company" name="company" value={formData.company} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <input type="text" id="company" name="company" autoComplete="organization" value={formData.company} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
                 <div className="col-span-1">
                     <label htmlFor="phone" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <input type="tel" id="phone" name="phone" autoComplete="tel" value={formData.phone} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
             </div>
 

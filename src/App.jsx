@@ -40,6 +40,7 @@ function App() {
       <BeyondHomeServices />
       <CTASection />
       <Footer />
+      <ChatWidget />
     </div>
   );
 }

@@ -12,7 +12,6 @@ import SocialProof from './components/SocialProof';
 import BeyondHomeServices from './components/BeyondHomeServices';
 import CTASection from './components/CTASection';
 import Footer from './components/Footer';
-import ChatWidget from './components/ChatWidget';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,7 +39,6 @@ function App() {
       <BeyondHomeServices />
       <CTASection />
       <Footer />
-      <ChatWidget />
     </div>
   );
 }

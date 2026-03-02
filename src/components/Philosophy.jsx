@@ -48,21 +48,21 @@ const Philosophy = () => {
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center">
 
-                <p className="font-sans text-ghost-white/60 text-lg md:text-xl mb-4 max-w-2xl text-center">
+                <p className="font-sans text-ghost-white/60 text-base md:text-xl mb-4 max-w-2xl text-center px-2">
                     Most companies sell you tools. A chatbot here. An ad campaign there. Disconnected. Additive. More vendors to manage.
                 </p>
 
                 <h2 className="flex flex-col items-center leading-[1.1] mb-16 mt-8">
-                    <span ref={addToWords} className="font-serif italic text-6xl md:text-8xl lg:text-9xl text-ghost-white text-center">
+                    <span ref={addToWords} className="font-serif italic text-4xl sm:text-6xl md:text-8xl lg:text-9xl text-ghost-white text-center">
                         We build the
                     </span>
                     <br />
-                    <span ref={addToWords} className="font-serif italic text-6xl md:text-8xl lg:text-9xl text-brand-green text-glow whitespace-nowrap">
+                    <span ref={addToWords} className="font-serif italic text-4xl sm:text-6xl md:text-8xl lg:text-9xl text-brand-green text-glow text-center">
                         compounding machine.
                     </span>
                 </h2>
 
-                <p className="font-sans text-ghost-white/80 text-xl md:text-2xl max-w-3xl leading-relaxed text-center">
+                <p className="font-sans text-ghost-white/80 text-base md:text-2xl max-w-3xl leading-relaxed text-center px-2">
                     One system. Five stages. Each revolution makes the next one stronger. That's not a collection of tools — that's a flywheel.
                 </p>
             </div>

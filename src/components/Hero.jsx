@@ -40,12 +40,12 @@ const Hero = () => {
         <section ref={containerRef} id="home" className="relative w-full h-[100dvh] bg-navy-deep flex items-end">
             {/* Background image & gradient */}
             <div
-                className="absolute inset-0 z-0 bg-cover bg-center"
+                className="absolute inset-0 z-0 bg-cover bg-[center_20%] md:bg-center"
                 style={{ backgroundImage: "url('/ai-hero-bg.jpg')" }}
             >
                 {/* Dark server room/abstract data visualization feeling */}
             </div>
-            <div className="absolute inset-0 z-[1] bg-gradient-to-t from-navy-deep via-navy-deep/80 to-transparent"></div>
+            <div className="absolute inset-0 z-[1] bg-gradient-to-t from-navy-deep via-navy-deep/70 md:via-navy-deep/80 to-navy-deep/30 md:to-transparent"></div>
 
             {/* Floating Stat Chips */}
             <div className="absolute top-1/4 right-[8%] z-10 hidden lg:flex flex-col space-y-4">

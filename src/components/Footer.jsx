@@ -35,7 +35,7 @@ const Footer = () => {
                         <a href="mailto:info@tier4intelligence.com" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
                             info@tier4intelligence.com
                         </a>
-                        <a href="https://www.linkedin.com/company/tier4intelligence" target="_blank" rel="noopener noreferrer" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
+                        <a href="https://www.linkedin.com/company/tier-4-intelligence" target="_blank" rel="noopener noreferrer" className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
                             LinkedIn
                         </a>
                     </div>

@@ -28,13 +28,13 @@ const ChatWidget = () => {
             <button
                 onClick={() => setIsOpen(true)}
                 aria-label="Open chat"
-                className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-green rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)] magnetic-btn transition-transform ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-pulse-slow'}`}
+                className={`fixed bottom-8 right-8 z-[9999] w-14 h-14 bg-brand-green rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(94,192,138,0.4)] magnetic-btn transition-transform ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-pulse-slow'}`}
             >
                 <MessageSquare className="text-white" size={24} aria-hidden="true" />
             </button>
 
             {/* Chat Panel */}
-            <div className={`fixed bottom-6 right-6 z-50 w-[350px] bg-navy-deep border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
+            <div className={`fixed bottom-8 right-8 z-[9999] w-[350px] bg-navy-deep border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
 
                 {/* Header */}
                 <div className="bg-slate-dark px-4 py-3 flex justify-between items-center border-b border-white/5">

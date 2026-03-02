@@ -84,7 +84,7 @@ const LeadCaptureForm = () => {
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">
                     <label htmlFor="companyUrl" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company URL</label>
-                    <input type="url" id="companyUrl" name="companyUrl" autoComplete="url" placeholder="https://" value={formData.companyUrl} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <input type="text" id="companyUrl" name="companyUrl" autoComplete="url" placeholder="example.com" value={formData.companyUrl} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
                 <div className="col-span-1">
                     <label htmlFor="phone" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Phone Number</label>

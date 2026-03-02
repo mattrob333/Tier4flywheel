@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     // Try Composio first, fall back to logging if it fails
     const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY;
-    const CONNECTED_ACCOUNT_ID = process.env.COMPOSIO_ZOHO_ACCOUNT_ID || '145add7a-8c23-460b-9d81-5bfb05c933c9';
+    const CONNECTED_ACCOUNT_ID = process.env.COMPOSIO_ZOHO_ACCOUNT_ID || '450c1cf3-f9f4-48bd-9efe-ef2a4df541f9';
 
     try {
         // Try Composio v2 execute endpoint

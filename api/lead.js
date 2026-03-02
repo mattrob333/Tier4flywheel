@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
     const lead = req.body;
     const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY;
-    const CONNECTED_ACCOUNT_ID = '450c1cf3-f9f4-48bd-9efe-ef2a4df541f9';
+    const CONNECTED_ACCOUNT_ID = 'd09c7847-42fc-46da-b275-a2169f91cba8';
 
     // DEBUG: log everything so we can see in Vercel function logs
     console.log('[lead.js] REQUEST RECEIVED:', JSON.stringify({

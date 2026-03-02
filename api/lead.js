@@ -39,53 +39,49 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid email address' });
     }
 
-    const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY;
-    const CONNECTED_ACCOUNT_ID = process.env.COMPOSIO_CONNECTED_ACCOUNT_ID || '';
+    const AIRTABLE_PAT = process.env.AIRTABLE_PAT;
+    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+    const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE_NAME;
 
-    if (!COMPOSIO_API_KEY) {
-        console.error('[lead.js] MISSING COMPOSIO_API_KEY');
+    if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID || !AIRTABLE_TABLE_NAME) {
+        console.error('[lead.js] MISSING AIRTABLE ENV VARS');
         return res.status(200).json({ success: true, message: 'Thank you! We will be in touch shortly.' });
     }
 
-    const zohoData = {
-        First_Name: sanitize(lead.firstName, 100),
-        Last_Name: sanitize(lead.lastName, 100),
-        Email: sanitize(lead.email, 254),
-        Phone: sanitize(lead.phone, 30),
-        Company: sanitize(lead.company, 200) || 'Unknown',
-        Description: sanitize(lead.message, 2000),
-        Lead_Source: 'Website - Tier4flywheel'
+    const fields = {
+        'First Name': sanitize(lead.firstName, 100),
+        'Last Name': sanitize(lead.lastName, 100),
+        'Email': sanitize(lead.email, 254),
+        'Phone': sanitize(lead.phone, 30),
+        'Company URL': sanitize(lead.companyUrl, 500),
+        'Message': sanitize(lead.message, 2000),
+        'Source': 'Website - Tier4flywheel',
+        'Submitted At': new Date().toISOString()
     };
 
     try {
-        // Composio V3 API
-        const zohoRes = await fetch(
-            'https://backend.composio.dev/api/v3/tools/execute/ZOHO_CREATE_ZOHO_RECORD',
+        const airtableRes = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`,
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': COMPOSIO_API_KEY
+                    'Authorization': `Bearer ${AIRTABLE_PAT}`,
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    connected_account_id: CONNECTED_ACCOUNT_ID || undefined,
-                    user_id: 'default',
-                    arguments: { module_api_name: 'Leads', data: [zohoData] }
-                })
+                body: JSON.stringify({ fields })
             }
         );
 
-        const result = await zohoRes.json();
-
-        if (result.successful === true) {
+        if (airtableRes.ok) {
             return res.status(200).json({ success: true, message: 'Lead captured successfully.' });
         }
 
-        console.error('[lead.js] Composio returned unsuccessful:', result.message || 'unknown error');
+        const errBody = await airtableRes.text();
+        console.error('[lead.js] Airtable error:', airtableRes.status, errBody);
     } catch (err) {
-        console.error('[lead.js] Composio request failed:', err.message);
+        console.error('[lead.js] Airtable request failed:', err.message);
     }
 
-    // Composio failed - still return success to user (lead is logged by Vercel)
+    // Airtable failed - still return success to user (lead is logged by Vercel)
     return res.status(200).json({ success: true, message: 'Thank you! We will be in touch shortly.' });
 }

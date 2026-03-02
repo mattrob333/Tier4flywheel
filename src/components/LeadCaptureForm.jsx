@@ -7,7 +7,7 @@ const LeadCaptureForm = () => {
         lastName: '',
         email: '',
         phone: '',
-        company: '',
+        companyUrl: '',
         message: ''
     });
 
@@ -20,7 +20,7 @@ const LeadCaptureForm = () => {
         setStatus('submitting');
 
         try {
-            // Posting to our internal serverless function which routes to Zoho
+            // Posting to our internal serverless function which routes to Airtable
             const response = await fetch('/api/lead', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -29,7 +29,7 @@ const LeadCaptureForm = () => {
 
             if (response.ok) {
                 setStatus('success');
-                setFormData({ firstName: '', lastName: '', email: '', phone: '', company: '', message: '' });
+                setFormData({ firstName: '', lastName: '', email: '', phone: '', companyUrl: '', message: '' });
             } else {
                 setStatus('error');
             }
@@ -83,8 +83,8 @@ const LeadCaptureForm = () => {
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">
-                    <label htmlFor="company" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company</label>
-                    <input type="text" id="company" name="company" autoComplete="organization" value={formData.company} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <label htmlFor="companyUrl" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company URL</label>
+                    <input type="url" id="companyUrl" name="companyUrl" autoComplete="url" placeholder="https://" value={formData.companyUrl} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
                 <div className="col-span-1">
                     <label htmlFor="phone" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Phone Number</label>

@@ -41,7 +41,7 @@ const Hero = () => {
             {/* Background image & gradient */}
             <div
                 className="absolute inset-0 z-0 bg-cover bg-center"
-                style={{ backgroundImage: "url('/ai-hero-bg.png')" }}
+                style={{ backgroundImage: "url('/ai-hero-bg.jpg')" }}
             >
                 {/* Dark server room/abstract data visualization feeling */}
             </div>

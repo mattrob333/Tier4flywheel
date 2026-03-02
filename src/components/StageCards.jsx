@@ -246,10 +246,10 @@ const StageCards = () => {
                     ref={addToRefs}
                     className="w-full h-screen sticky top-0 flex items-center justify-center will-change-transform z-10"
                 >
-                    <div className="w-[95%] max-w-7xl h-[85vh] bg-slate-dark rounded-[3rem] border border-white/5 flex flex-col lg:flex-row overflow-hidden shadow-2xl">
+                    <div className="w-[95%] max-w-7xl h-auto lg:h-[85vh] bg-slate-dark rounded-[2rem] lg:rounded-[3rem] border border-white/5 flex flex-col lg:flex-row overflow-hidden shadow-2xl">
 
                         {/* Left Box (Content) */}
-                        <div className="w-full lg:w-[50%] p-10 lg:p-20 relative flex flex-col justify-center overflow-hidden">
+                        <div className="w-full lg:w-[50%] p-6 md:p-10 lg:p-20 relative flex flex-col justify-center overflow-hidden">
                             <div className="absolute top-0 left-0 -translate-x-[20%] -translate-y-[20%] font-mono text-[180px] lg:text-[240px] leading-none text-champagne opacity-10 select-none z-0">
                                 {stage.num}
                             </div>
@@ -273,7 +273,7 @@ const StageCards = () => {
                         </div>
 
                         {/* Right Box (Micro UI) */}
-                        <div className="w-full lg:w-[50%] bg-[#0B1426]/50 p-10 lg:p-20 flex items-center justify-center relative border-l border-white/5">
+                        <div className="w-full lg:w-[50%] bg-[#0B1426]/50 p-6 md:p-10 lg:p-20 flex items-center justify-center relative lg:border-l border-t lg:border-t-0 border-white/5">
                             <MicroUI type={stage.uiType} />
                         </div>
 

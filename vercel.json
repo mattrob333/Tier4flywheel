@@ -30,6 +30,10 @@
     "api/lead.js": {
       "maxDuration": 10,
       "memory": 1024
+    },
+    "api/report.js": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   }
 }

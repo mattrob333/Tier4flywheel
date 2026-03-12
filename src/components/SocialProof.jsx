@@ -53,7 +53,7 @@ const SocialProof = () => {
 
                         <div className="grid grid-cols-5 gap-4 relative z-10 pt-[50px]">
                             {[
-                                { label: "1–15", title: "Discovery & Data Audit", desc: "We audit your current systems, clean your data, and map the integration points." },
+                                { label: "1–15", title: "Audit the data foundation and conversion path", desc: "We run a full AI Readiness Audit on your website and digital presence — scoring your visibility to AI search engines, your technical health, your content gaps, and your local SEO signals. This baseline score drives every decision in the build. Most clients enter at 25–45. They exit above 80." },
                                 { label: "15–45", title: "SEO + Ads + Voice Live", desc: "Hyper-local pages deployed. Meta Ads running. AI agents answering your phones." },
                                 { label: "45–75", title: "Scoring + Dispatch Live", desc: "Lead scoring active. Smart dispatch routing your techs. Follow-up sequences recovering lost quotes." },
                                 { label: "75–90", title: "Reviews + Full Loop", desc: "Automated review engine running. All 5 stages connected. The flywheel is spinning." },
@@ -76,7 +76,7 @@ const SocialProof = () => {
                     <div className="md:hidden space-y-8 relative pl-6">
                         <div className="absolute top-0 bottom-0 left-[7px] w-1 bg-navy-deep/10 rounded-full"></div>
                         {[
-                            { label: "1–15", title: "Discovery & Data Audit", desc: "We audit your current systems, clean your data, and map the integration points." },
+                            { label: "1–15", title: "Audit the data foundation and conversion path", desc: "We run a full AI Readiness Audit on your website and digital presence — scoring your visibility to AI search engines, your technical health, your content gaps, and your local SEO signals. This baseline score drives every decision in the build. Most clients enter at 25–45. They exit above 80." },
                             { label: "15–45", title: "SEO + Ads + Voice Live", desc: "Hyper-local pages deployed. Meta Ads running. AI agents answering your phones." },
                             { label: "45–75", title: "Scoring + Dispatch Live", desc: "Lead scoring active. Smart dispatch routing your techs. Follow-up sequences recovering lost quotes." },
                             { label: "75–90", title: "Reviews + Full Loop", desc: "Automated review engine running. All 5 stages connected. The flywheel is spinning." },

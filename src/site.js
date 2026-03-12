@@ -1,4 +1,4 @@
-import './index.css'
+import './site.css'
 
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
 
@@ -128,7 +128,7 @@ const wireReportForms = () => {
 
       input.value = cleanedDomain
       setFormStatus(statusElement, 'idle', '')
-      window.location.assign(`https://tier4intelligence.com/api/report?domain=${encodeURIComponent(cleanedDomain)}`)
+      window.location.assign(`/api/report?domain=${encodeURIComponent(cleanedDomain)}`)
     })
 
     input.addEventListener('input', () => {

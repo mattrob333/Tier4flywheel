@@ -176,7 +176,7 @@ async function runAudit(domain) {
   return results;
 }
 
-function renderHTML(audit) {
+function renderHTML(audit, source = '') {
   const total = audit.total;
   const ratingColor = total >= 75 ? '#38a169' : total >= 50 ? '#dd6b20' : '#e53e3e';
   const ratingLabel = total >= 75 ? '🟢 Strong' : total >= 50 ? '🟡 Average' : '🔴 Weak';
@@ -218,6 +218,30 @@ function renderHTML(audit) {
   ).join('');
 
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const issuesMarkup = issueRows || '<div style="color:#71717a;font-size:14px">No critical issues detected.</div>';
+  const remediationContent = `<div class="card">
+    <div class="card-title">Issues Found</div>
+    ${issuesMarkup}
+  </div>`;
+  const remediationSection = source === 'outbound'
+    ? remediationContent
+    : `<div id="remediation-gate" style="background:#1a1a2e;border:1px solid #30305a;border-radius:12px;padding:32px;margin:32px 0;text-align:center;">
+  <h2 style="color:#fff;margin-bottom:8px;">Your AI Remediation Roadmap</h2>
+  <p style="color:#aaa;margin-bottom:24px;">You scored ${total}/100. Here is the prioritized fix list to move your site from invisible to citable in AI search -- free.</p>
+  <input type="email" id="captureEmail" placeholder="your@email.com" style="width:100%;padding:12px;margin-bottom:12px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
+  <input type="text" id="captureName" placeholder="Your name" style="width:100%;padding:12px;margin-bottom:12px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
+  <input type="text" id="captureCompany" placeholder="Company name" style="width:100%;padding:12px;margin-bottom:24px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
+  <button onclick="submitCapture()" style="background:#6c63ff;color:#fff;border:none;padding:14px 32px;border-radius:8px;font-size:16px;cursor:pointer;width:100%;">
+    Get My Remediation Roadmap
+  </button>
+  <p style="color:#666;font-size:12px;margin-top:12px;">
+    No spam. One email with your roadmap. That is it.
+  </p>
+</div>
+
+<div id="remediation-content" style="display:none;">
+  ${remediationContent}
+</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -299,10 +323,7 @@ body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-s
     ${winRows}
   </div>` : ''}
 
-  <div class="card">
-    <div class="card-title">Issues Found</div>
-    ${issueRows || '<div style="color:#71717a;font-size:14px">No critical issues detected.</div>'}
-  </div>
+  ${remediationSection}
 
   <div class="card">
     <div class="card-title">AI Platform Readiness</div>
@@ -344,6 +365,29 @@ function shareReport() {
     setTimeout(() => document.getElementById('shareConfirm').style.display = 'none', 3000);
   }
 }
+
+async function submitCapture() {
+  const email = document.getElementById('captureEmail').value;
+  const name = document.getElementById('captureName').value;
+  const company = document.getElementById('captureCompany').value;
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email.');
+    return;
+  }
+  try {
+    await fetch('/api/capture', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email, name, company,
+        domain: decodeURIComponent(window.location.search.match(/domain=([^&]+)/)?.[1] || ''),
+        timestamp: new Date().toISOString()
+      })
+    });
+  } catch (e) {}
+  document.getElementById('remediation-gate').style.display = 'none';
+  document.getElementById('remediation-content').style.display = 'block';
+}
 </script>
 </body>
 </html>`;
@@ -351,6 +395,7 @@ function shareReport() {
 
 export default async function handler(req, res) {
   const domain = (req.query?.domain || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
+  const source = req.query?.source === 'outbound' ? 'outbound' : '';
 
   if (!domain || domain.length < 4 || !domain.includes('.')) {
     return res.status(400).send('<h1>Missing domain parameter</h1><p>Usage: /api/report?domain=example.com</p>');
@@ -358,17 +403,18 @@ export default async function handler(req, res) {
 
   // Check cache
   const cached = cache.get(domain);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+  if (cached && cached.audit && Date.now() - cached.ts < CACHE_TTL_MS) {
     res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
     res.setHeader('X-Cache', 'HIT');
-    return res.status(200).send(cached.html);
+    return res.status(200).send(renderHTML(cached.audit, source));
   }
 
   try {
     const audit = await runAudit(domain);
-    const html = renderHTML(audit);
+    const html = renderHTML(audit, source);
 
-    cache.set(domain, { html, ts: Date.now() });
+    cache.set(domain, { audit, ts: Date.now() });
 
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');

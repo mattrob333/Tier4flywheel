@@ -92,6 +92,53 @@ const wireLeadForms = () => {
   })
 }
 
+const normalizeDomainInput = (value) => {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return ''
+  }
+
+  const withoutProtocol = trimmed.replace(/^https?:\/\//i, '')
+  const withoutWww = withoutProtocol.replace(/^www\./i, '')
+  const [domain] = withoutWww.split(/[/?#]/)
+
+  return domain.trim().replace(/\/$/, '')
+}
+
+const wireReportForms = () => {
+  document.querySelectorAll('[data-report-form]').forEach((form) => {
+    const input = form.querySelector('input[name="domain"]')
+    const statusElement = form.parentElement?.querySelector('[data-report-status]')
+
+    if (!input) {
+      return
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+
+      const cleanedDomain = normalizeDomainInput(input.value)
+
+      if (!cleanedDomain) {
+        setFormStatus(statusElement, 'error', 'Enter your domain to continue')
+        input.focus()
+        return
+      }
+
+      input.value = cleanedDomain
+      setFormStatus(statusElement, 'idle', '')
+      window.location.assign(`https://tier4intelligence.com/api/report?domain=${encodeURIComponent(cleanedDomain)}`)
+    })
+
+    input.addEventListener('input', () => {
+      if (statusElement?.dataset.state === 'error') {
+        setFormStatus(statusElement, 'idle', '')
+      }
+    })
+  })
+}
+
 const hydrateFooterYear = () => {
   const currentYear = new Date().getFullYear()
 
@@ -102,4 +149,5 @@ const hydrateFooterYear = () => {
 
 captureUtmParams()
 wireLeadForms()
+wireReportForms()
 hydrateFooterYear()

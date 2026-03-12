@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Tier 4 Intelligence Logo</title>
+  <desc id="logoDesc">A dark square logo with Tier 4 Intelligence wordmark and a green numeral 4.</desc>
+  <rect width="512" height="512" rx="96" fill="#0B1426" />
+  <rect x="36" y="36" width="440" height="440" rx="72" fill="#10192E" stroke="#5EC08A" stroke-opacity="0.22" />
+  <text x="74" y="220" fill="#F0F2F5" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="800" letter-spacing="6">TIER</text>
+  <text x="328" y="220" fill="#5EC08A" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="800">4</text>
+  <text x="76" y="302" fill="#F0F2F5" font-family="Inter, Arial, sans-serif" font-size="42" letter-spacing="10">INTELLIGENCE</text>
+  <text x="76" y="372" fill="#C9A84C" font-family="JetBrains Mono, monospace" font-size="24" letter-spacing="6">AUTOMATION IS THE MULTIPLIER</text>
+</svg>

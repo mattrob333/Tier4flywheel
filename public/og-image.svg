@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="ogTitle ogDesc">
+  <title id="ogTitle">Tier 4 Intelligence Open Graph image</title>
+  <desc id="ogDesc">Promotional image for Tier 4 Intelligence AI automation consulting for home services and private equity backed companies.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0B1426" />
+      <stop offset="100%" stop-color="#111C32" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.18" cy="0.18" r="0.55">
+      <stop offset="0%" stop-color="#5EC08A" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#5EC08A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#glow)" />
+  <rect x="60" y="60" width="1080" height="510" rx="36" fill="#10192E" stroke="#5EC08A" stroke-opacity="0.18" />
+  <text x="110" y="168" fill="#C9A84C" font-family="JetBrains Mono, monospace" font-size="28" letter-spacing="8">TIER 4 INTELLIGENCE</text>
+  <text x="110" y="272" fill="#F0F2F5" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="800">AI Automation Consulting for</text>
+  <text x="110" y="352" fill="#F0F2F5" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="800">Home Services &amp; PE-Backed Companies</text>
+  <text x="110" y="430" fill="#5EC08A" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700">Programmatic SEO. AI Voice Agents. Smart Dispatch. Reputation Flywheel.</text>
+  <text x="110" y="505" fill="#F0F2F5" font-family="Inter, Arial, sans-serif" font-size="26">90-day deployment | Fully managed operations | Tier4Intelligence.com</text>
+  <circle cx="1010" cy="170" r="68" fill="#5EC08A" fill-opacity="0.18" />
+  <text x="955" y="188" fill="#5EC08A" font-family="Inter, Arial, sans-serif" font-size="86" font-weight="800">4</text>
+</svg>

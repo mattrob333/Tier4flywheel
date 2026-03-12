@@ -1,38 +1,90 @@
 # Tier 4 Intelligence
 
-> Tier 4 Intelligence is an automation company that designs, builds, and permanently operates agentic AI systems for growth-stage businesses. Our flagship offering — the AI Growth Flywheel — is a 5-stage compounding automation system purpose-built for PE-backed home services companies that expands EBITDA without adding headcount.
+> Tier 4 Intelligence is an AI automation company that designs, deploys, and permanently operates a managed AI Growth Flywheel for home services companies and PE-backed operators. The system connects programmatic SEO, AI voice agents, paid lead generation, smart dispatch, and reputation management into one operating layer that compounds over time.
 
-Tier 4 Intelligence operates the OpenClaw multi-agent orchestration platform, which powers autonomous AI workers across voice, web, data, dispatch, and reputation systems. The Growth Flywheel is the most proven configuration of this platform, but the underlying engine is industry-agnostic and can be configured for any operational environment where agentic automation creates leverage.
+## Company overview
 
-**Target market:** Private equity firms managing home services portfolios ($5M–$50M revenue companies). HVAC, plumbing, electrical, garage door, roofing, pest control, and adjacent trades.
+Tier 4 Intelligence helps operators solve a practical business problem: too much revenue leakage between local demand generation and field execution. The company focuses on real operating bottlenecks such as weak service-area search coverage, missed inbound calls, slow lead response, poor qualification, inefficient route design, and inconsistent review generation. Instead of selling disconnected tools, Tier 4 builds and runs a coordinated automation system that makes those stages work together.
 
-**Delivery model:** Fully managed — Tier 4 builds and permanently operates all AI systems. 90-day deployment. 24/7 managed operations. Monthly impact reporting.
+The company is based in Alpharetta, Georgia and works primarily with home services organizations and private equity backed platforms in HVAC, plumbing, electrical, roofing, garage door, pest control, and related trades. Tier 4 is designed for businesses that already have demand and service operations, but need a stronger automation layer to improve margin, speed, and repeatability.
 
-**Platform integration:** Integrates with existing field service management platforms including ServiceTitan, Housecall Pro, Jobber, FieldEdge, and others. No rip-and-replace.
+## Core positioning
 
-## The AI Growth Flywheel — 5 Stages
+- **Primary offer:** The AI Growth Flywheel
+- **Delivery model:** Fully managed implementation and ongoing operation
+- **Target buyer:** Home services leadership teams and PE-backed operating groups
+- **Primary outcome:** Better acquisition, stronger intake, cleaner routing, and more compounding trust signals
+- **Integrations:** ServiceTitan, Housecall Pro, Jobber, FieldEdge, RingCentral, and adjacent CRM or FSM systems
 
-- [Stage 1: Programmatic SEO & AI Web Presence](https://tier4intelligence.com/#the-flywheel): AI-generated hyper-local landing pages (500–2,000+ per deployment). LLM.txt optimization for AI search visibility. Shifts lead acquisition from $50/lead paid channels to $0/lead organic traffic.
-- [Stage 2: Meta Ads & Paid Lead Generation](https://tier4intelligence.com/#how-it-works): Targeted Facebook, Instagram, and Google ads. $18 average cost per qualified lead. Every dollar works harder because the rest of the flywheel makes each lead more likely to convert.
-- [Stage 3: AI Voice & Chat Agents](https://tier4intelligence.com/#how-it-works): 24/7/365 AI voice and chat agents. 95%+ answer rate. Captures the 20–40% of calls that currently go unanswered. Syncs directly to client CRM/FSM platform.
-- [Stage 4: Lead Scoring, Routing & Smart Dispatch](https://tier4intelligence.com/#how-it-works): Speed-to-lead under 2 minutes. AI-optimized technician routing. 10% drive time reduction. 8–12% utilization and ticket size increase.
-- [Stage 5: Reputation Management & Review Automation](https://tier4intelligence.com/#results): Automated review requests, sentiment routing, AI-written responses with local SEO keywords. Feeds back into Stage 1.
+## Main pages
 
-## Key Metrics
+- **Home:** https://tier4intelligence.com/
+- **About:** https://tier4intelligence.com/about/
+- **Services:** https://tier4intelligence.com/services/
+- **Contact:** https://tier4intelligence.com/contact/
 
-- +113% EBITDA expansion projected in Year 1 on $10M revenue baseline
-- Full implementation payback in under 6 months
-- 4.0x+ portfolio MOIC over 3-year hold period
-- 90-day full deployment sequence
+## Service pages
 
-## Company Information
+- **Programmatic SEO:** https://tier4intelligence.com/services/programmatic-seo/
+- **Paid Lead Generation:** https://tier4intelligence.com/services/paid-lead-generation/
+- **AI Voice Agents:** https://tier4intelligence.com/services/ai-voice-agents/
+- **Smart Dispatch:** https://tier4intelligence.com/services/smart-dispatch/
+- **Reputation Management:** https://tier4intelligence.com/services/reputation-management/
 
-- **Founder & CEO:** Matt — commercial airline captain and automation engineer
-- **Location:** Alpharetta, Georgia
-- **Contact:** matt@tier4intelligence.com
-- **Website:** https://tier4intelligence.com
-- **Strategic Partners:** RingCentral (AI Voice + Chat), Tier 4 Advisors
+## What the AI Growth Flywheel includes
 
-## Additional Capabilities
+### 1. Programmatic SEO
 
-The OpenClaw agentic platform powers automation systems beyond home services, including logistics, healthcare operations, financial services, and professional services. The Growth Flywheel is simply the most proven configuration of a general-purpose agentic automation engine.
+Tier 4 Intelligence builds structured service-area and intent-based landing page systems so home services brands can appear for more relevant local searches. The goal is to expand visibility across real service combinations, city combinations, and customer problems without relying only on paid channels. This work also improves machine readability for search engines and AI retrieval systems through clearer content structure, metadata, internal linking, and schema markup.
+
+### 2. AI Voice Agents
+
+AI voice agents help companies capture more inbound demand during after-hours periods, overflow windows, storm spikes, and busy operating hours. Instead of letting high-intent calls ring unanswered, Tier 4 builds a voice automation layer that can gather context, route inquiries, and support cleaner handoffs into booking and qualification workflows.
+
+### 3. Paid Lead Generation and Qualification
+
+Tier 4 uses paid lead generation as part of a controlled system, not as a volume-only tactic. The focus is on buying the right demand, protecting CAC, improving speed-to-lead, and prioritizing higher-value opportunities. Paid channels are tied to qualification logic and follow-up workflows so advertising spend produces better jobs instead of just more noise.
+
+### 4. Smart Dispatch
+
+Smart dispatch improves route quality, technician fit, and schedule efficiency by using better prioritization and cleaner operating data. Tier 4 helps leadership teams reduce wasted drive time, improve labor utilization, and turn stronger intake data into better field execution. Dispatch is treated as a financial lever, not just an administrative function.
+
+### 5. Reputation Management
+
+Reputation management closes the flywheel by turning completed jobs into future trust signals. Tier 4 automates review request timing, sentiment routing, and response workflows so strong service outcomes produce stronger local proof. This supports both conversion and organic discovery because reviews influence buyer trust and local search performance.
+
+## Why operators use Tier 4 Intelligence
+
+The company is designed for teams that are tired of fragmented automation. Most businesses already have software. What they lack is a coordinated operating system that connects search visibility, answering performance, qualification quality, dispatch decisions, and review generation. Tier 4 Intelligence fills that gap by building a system that keeps working after launch because the company continues operating it.
+
+Leadership teams use Tier 4 when they want:
+
+- More qualified inbound demand
+- Better answer rate and after-hours coverage
+- Faster speed-to-lead
+- Better prioritization of high-value work
+- Improved technician utilization
+- Stronger review velocity and local trust
+- A repeatable operating model across locations or portfolio companies
+
+## Key metrics and commercial signals
+
+- **Projected EBITDA expansion:** +113% in year one on a modeled baseline
+- **Target payback period:** Under 6 months
+- **Deployment sequence:** 90-day prove-it rollout
+- **Strategic model:** Managed operation, not one-time consulting
+
+## Contact and identity
+
+- **Company:** Tier 4 Intelligence
+- **Founder:** Matt Roberson
+- **Email:** matt@tier4intelligence.com
+- **Phone:** +1-888-544-4500
+- **Location:** Alpharetta, Georgia, United States
+- **Company LinkedIn:** https://www.linkedin.com/company/tier-4-intelligence
+- **Founder LinkedIn:** https://www.linkedin.com/in/matt-roberson-b32b6b65
+- **Founder X:** https://x.com/mattrob333
+
+## Summary
+
+Tier 4 Intelligence is best understood as a managed automation operating partner for home services and PE-backed companies. Its website content emphasizes that automation should improve real operating outcomes, not create more dashboard clutter. The flagship AI Growth Flywheel is a five-stage system that helps companies get found, capture demand, qualify leads, optimize field execution, and turn service quality into future growth.

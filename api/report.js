@@ -222,6 +222,13 @@ function renderHTML(audit, source = '') {
   const remediationContent = `<div class="card">
     <div class="card-title">Issues Found</div>
     ${issuesMarkup}
+  </div>
+  <div class="cta-card">
+    <h3>Get Your Full Remediation Plan</h3>
+    <p>We can take ${audit.domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live — no commitment required.</p>
+    <div class="btn-row">
+      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call →</a>
+    </div>
   </div>`;
   const remediationSection = source === 'outbound'
     ? remediationContent
@@ -330,11 +337,9 @@ body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-s
     ${platforms}
   </div>
 
-  <div class="cta-card">
-    <h3>Get Your Full Remediation Plan</h3>
-    <p>We can take ${audit.domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live — no commitment required.</p>
+  <div class="card" style="text-align:center;">
+    <div class="card-title">Share This Report</div>
     <div class="btn-row">
-      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call →</a>
       <button class="btn-share" onclick="shareReport()">📤 Share This Report</button>
     </div>
     <div class="share-confirm" id="shareConfirm">✓ Link copied — share it with your team</div>

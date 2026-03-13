@@ -48,8 +48,22 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/docs",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/docs/(.*)",
+      "destination": "/docs/$1"
+    },
+    {
+      "source": "/((?!api/|docs/).*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
     "api/lead.js": {

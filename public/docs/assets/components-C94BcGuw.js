@@ -1,0 +1,30 @@
+import{j as e}from"./index-ClvFFfvg.js";function a(t){const n={code:"code",h1:"h1",h2:"h2",hr:"hr",p:"p",pre:"pre",strong:"strong",...t.components},{Accordion:o,Callout:r,Card:s,CardGroup:d,Steps:c,Tabs:l}=n;return o||i("Accordion"),r||i("Callout"),s||i("Card"),d||i("CardGroup"),c||i("Steps"),l||i("Tabs"),e.jsxs(e.Fragment,{children:[e.jsx(n.h1,{children:"Components"}),`
+`,e.jsxs(n.p,{children:["Tome ships with a set of built-in components you can use in any ",e.jsx(n.code,{children:".mdx"})," file. No imports required — just use them directly in your content."]}),`
+`,e.jsx(n.hr,{}),`
+`,e.jsx(n.h2,{children:"Callout"}),`
+`,e.jsxs(n.p,{children:["Callouts draw attention to important information. There are four types: ",e.jsx(n.strong,{children:"info"}),", ",e.jsx(n.strong,{children:"tip"}),", ",e.jsx(n.strong,{children:"warning"}),", and ",e.jsx(n.strong,{children:"danger"}),"."]}),`
+`,e.jsx(r,{type:"info",title:"Information",children:e.jsxs(n.p,{children:["This is an ",e.jsx(n.strong,{children:"info"})," callout. Use it to highlight useful context or background details."]})}),`
+`,e.jsx(r,{type:"tip",title:"Helpful Tip",children:e.jsxs(n.p,{children:["This is a ",e.jsx(n.strong,{children:"tip"})," callout. Great for best practices and pro tips."]})}),`
+`,e.jsx(r,{type:"warning",title:"Warning",children:e.jsxs(n.p,{children:["This is a ",e.jsx(n.strong,{children:"warning"})," callout. Use it when the reader should proceed with caution."]})}),`
+`,e.jsx(r,{type:"danger",title:"Danger",children:e.jsxs(n.p,{children:["This is a ",e.jsx(n.strong,{children:"danger"})," callout. Reserve it for critical warnings about destructive actions."]})}),`
+`,e.jsx(n.hr,{}),`
+`,e.jsx(n.h2,{children:"Tabs"}),`
+`,e.jsx(n.p,{children:"Tabs let you present multiple variants of content — perfect for showing code in different languages or instructions for different platforms."}),`
+`,e.jsxs(l,{items:["npm","yarn","pnpm"],children:[e.jsx("div",{children:e.jsx(n.pre,{children:e.jsx(n.code,{className:"language-bash",children:`npm install @tomehq/cli
+`})})}),e.jsx("div",{children:e.jsx(n.pre,{children:e.jsx(n.code,{className:"language-bash",children:`yarn add @tomehq/cli
+`})})}),e.jsx("div",{children:e.jsx(n.pre,{children:e.jsx(n.code,{className:"language-bash",children:`pnpm add @tomehq/cli
+`})})})]}),`
+`,e.jsx(n.hr,{}),`
+`,e.jsx(n.h2,{children:"Card & CardGroup"}),`
+`,e.jsx(n.p,{children:"Cards are great for linking to related pages or showcasing features in a visual grid."}),`
+`,e.jsxs(d,{cols:2,children:[e.jsx(s,{title:"Getting Started",icon:"🚀",href:"/quickstart",children:e.jsx(n.p,{children:"Set up your first Tome project and start writing docs in minutes."})}),e.jsx(s,{title:"Configuration",icon:"⚙️",children:e.jsx(n.p,{children:"Customize themes, navigation, and site metadata in tome.config.js."})}),e.jsx(s,{title:"Markdown & MDX",icon:"📝",children:e.jsx(n.p,{children:"Write pages in standard Markdown or use MDX for interactive components."})}),e.jsx(s,{title:"Deployment",icon:"🌐",children:e.jsx(n.p,{children:"Deploy your static site to Vercel, Netlify, Cloudflare Pages, or any host."})})]}),`
+`,e.jsx(n.hr,{}),`
+`,e.jsx(n.h2,{children:"Steps"}),`
+`,e.jsx(n.p,{children:"Steps guide the reader through a sequential process with numbered indicators."}),`
+`,e.jsxs(c,{children:[e.jsxs("div",{children:[e.jsx(n.p,{children:e.jsx(n.strong,{children:"Create a new project"})}),e.jsxs(n.p,{children:["Run ",e.jsx(n.code,{children:"tome init my-docs"})," to scaffold a new documentation project with all the starter files."]})]}),e.jsxs("div",{children:[e.jsx(n.p,{children:e.jsx(n.strong,{children:"Install dependencies"})}),e.jsxs(n.p,{children:["Navigate into your project directory and run ",e.jsx(n.code,{children:"npm install"})," to install all required packages."]})]}),e.jsxs("div",{children:[e.jsx(n.p,{children:e.jsx(n.strong,{children:"Start writing"})}),e.jsxs(n.p,{children:["Open ",e.jsx(n.code,{children:"pages/index.md"})," in your editor, make changes, and see them reflected instantly in the dev server."]})]}),e.jsxs("div",{children:[e.jsx(n.p,{children:e.jsx(n.strong,{children:"Deploy to production"})}),e.jsxs(n.p,{children:["Run ",e.jsx(n.code,{children:"npm run build"})," and upload the ",e.jsx(n.code,{children:"out/"})," directory to any static hosting provider."]})]})]}),`
+`,e.jsx(n.hr,{}),`
+`,e.jsx(n.h2,{children:"Accordion"}),`
+`,e.jsx(n.p,{children:"Accordions let you hide content behind a collapsible header — useful for FAQs, optional details, or long reference sections."}),`
+`,e.jsx(o,{title:"What file formats does Tome support?",children:e.jsxs(n.p,{children:["Tome supports ",e.jsx(n.strong,{children:".md"})," (Markdown) and ",e.jsx(n.strong,{children:".mdx"})," (Markdown with JSX) files. Markdown files are processed with syntax highlighting, GFM tables, and more. MDX files can additionally use React components inline."]})}),`
+`,e.jsx(o,{title:"Do I need to import components in MDX files?",children:e.jsxs(n.p,{children:["No. All built-in components (Callout, Tabs, Card, CardGroup, Steps, Accordion) are automatically available in every ",e.jsx(n.code,{children:".mdx"})," file. Just use them directly in your content."]})}),`
+`,e.jsx(o,{title:"How do I add custom components?",children:e.jsxs(n.p,{children:["You can create your own React components and use them in ",e.jsx(n.code,{children:".mdx"})," files by importing them at the top of the file. Built-in components do not require imports."]})})]})}function p(t={}){const{wrapper:n}=t.components||{};return n?e.jsx(n,{...t,children:e.jsx(a,{...t})}):a(t)}function i(t,n){throw new Error("Expected component `"+t+"` to be defined: you likely forgot to import, pass, or provide it.")}const x={frontmatter:{title:"Components",description:"A showcase of every built-in MDX component available in Tome.",icon:"puzzle",hidden:!1},headings:[{depth:2,text:"Callout",id:"callout"},{depth:2,text:"Tabs",id:"tabs"},{depth:2,text:"Card & CardGroup",id:"card-cardgroup"},{depth:2,text:"Steps",id:"steps"},{depth:2,text:"Accordion",id:"accordion"}]};export{p as default,x as meta};

@@ -1,0 +1,165 @@
+{
+  "name": "Tier 4 Intelligence",
+  "version": "1.0.0",
+  "pages": [
+    {
+      "url": "/audit/api",
+      "title": "Report API",
+      "description": "Programmatic access to AI Readiness Audit reports.",
+      "headings": [
+        "Endpoint",
+        "Parameters",
+        "Examples",
+        "Response"
+      ],
+      "tags": [],
+      "content": "\n# Report API\n\nThe audit report is available via a simple REST API. This is the same endpoint that powers the audit widget on tier4intelligence.com.\n\n## Endpoint\n\n```\nGET https://tier4intelligence.com/api/report\n```\n\n## Parameters\n\n| Parameter | Required | Description |\n|-----------|----------|-------------|\n| `domain` | Yes | Domain to audit (e.g., `tiglazing.com`) |\n| `source` | No | Set to `outbound` to bypass the email capture gate |\n\n## Examples\n\n```bash\n# Standard audit (shows email gate for inbound visitors)\ncurl \"https://tier4intelligence.com/api/report?domain=yourbusiness.com\"\n\n# Outbound bypass (for direct links in your own emails/proposals)\ncurl \"https://tier4intelligence.com/api/report?domain=yourbusiness.com&source=outbound\"\n```\n\n## Response\n\nReturns a full HTML audit report including:\n- Overall score (0-100)\n- Breakdown by category\n- Specific failing checks with remediation steps\n- Book-a-call CTA\n\n<Callout type=\"info\">\n  For API integration or white-label audit reports, contact matt@tier4intelligence.com.\n</Callout>\n"
+    },
+    {
+      "url": "/audit/how-it-works",
+      "title": "How the Audit Works",
+      "description": "Technical details on how the AI Readiness Audit analyzes your site.",
+      "headings": [
+        "Analysis Pipeline",
+        "What the Scores Mean"
+      ],
+      "tags": [],
+      "content": "\n# How the Audit Works\n\nThe audit runs a multi-pass analysis on your domain using JS-rendered crawling, structured data extraction, and a 30-point technical checklist.\n\n## Analysis Pipeline\n\n1. **Domain normalization** -- Strips protocol and www, resolves to canonical domain\n2. **Full-page JS render** -- Fetches the page with a headless browser to capture content that requires JavaScript execution (the same way AI crawlers see your site)\n3. **Structured data extraction** -- Parses JSON-LD, OpenGraph, Twitter cards, and HTML meta tags\n4. **Technical checks** -- 30 automated checks across HTTPS, mobile, speed, schema, sitemap, canonical, and Core Web Vitals\n5. **GEO signal checks** -- Detects llms.txt, AI-facing content patterns, entity signals, FAQ schema\n6. **Score aggregation** -- Weighted scoring across 4 categories, normalized to 0-100\n\n## What the Scores Mean\n\n| Score | Status | What it means |\n|-------|--------|---------------|\n| 80-100 | Excellent | AI search engines can find, understand, and recommend you |\n| 60-79 | Good | Solid foundation with specific gaps to close |\n| 40-59 | Fair | Missing key signals -- AI search visibility is limited |\n| 0-39 | Poor | Significant gaps -- largely invisible to AI-powered search |\n"
+    },
+    {
+      "url": "/audit/overview",
+      "title": "AI Readiness Audit — Overview",
+      "description": "How visible is your business to AI search engines? Find out in 60 seconds.",
+      "headings": [
+        "What Gets Scored",
+        "Run Your Free Audit"
+      ],
+      "tags": [],
+      "content": "\n# AI Readiness Audit\n\nThe AI Readiness Audit scores your business across the signals that AI search engines use to decide whether to recommend you.\n\nChatGPT, Perplexity, and Google AI Overviews now answer the questions your customers are asking. Most businesses score below 45/100. The ones that score 70+ get recommended. The ones that score below 40 are invisible.\n\n## What Gets Scored\n\n<Steps>\n  <Step title=\"GEO Signal (0-30 points)\">\n    Does your site have structured data, llms.txt, semantic HTML, and the content patterns that AI models use to understand what you do and where you operate?\n  </Step>\n  <Step title=\"Technical Foundation (0-30 points)\">\n    Page speed, mobile performance, Core Web Vitals, HTTPS, canonical tags, sitemap. The infrastructure layer that affects both traditional SEO and AI crawlability.\n  </Step>\n  <Step title=\"Content Quality (0-20 points)\">\n    FAQ schema, clear value propositions, service area coverage, entity recognition. Does your content answer the questions customers actually ask AI assistants?\n  </Step>\n  <Step title=\"Brand Authority (0-20 points)\">\n    Citation signals, external mentions, review presence, social proof. AI models weight businesses that appear in multiple trusted sources.\n  </Step>\n</Steps>\n\n## Run Your Free Audit\n\n<Callout type=\"info\">\n  The audit is free. No account required. Results in under 60 seconds.\n</Callout>\n\n[Run the AI Readiness Audit →](https://tier4intelligence.com/audit)\n"
+    },
+    {
+      "url": "/audit/scoring",
+      "title": "Scoring Breakdown",
+      "description": "How each section of the AI Readiness score is calculated.",
+      "headings": [
+        "GEO Signal (0-30 points)",
+        "Technical Foundation (0-30 points)",
+        "Content Quality (0-20 points)",
+        "Brand Authority (0-20 points)"
+      ],
+      "tags": [],
+      "content": "\n# Scoring Breakdown\n\n## GEO Signal (0-30 points)\n\nThe highest-weight section because it's the most directly tied to AI search visibility.\n\n| Check | Points | What we look for |\n|-------|--------|-----------------|\n| llms.txt present | 5 | File at /llms.txt describing your business for AI crawlers |\n| Structured schema | 8 | JSON-LD with Organization, LocalBusiness, Service, FAQ types |\n| Semantic HTML | 4 | Proper heading hierarchy, landmark elements, descriptive alt text |\n| Entity signals | 5 | Business name, location, and category mentioned consistently |\n| AI-friendly content | 8 | FAQ sections, direct answer patterns, question-format headings |\n\n## Technical Foundation (0-30 points)\n\n| Check | Points |\n|-------|--------|\n| HTTPS + valid SSL | 5 |\n| Mobile responsive | 5 |\n| Page load under 3s | 5 |\n| sitemap.xml | 4 |\n| Canonical tags | 4 |\n| Open Graph tags | 4 |\n| robots.txt | 3 |\n\n## Content Quality (0-20 points)\n\n| Check | Points |\n|-------|--------|\n| FAQ schema on page | 6 |\n| Clear value proposition | 4 |\n| Service area coverage | 5 |\n| Contact information visible | 5 |\n\n## Brand Authority (0-20 points)\n\n<Callout type=\"warning\">\n  Brand Authority checks are partially manual and may not reflect real-time data for all businesses.\n</Callout>\n\n| Check | Points |\n|-------|--------|\n| External citations | 8 |\n| Review platform presence | 6 |\n| Social proof signals | 6 |\n"
+    },
+    {
+      "url": "/components",
+      "title": "Components",
+      "description": "A showcase of every built-in MDX component available in Tome.",
+      "headings": [],
+      "tags": [],
+      "content": ""
+    },
+    {
+      "url": "/flywheel/case-study",
+      "title": "Case Study",
+      "description": "How the Growth Flywheel performs in production.",
+      "headings": [
+        "Background",
+        "What Was Built",
+        "Results at 60 Days",
+        "What Didn't Work"
+      ],
+      "tags": [],
+      "content": "\n# Case Study\n\n<Callout type=\"warning\">\n  This case study uses composite data from multiple engagements. Client names are withheld per NDA.\n</Callout>\n\n## Background\n\nA regional HVAC company doing $4.2M annually. 3 dispatchers handling inbound calls manually. Losing an estimated 20-30% of after-hours leads. Review count: 47 on Google over 6 years.\n\n## What Was Built\n\nStages 1, 2, and 5 of the Growth Flywheel deployed over 6 weeks.\n\n- Bland AI voice agent handling inbound and after-hours calls\n- 12 city-specific service pages created and indexed\n- Automated review requests via SMS post-job completion\n\n## Results at 60 Days\n\n| Metric | Before | After |\n|--------|--------|-------|\n| After-hours leads captured | ~40% | 97% |\n| Avg response time | 4.2 hours | 4 minutes |\n| New Google reviews | 0-1/week | 8-12/week |\n| Dispatcher workload | 3 FTEs | 2 FTEs |\n\n## What Didn't Work\n\nThe automated review response feature was paused after week 3. Customers noticed generic AI tone in responses and left comments about it. Switched to a human-in-the-loop approval flow.\n\n**Lesson:** Automate the trigger, keep the human on the response.\n"
+    },
+    {
+      "url": "/flywheel/overview",
+      "title": "Growth Flywheel — Overview",
+      "description": "A 5-stage AI automation system for home services businesses.",
+      "headings": [
+        "The Five Stages",
+        "Expected Outcomes"
+      ],
+      "tags": [],
+      "content": "\n# Growth Flywheel\n\nThe Growth Flywheel is a 5-stage AI system that turns a home services business into an automated revenue engine. It runs on ServiceTitan, Bland AI, Zoho CRM, and RingCentral.\n\n## The Five Stages\n\n<Cards>\n  <Card title=\"Stage 1 — SEO Content\" href=\"/flywheel/stages#stage-1\">\n    AI-generated, location-specific content published to your site and Google My Business automatically.\n  </Card>\n  <Card title=\"Stage 2 — Call Handling\" href=\"/flywheel/stages#stage-2\">\n    Bland AI voice agent handles inbound calls 24/7. Books jobs, qualifies leads, routes to dispatch.\n  </Card>\n  <Card title=\"Stage 3 — Lead Conversion\" href=\"/flywheel/stages#stage-3\">\n    Zoho CRM with automated follow-up sequences. No lead goes cold.\n  </Card>\n  <Card title=\"Stage 4 — Job Execution\" href=\"/flywheel/stages#stage-4\">\n    ServiceTitan integration: auto-billing, completion triggers, review requests.\n  </Card>\n  <Card title=\"Stage 5 — Reviews\" href=\"/flywheel/stages#stage-5\">\n    Automated review request via SMS post-job. Responses posted to Google and GMB.\n  </Card>\n</Cards>\n\n## Expected Outcomes\n\nBusinesses running the full flywheel typically see:\n- 30-40% reduction in missed calls and lost leads\n- 2-3x increase in review volume within 60 days\n- 15-25% improvement in dispatch efficiency\n\n<Callout type=\"info\">\n  The flywheel is built for home services businesses doing $2M+ revenue. Smaller businesses can start with Stages 1-3.\n</Callout>\n"
+    },
+    {
+      "url": "/flywheel/stages",
+      "title": "Flywheel Stages",
+      "description": "Technical breakdown of each stage in the Growth Flywheel.",
+      "headings": [
+        "Stage 1 — SEO Content {#stage-1}",
+        "Stage 2 — Call Handling {#stage-2}",
+        "Stage 3 — Lead Conversion {#stage-3}",
+        "Stage 4 — Job Execution {#stage-4}",
+        "Stage 5 — Reviews {#stage-5}"
+      ],
+      "tags": [],
+      "content": "\n# Flywheel Stages\n\n## Stage 1 — SEO Content {#stage-1}\n\n**Goal:** Dominate local AI and traditional search before a competitor does.\n\n**What it does:** AI generates city-specific service pages, FAQ content, and GMB posts on a weekly schedule. Content is optimized for both traditional SEO and AI search (GEO).\n\n**Stack:** Custom AI pipeline, Google My Business API, Webflow or WordPress\n\n---\n\n## Stage 2 — Call Handling {#stage-2}\n\n**Goal:** Never miss a lead, regardless of time or call volume.\n\n**What it does:** A Bland AI voice agent answers every inbound call. It qualifies the lead, books the job, and routes to the right dispatcher. Handles overflow, after-hours, and high-volume windows.\n\n**Stack:** Bland AI, RingCentral, ServiceTitan\n\n---\n\n## Stage 3 — Lead Conversion {#stage-3}\n\n**Goal:** Follow up on every lead within 5 minutes, every time.\n\n**What it does:** Zoho CRM with automated email and SMS sequences. Leads from the voice agent, web forms, and GMB are routed automatically. No manual data entry.\n\n**Stack:** Zoho CRM, Bland AI (outbound), SmartLead\n\n---\n\n## Stage 4 — Job Execution {#stage-4}\n\n**Goal:** Remove administrative overhead from field operations.\n\n**What it does:** ServiceTitan triggers automatic actions on job completion: invoice generation, payment collection, and review request queuing. Technicians tap complete -- the rest is automatic.\n\n**Stack:** ServiceTitan, Stripe, Zapier/n8n\n\n---\n\n## Stage 5 — Reviews {#stage-5}\n\n**Goal:** Compound trust signals that feed back into Stage 1.\n\n**What it does:** Post-job SMS with a review link. AI-assisted response drafts for owner approval. Completed reviews posted to Google, GMB, and Yelp.\n\n**Stack:** Bland AI SMS, Google My Business API, custom review pipeline\n"
+    },
+    {
+      "url": "/",
+      "title": "Tier 4 Intelligence",
+      "description": "AI implementation for business operators. Not theory -- production systems that generate revenue.",
+      "headings": [
+        "What We Do",
+        "Why Tier 4?"
+      ],
+      "tags": [],
+      "content": "\n# Tier 4 Intelligence\n\nWe build AI systems for business operators. Not demos, not experiments -- production workflows that reduce operating costs, accelerate revenue, and create compounding advantages in your market.\n\n## What We Do\n\n<Cards>\n  <Card title=\"AI Readiness Audit\" icon=\"search\" href=\"/audit/overview\">\n    Find out how visible your business is to AI search engines. Get a scored report in 60 seconds, plus a prioritized remediation plan.\n  </Card>\n  <Card title=\"Growth Flywheel\" icon=\"trending-up\" href=\"/flywheel/overview\">\n    A 5-stage AI system for home services businesses. Automated lead capture, voice follow-up, CRM routing, and review generation.\n  </Card>\n  <Card title=\"Client Onboarding\" icon=\"check-circle\" href=\"/onboarding/checklist\">\n    Already working with us? Start here.\n  </Card>\n</Cards>\n\n## Why Tier 4?\n\nMost AI vendors sell you a tool and leave you to figure out the workflow. We build the workflow first -- then plug in the tools. The difference is measured in weeks to production vs. months of failed implementation.\n\n<Callout type=\"info\">\n  **Fractional Chief Automation Officer** -- Need strategic AI leadership without a full-time hire? That's our core engagement model. We sit inside your operations and ship working systems.\n</Callout>\n"
+    },
+    {
+      "url": "/onboarding/checklist",
+      "title": "Client Onboarding Checklist",
+      "description": "Everything we need to get started.",
+      "headings": [
+        "Access &#x26; Credentials",
+        "Information We'll Need",
+        "Week 1 Kickoff"
+      ],
+      "tags": [],
+      "content": "\n# Client Onboarding Checklist\n\nBefore we can begin building, we need access to a few things. This checklist covers everything.\n\n## Access & Credentials\n\n<Steps>\n  <Step title=\"ServiceTitan\">\n    Admin access to your ServiceTitan account. We need to configure webhooks and read job/billing data.\n  </Step>\n  <Step title=\"Google Business Profile\">\n    Owner-level access to your Google My Business. Required for Stage 1 content publishing.\n  </Step>\n  <Step title=\"CRM\">\n    Admin access to your existing CRM (or we'll set up Zoho if you don't have one).\n  </Step>\n  <Step title=\"Phone System\">\n    Admin access to RingCentral or equivalent. We'll configure call routing to the Bland AI agent.\n  </Step>\n  <Step title=\"Website\">\n    CMS or FTP access for publishing location-specific content pages.\n  </Step>\n</Steps>\n\n## Information We'll Need\n\n- Primary service areas (cities/zip codes)\n- Top 5 services by revenue\n- Current average response time to inbound leads\n- Monthly call volume (approximate)\n- Existing review profiles (Google, Yelp, HomeAdvisor)\n\n## Week 1 Kickoff\n\nOnce access is confirmed, we'll schedule a 90-minute kickoff call to walk through the current state of each stage, set 30/60/90 day targets, and assign owners for each workflow.\n\n<Callout type=\"info\">\n  Questions before kickoff? Email matt@tier4intelligence.com or book directly at tier4intelligence.com.\n</Callout>\n"
+    },
+    {
+      "url": "/onboarding/discovery",
+      "title": "Discovery Questionnaire",
+      "description": "10 questions that tell us everything we need to know about your business.",
+      "headings": [
+        "What We're Learning"
+      ],
+      "tags": [],
+      "content": "\n# Discovery Questionnaire\n\nWe send this before the kickoff call. Filling it out ahead of time saves 30 minutes on the call and gets us to implementation faster.\n\n[Fill out the Discovery Form →](https://docs.google.com/forms/d/e/1FAIpQLSdiGVY5aDb6hi3_O25FkHJUw8qniIrrgb_i7oAqToQ2EMop9A/viewform)\n\n## What We're Learning\n\nThe 10 questions cover:\n\n1. Business overview (revenue, team size, markets served)\n2. Current tech stack (ServiceTitan, CRM, phone system)\n3. Biggest operational bottlenecks right now\n4. Current lead volume and source breakdown\n5. After-hours coverage -- how it works today\n6. Review generation -- current process if any\n7. AI experience -- what you've tried, what worked, what didn't\n8. Decision timeline and budget range\n9. Who else is involved in the evaluation\n10. What success looks like at 90 days\n\n<Callout type=\"info\">\n  The form takes about 10 minutes. The more specific you are, the faster we move.\n</Callout>\n"
+    },
+    {
+      "url": "/quickstart",
+      "title": "Quickstart",
+      "description": "Get up and running with Tome in under 5 minutes — from installation to deployment.",
+      "headings": [
+        "Prerequisites",
+        "1. Install Dependencies",
+        "2. Start the Dev Server",
+        "3. Write Your First Page",
+        "Frontmatter Reference",
+        "4. Configure Your Site",
+        "Navigation",
+        "5. Using MDX Components",
+        "6. Build and Deploy"
+      ],
+      "tags": [],
+      "content": "\n# Quickstart\n\nThis guide walks you through setting up a Tome documentation site from scratch, configuring it, and deploying it to production.\n\n## Prerequisites\n\nBefore you begin, make sure you have:\n\n- **Node.js 18** or later installed ([download](https://nodejs.org))\n- A package manager: `npm`, `yarn`, or `pnpm`\n- A terminal and a code editor\n\n## 1. Install Dependencies\n\nAfter running `tome init`, install your project dependencies:\n\n```bash\ncd scaffold-preview\nnpm install\n```\n\n## 2. Start the Dev Server\n\nLaunch the local development server with hot reloading:\n\n```bash\nnpm run dev\n```\n\nOpen [http://localhost:3000](http://localhost:3000) in your browser. Every time you save a file, the page updates instantly.\n\n## 3. Write Your First Page\n\nCreate a new file in the `pages/` directory. Each `.md` or `.mdx` file becomes a page on your site.\n\n```markdown\n---\ntitle: My New Page\ndescription: A brief summary for search and navigation\n---\n\n# My New Page\n\nWrite your content using standard **Markdown** syntax.\nYou can use headings, lists, tables, code blocks, and more.\n```\n\n### Frontmatter Reference\n\nEvery page can include YAML frontmatter at the top:\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `title` | string | Page title shown in sidebar and browser tab |\n| `description` | string | Short summary for SEO and navigation |\n| `icon` | string | Icon name displayed next to the title in the sidebar |\n| `sidebarTitle` | string | Override the title shown in the sidebar |\n| `hidden` | boolean | Hide this page from the sidebar navigation |\n| `tags` | string[] | Tags for search and categorization |\n\n## 4. Configure Your Site\n\nEdit `tome.config.js` to customize your documentation site:\n\n```javascript\nexport default {\n  name: \"scaffold-preview\",\n  theme: {\n    preset: \"amber\",    // Theme preset: \"amber\" or \"editorial\"\n    accent: \"#e8a845\",  // Custom accent color (hex)\n    mode: \"auto\",       // Color mode: \"light\", \"dark\", or \"auto\"\n  },\n  navigation: [\n    {\n      group: \"Getting Started\",\n      pages: [\"index\", \"quickstart\", \"components\"],\n    },\n  ],\n};\n```\n\n### Navigation\n\nThe `navigation` array controls your sidebar. Each group has a label and a list of page IDs (the filename without the extension):\n\n```javascript\nnavigation: [\n  {\n    group: \"Getting Started\",\n    pages: [\"index\", \"quickstart\"],\n  },\n  {\n    group: \"Reference\",\n    pages: [\"components\", \"api\"],\n  },\n],\n```\n\n## 5. Using MDX Components\n\nTome includes a set of built-in components you can use in `.mdx` files without any imports. See the [Components](/components) page for a full showcase.\n\n```markdown\n<!-- Use a callout in any .mdx file -->\n<Callout type=\"tip\" title=\"Pro Tip\">\n  Components are automatically available — no import needed.\n</Callout>\n```\n\n## 6. Build and Deploy\n\nWhen you are ready to publish, build your site into static files:\n\n```bash\nnpm run build\n```\n\nThis outputs a production-ready static site to the `out/` directory. Deploy it to any static hosting provider:\n\n```bash\n# Vercel\nvercel deploy ./out\n\n# Netlify\nnetlify deploy --dir=./out\n\n# Cloudflare Pages\nwrangler pages deploy ./out\n```\n\n---\n\nThat is it! You now have a fully functional documentation site. Explore the [Components](/components) page to see all the interactive elements you can add to your pages.\n"
+    },
+    {
+      "url": "/what-we-do",
+      "title": "What We Do",
+      "description": "AI implementation for operators who need results, not roadmaps.",
+      "headings": [
+        "Engagement Models",
+        "Fractional Chief Automation Officer",
+        "AI Readiness Audit",
+        "Growth Flywheel Build",
+        "Who We Work With"
+      ],
+      "tags": [],
+      "content": "\n# What We Do\n\nWe specialize in three things: AI agent systems, operational automation, and GEO (Generative Engine Optimization) -- making your business visible to AI-powered search.\n\n## Engagement Models\n\n### Fractional Chief Automation Officer\nStrategic AI leadership embedded in your business. We own the implementation, the vendor relationships, and the results. Typical engagement: 3-6 months.\n\n### AI Readiness Audit\nA scored assessment of how your business performs across AI search engines (ChatGPT, Perplexity, Google AI Overviews). Deliverable in 24 hours. Includes prioritized remediation plan.\n\n### Growth Flywheel Build\nA full 5-stage AI automation system for home services businesses. From lead capture to review generation. Built on ServiceTitan, Bland AI, and Zoho CRM.\n\n## Who We Work With\n\n- PE-backed home services companies (HVAC, plumbing, electrical, roofing)\n- Fractional leadership teams at growth-stage businesses\n- Operators who have tried AI tools and couldn't get them to stick\n\n<Callout type=\"warning\">\n  We work with a small number of clients at a time. If you're evaluating us, the best first step is the free AI Readiness Audit.\n</Callout>\n"
+    }
+  ]
+}

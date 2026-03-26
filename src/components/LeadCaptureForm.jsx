@@ -10,6 +10,8 @@ const LeadCaptureForm = () => {
         companyUrl: '',
         message: ''
     });
+    const [honeypot, setHoneypot] = useState('');
+    const [loadedAt] = useState(() => Date.now());
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,7 +26,11 @@ const LeadCaptureForm = () => {
             const response = await fetch('/api/lead', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    ...formData,
+                    _hp: honeypot,
+                    _t: loadedAt
+                })
             });
 
             if (response.ok) {
@@ -64,6 +70,12 @@ const LeadCaptureForm = () => {
             <h3 className="font-sans font-bold text-2xl text-white mb-6 text-center">
                 Request Your Growth Assessment
             </h3>
+
+            {/* Honeypot - hidden from humans, bots will fill it */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px', height: 0, overflow: 'hidden', tabIndex: -1 }}>
+                <label htmlFor="website">Website</label>
+                <input type="text" id="website" name="website" autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} />
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">

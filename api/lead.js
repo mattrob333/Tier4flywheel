@@ -31,6 +31,16 @@ export default async function handler(req, res) {
 
     const lead = req.body;
 
+    // Bot detection: honeypot field filled or form submitted too fast (< 3s)
+    if (lead._hp) {
+        console.log('[lead.js] Honeypot triggered, rejecting silently');
+        return res.status(200).json({ success: true, message: 'Thank you! We will be in touch shortly.' });
+    }
+    if (lead._t && Date.now() - Number(lead._t) < 3000) {
+        console.log('[lead.js] Timing check failed (too fast), rejecting silently');
+        return res.status(200).json({ success: true, message: 'Thank you! We will be in touch shortly.' });
+    }
+
     if (!lead || !lead.email || !lead.firstName) {
         return res.status(400).json({ error: 'First name and email are required' });
     }

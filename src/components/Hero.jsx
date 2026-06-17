@@ -67,7 +67,7 @@ const Hero = () => {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 w-full max-w-7xl mx-auto pl-[8%] pb-[12%]">
+            <div className="relative z-10 w-full pl-[8%] pb-[12%]">
 
                 {/* Eyebrow */}
                 <div ref={addToRefs} className="flex items-center space-x-3 mb-6">

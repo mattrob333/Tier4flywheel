@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="faviconTitle">
   <title id="faviconTitle">Tier 4 Intelligence favicon</title>
   <rect width="128" height="128" rx="28" fill="#0B1426" />
-  <path d="M38 28h18v31h24V28h18v72H80V74H56v26H38z" fill="#F0F2F5" />
-  <path d="M79 28h18l-22 37h20v14H62z" fill="#5EC08A" />
+  <!-- Bold "4" drawn as vector paths (font-independent) so it stays crisp at any size -->
+  <g fill="#5EC08A">
+    <path d="M57 24 L77 24 L51 62 L31 62 Z" />
+    <path d="M77 24 L99 24 L99 104 L77 104 Z" />
+    <path d="M29 62 L99 62 L99 82 L29 82 Z" />
+  </g>
 </svg>

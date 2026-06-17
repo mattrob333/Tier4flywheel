@@ -41,25 +41,28 @@ const Hero = () => {
             {/* Background image & gradient */}
             <div
                 className="absolute inset-0 z-0 bg-cover bg-[center_20%] md:bg-center"
-                style={{ backgroundImage: "url('/ai-hero-bg.jpg')" }}
+                style={{ backgroundImage: "url('/hero-boardroom.png')" }}
             >
-                {/* Dark server room/abstract data visualization feeling */}
+                {/* Real teams at work, enhanced by intelligent systems */}
             </div>
             <div className="absolute inset-0 z-[1] bg-gradient-to-t from-navy-deep via-navy-deep/70 md:via-navy-deep/80 to-navy-deep/30 md:to-transparent"></div>
 
-            {/* Floating Stat Chips */}
+            {/* Floating Approach Chips */}
             <div className="absolute top-1/4 right-[8%] z-10 hidden lg:flex flex-col space-y-4">
                 <div className="stat-chip font-mono text-sm px-4 py-2 rounded-full border border-champagne text-champagne backdrop-blur-md bg-navy-deep/40">
-                    +113% EBITDA
+                    Discover
                 </div>
                 <div className="stat-chip font-mono text-sm px-4 py-2 rounded-full border border-brand-green text-ghost-white backdrop-blur-md bg-navy-deep/40 translate-x-4">
-                    &lt;6mo Payback
+                    Prioritize
                 </div>
                 <div className="stat-chip font-mono text-sm px-4 py-2 rounded-full border border-champagne text-champagne backdrop-blur-md bg-navy-deep/40">
-                    4.0x+ MOIC
+                    Build
+                </div>
+                <div className="stat-chip font-mono text-sm px-4 py-2 rounded-full border border-brand-green text-ghost-white backdrop-blur-md bg-navy-deep/40 translate-x-4">
+                    Scale
                 </div>
                 <div className="font-sans text-xs text-ghost-white/50 text-right mt-2 mr-2">
-                    Deployed across 40+ PE-backed service companies
+                    A practical path to AI adoption
                 </div>
             </div>
 
@@ -70,33 +73,33 @@ const Hero = () => {
                 <div ref={addToRefs} className="flex items-center space-x-3 mb-6">
                     <span className="w-2 h-2 rounded-full bg-champagne animate-pulse"></span>
                     <span className="font-mono text-xs md:text-sm uppercase tracking-widest text-champagne">
-                        AI-Powered Growth for Service Businesses
+                        Where AI Belongs in Your Business
                     </span>
                 </div>
 
                 {/* Headline */}
                 <h1 className="flex flex-col mb-8 leading-none">
-                    <span ref={addToRefs} className="font-sans font-extrabold text-4xl md:text-5xl lg:text-6xl text-white tracking-tight uppercase">
-                        Automation is the
+                    <span ref={addToRefs} className="font-sans font-extrabold text-4xl md:text-5xl lg:text-6xl text-white tracking-tight">
+                        Build a More
                     </span>
-                    <span ref={addToRefs} className="font-serif italic text-7xl md:text-8xl lg:text-[140px] text-brand-green leading-[0.9] mt-2 lg:mt-4 text-glow">
-                        Multiplier.
+                    <span ref={addToRefs} className="font-serif italic text-6xl md:text-7xl lg:text-[120px] text-brand-green leading-[0.9] mt-2 lg:mt-4 text-glow">
+                        Intelligent Business
                     </span>
                 </h1>
 
                 {/* Subheadline */}
-                <p ref={addToRefs} className="font-sans text-ghost-white text-lg md:text-xl font-normal max-w-[600px] leading-relaxed mb-10">
-                    More leads. More booked jobs. More 5-star reviews. We build and run the AI systems that make it happen — without adding a single person to your payroll.
+                <p ref={addToRefs} className="font-sans text-ghost-white text-lg md:text-xl font-normal max-w-[640px] leading-relaxed mb-10">
+                    Tier 4 Intelligence helps organizations identify where AI creates value, design practical solutions, and build systems that make people more capable.
                 </p>
 
                 {/* CTA Button */}
                 <div ref={addToRefs} className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                    <a href="#the-flywheel" className="magnetic-btn bg-brand-green text-white font-bold text-lg px-8 py-4 rounded-full flex items-center space-x-2 shadow-[0_0_30px_rgba(94,192,138,0.3)]">
-                        <span>See How It Works</span>
-                        <span className="text-xl leading-none">&darr;</span>
+                    <a href="#contact" className="magnetic-btn bg-brand-green text-white font-bold text-lg px-8 py-4 rounded-full flex items-center space-x-2 shadow-[0_0_30px_rgba(94,192,138,0.3)]">
+                        <span>Start an AI Opportunity Audit</span>
+                        <span className="text-xl leading-none">&rarr;</span>
                     </a>
-                    <a href="#contact" className="magnetic-btn bg-transparent border border-white/20 text-white font-bold text-lg px-8 py-4 rounded-full flex items-center space-x-2 hover:border-white/40 transition-colors">
-                        <span>Book a Strategy Call</span>
+                    <a href="#how-we-work" className="magnetic-btn bg-transparent border border-white/20 text-white font-bold text-lg px-8 py-4 rounded-full flex items-center space-x-2 hover:border-white/40 transition-colors">
+                        <span>See How We Work</span>
                     </a>
                 </div>
 

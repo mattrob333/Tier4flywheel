@@ -28,24 +28,24 @@ const Identity = () => {
     }, []);
 
     return (
-        <section ref={sectionRef} className="py-24 px-6 bg-ivory text-navy-deep flex justify-center">
+        <section ref={sectionRef} id="problem" className="py-24 px-6 bg-ivory text-navy-deep flex justify-center">
             <div className="identity-content max-w-[800px] mx-auto text-center flex flex-col items-center">
 
                 <h2 className="font-sans text-xl md:text-2xl text-navy-deep/60 mb-2 font-normal">
-                    We're not another marketing agency.
+                    Most organizations don't need more AI tools.
                 </h2>
 
                 <h3 className="font-sans font-extrabold text-4xl md:text-5xl lg:text-6xl mb-8 tracking-tight text-navy-deep">
-                    We're an automation company.
+                    They need more clarity.
                 </h3>
 
                 <p className="font-sans text-lg md:text-xl leading-relaxed text-navy-deep/80 mb-12">
-                    Tier 4 Intelligence builds and permanently operates AI growth systems — autonomous agents that handle your website, ads, phone calls, lead routing, dispatch, and reputation around the clock. Powered by proprietary agentic frameworks including OpenClaw, our platform orchestrates multi-agent systems that integrate with your existing tools. No rip-and-replace. No 300-page strategy decks. Working systems that run while you sleep.
+                    Companies are under pressure to adopt AI, but many struggle to determine where it fits, which opportunities matter, and how to move forward without creating unnecessary complexity. The challenge is not access to AI — it's understanding where it creates meaningful value.
                 </p>
 
-                {/* Identity Pills */}
+                {/* Positioning Pills */}
                 <div className="flex flex-wrap justify-center gap-4">
-                    {['Agentic AI Systems', 'Permanent Operations', 'Works With Your Existing Tools'].map((pill) => (
+                    {['Clarity', 'Prioritization', 'Practical Execution'].map((pill) => (
                         <div
                             key={pill}
                             className="px-6 py-2 rounded-full border border-navy-deep/20 text-sm font-semibold tracking-wide uppercase shadow-sm"

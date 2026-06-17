@@ -1,22 +1,20 @@
 {
   "company": "Tier 4 Intelligence",
-  "tagline": "Agentic Automation for Growth-Stage Businesses",
-  "flagship_offering": "AI Growth Flywheel",
-  "target_market": "PE-backed home services companies, $5M-$50M revenue",
-  "stages": [
-    { "number": 1, "name": "Programmatic SEO & AI Web Presence", "key_metric": "70% reduction in cost-per-lead" },
-    { "number": 2, "name": "AI Voice & Chat Agents", "key_metric": "95%+ answer rate, 24/7" },
-    { "number": 3, "name": "Lead Capture & Intelligent Scoring", "key_metric": "Sub-2-minute speed-to-lead" },
-    { "number": 4, "name": "Intelligent Dispatch & Route Optimization", "key_metric": "10% drive time reduction" },
-    { "number": 5, "name": "Reputation Management & Review Automation", "key_metric": "Compounding loop back to Stage 1" }
+  "tagline": "Build a More Intelligent Business",
+  "description": "Tier 4 Intelligence helps organizations understand where AI belongs, design practical solutions, and build systems that improve how people work.",
+  "approach": [
+    { "step": 1, "name": "Discover", "summary": "Understand how work actually happens across teams, systems, and processes." },
+    { "step": 2, "name": "Prioritize", "summary": "Identify the highest-value opportunities for AI based on business impact, feasibility, and risk." },
+    { "step": 3, "name": "Build", "summary": "Design and implement solutions that support people, improve workflows, and create measurable results." },
+    { "step": 4, "name": "Scale", "summary": "Expand successful initiatives through governance, training, and continuous improvement." }
   ],
-  "key_stats": {
-    "ebitda_expansion": "+113% Year 1",
-    "payback_period": "Under 6 months",
-    "portfolio_moic": "4.0x+ over 3-year hold",
-    "deployment_time": "90 days"
-  },
-  "integrations": ["ServiceTitan", "Housecall Pro", "Jobber", "FieldEdge"],
+  "services": [
+    { "name": "AI Opportunity Audit", "slug": "ai-opportunity-audit", "summary": "A structured assessment that identifies where AI can create the greatest impact across your organization." },
+    { "name": "AI Strategy & Blueprint", "slug": "ai-strategy-blueprint", "summary": "A practical roadmap that aligns business goals, workflows, technology, and implementation priorities." },
+    { "name": "Custom AI Solutions", "slug": "custom-ai-solutions", "summary": "Internal tools, assistants, automations, knowledge systems, and workflow enhancements tailored to your business." },
+    { "name": "AI Enablement & Training", "slug": "ai-enablement-training", "summary": "Help leaders and teams build confidence, develop new capabilities, and adopt AI effectively." },
+    { "name": "Fractional AI Leadership", "slug": "fractional-ai-leadership", "summary": "Strategic guidance for organizations that need ongoing support navigating AI adoption and execution." }
+  ],
   "contact": {
     "email": "matt@tier4intelligence.com",
     "booking_url": "https://tier4intelligence.com/#contact",

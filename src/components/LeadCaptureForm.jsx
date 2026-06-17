@@ -51,7 +51,7 @@ const LeadCaptureForm = () => {
                     <svg className="w-8 h-8 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <h3 className="font-sans font-bold text-2xl text-white mb-2">Request Received</h3>
-                <p className="font-sans text-ghost-white/70">Our systems are processing your information. We will touch base shortly.</p>
+                <p className="font-sans text-ghost-white/70">Thanks — we've received your request and will be in touch shortly to schedule your AI Opportunity Audit.</p>
                 <button
                     onClick={() => setStatus('idle')}
                     className="mt-6 text-sm text-brand-green hover:text-white transition-colors"
@@ -68,7 +68,7 @@ const LeadCaptureForm = () => {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-green to-transparent opacity-50"></div>
 
             <h3 className="font-sans font-bold text-2xl text-white mb-6 text-center">
-                Request Your Growth Assessment
+                Request Your AI Opportunity Audit
             </h3>
 
             {/* Honeypot - hidden from humans, bots will fill it */}
@@ -95,8 +95,8 @@ const LeadCaptureForm = () => {
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="col-span-1">
-                    <label htmlFor="companyUrl" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company URL</label>
-                    <input type="text" id="companyUrl" name="companyUrl" autoComplete="url" placeholder="yourdomain.com — we'll pull your AI score before the call" value={formData.companyUrl} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
+                    <label htmlFor="companyUrl" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Company Website</label>
+                    <input type="text" id="companyUrl" name="companyUrl" autoComplete="url" placeholder="yourcompany.com" value={formData.companyUrl} onChange={handleChange} className="w-full bg-[#0F0F14] border border-white/5 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-green/50 transition-colors" />
                 </div>
                 <div className="col-span-1">
                     <label htmlFor="phone" className="block font-mono text-xs uppercase tracking-widest text-ghost-white/50 mb-2">Phone Number</label>
@@ -125,7 +125,7 @@ const LeadCaptureForm = () => {
                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 ) : (
                     <>
-                        <span>Request Assessment</span>
+                        <span>Request My Audit</span>
                         <span>&rarr;</span>
                     </>
                 )}

@@ -14,15 +14,15 @@ const Footer = () => {
                         <div className="font-sans font-normal tracking-[0.1em] text-xs mb-4 text-ghost-white/50 uppercase">
                             Intelligence
                         </div>
-                        <p className="font-sans text-sm text-ghost-white/50 max-w-[200px]">
-                            Automation is the Multiplier. AI growth systems for service businesses.
+                        <p className="font-sans text-sm text-ghost-white/50 max-w-[220px]">
+                            Helping organizations understand where AI belongs, design practical solutions, and build systems that improve how people work.
                         </p>
                     </div>
 
                     {/* Col 2 */}
                     <div className="flex flex-col space-y-3">
                         <h4 className="font-sans font-bold text-white mb-2">Navigate</h4>
-                        {['The Flywheel', 'How It Works', 'Results', 'Contact'].map(link => (
+                        {['Approach', 'Services', 'Why Us', 'Insights'].map(link => (
                             <a key={link} href={`#${link.toLowerCase().replace(/ /g, '-')}`} className="text-sm text-ghost-white/50 hover:text-white transition-colors link-lift">
                                 {link}
                             </a>
@@ -52,7 +52,7 @@ const Footer = () => {
                 <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex items-center space-x-3 bg-[#0B1426] px-4 py-2 rounded-full border border-white/5">
                         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                        <span className="font-mono text-xs text-green-400 uppercase tracking-widest">System Operational — Agents Active</span>
+                        <span className="font-mono text-xs text-green-400 uppercase tracking-widest">Build a More Intelligent Business</span>
                     </div>
                     <div className="font-sans text-xs text-ghost-white/30">
                         &copy; {new Date().getFullYear()} Tier 4 Intelligence. Alpharetta, GA.

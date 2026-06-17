@@ -135,7 +135,7 @@
       linear-gradient(135deg, rgba(11, 20, 38, 0.94), rgba(11, 20, 38, 0.78)),
       radial-gradient(circle at top left, rgba(94, 192, 138, 0.22), transparent 26%),
       radial-gradient(circle at top right, rgba(201, 168, 76, 0.18), transparent 18%),
-      url('/ai-hero-bg.png');
+      url('/hero-boardroom.png');
     @apply bg-cover bg-center;
   }
 
@@ -143,7 +143,7 @@
     background-image:
       linear-gradient(135deg, rgba(11, 20, 38, 0.96), rgba(11, 20, 38, 0.84)),
       radial-gradient(circle at top right, rgba(94, 192, 138, 0.16), transparent 20%),
-      url('/ai-hero-bg.png');
+      url('/hero-boardroom.png');
     @apply bg-cover bg-center;
   }
 

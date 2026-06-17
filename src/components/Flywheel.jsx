@@ -1,50 +1,50 @@
-import React, { useLayoutEffect, useRef, useState, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Globe, Megaphone, Headphones, Navigation, Star } from 'lucide-react';
+import { Search, Map, PenTool, Hammer, TrendingUp } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const STAGES = [
     {
         number: 1,
-        name: "Get Found",
-        icon: Globe,
-        desc: "SEO + AI search — rank everywhere customers look",
-        metric: "70% reduction in cost-per-lead",
-        next: "Feeds into Meta Ads"
+        name: "Understand",
+        icon: Search,
+        desc: "Learn how the business operates today — the people, workflows, decisions, and realities behind the work.",
+        metric: "Grounded in how work actually happens",
+        next: "Leads into Map"
     },
     {
         number: 2,
-        name: "Get Leads",
-        icon: Megaphone,
-        desc: "Meta Ads + Google Ads fill your pipeline",
-        metric: "$18 avg cost per qualified lead",
-        next: "Feeds into Capture"
+        name: "Map",
+        icon: Map,
+        desc: "Identify workflows, bottlenecks, opportunities, and decision points where AI can create meaningful value.",
+        metric: "Opportunities, prioritized by impact",
+        next: "Leads into Design"
     },
     {
         number: 3,
-        name: "Capture Every Lead",
-        icon: Headphones,
-        desc: "AI voice, text & chat — 24/7, no lead missed",
-        metric: "95%+ answer rate",
-        next: "Feeds into Routing"
+        name: "Design",
+        icon: PenTool,
+        desc: "Create a practical implementation plan that aligns goals, workflows, technology, and priorities.",
+        metric: "A clear, sequenced blueprint",
+        next: "Leads into Build"
     },
     {
         number: 4,
-        name: "Close the Job",
-        icon: Navigation,
-        desc: "Smart routing — right tech, right job, every time",
-        metric: "+12% avg ticket size increase",
-        next: "Feeds into Reviews"
+        name: "Build",
+        icon: Hammer,
+        desc: "Deploy solutions that improve capability and efficiency, and that support the people who use them.",
+        metric: "Working systems, in production",
+        next: "Leads into Scale"
     },
     {
         number: 5,
-        name: "Get Reviews",
-        icon: Star,
-        desc: "Automated reviews feed back into Stage 1",
-        metric: "4.8★ average rating",
-        next: "Feeds back into Get Found"
+        name: "Scale",
+        icon: TrendingUp,
+        desc: "Measure outcomes and expand what works through governance, training, and continuous improvement.",
+        metric: "What works, expanded with confidence",
+        next: "Refines back into Understand"
     }
 ];
 
@@ -53,7 +53,6 @@ const Flywheel = () => {
     const ringRef = useRef(null);
     const statsRef = useRef([]);
     const [activeStage, setActiveStage] = useState(0);
-    const [ebitdaCount, setEbitdaCount] = useState(0);
 
     // Geometry for SVG
     const radius = 180;
@@ -109,50 +108,41 @@ const Flywheel = () => {
         return () => ctx.revert();
     }, []);
 
-    // EBITDA counter effect
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setEbitdaCount(prev => (prev < 113 ? prev + 1 : 113));
-        }, 20); // ticks up quickly
-        return () => clearInterval(interval);
-    }, []);
-
     const addToStatsRef = (el) => {
         if (el && !statsRef.current.includes(el)) statsRef.current.push(el);
     };
 
     return (
-        <section ref={containerRef} id="the-flywheel" className="py-32 px-6 bg-slate-dark text-ghost-white overflow-hidden">
+        <section ref={containerRef} id="how-we-work" className="py-32 px-6 bg-slate-dark text-ghost-white overflow-hidden">
 
             {/* Intro */}
             <div className="max-w-7xl mx-auto flex flex-col items-center text-center px-4 mb-20 relative z-10">
                 <span className="font-mono text-xs md:text-sm tracking-widest text-champagne mb-4 uppercase">
-                    THE GROWTH FLYWHEEL
+                    OUR PROCESS
                 </span>
                 <h2 className="font-sans font-extrabold text-4xl md:text-5xl lg:text-6xl text-white tracking-tight mb-6">
-                    Five Systems. One Flywheel. Growth That Compounds.
+                    From Understanding to Outcomes.
                 </h2>
                 <p className="font-sans text-lg md:text-xl text-ghost-white/70 max-w-[700px] mb-8">
-                    Every stage feeds the next. More visibility brings more leads. More leads mean more jobs. More jobs mean more reviews. More reviews bring more visibility. One system — always accelerating.
+                    A clear, repeatable process for finding where AI belongs and building it well — five steps that turn understanding into measurable results.
                 </p>
                 <div className="font-mono text-sm text-ghost-white/40 max-w-[600px] border border-ghost-white/10 rounded-xl px-4 py-3 bg-navy-deep/20 mb-16">
-                    Integrates with ServiceTitan, Housecall Pro, Jobber, FieldEdge, and other field service platforms.
+                    Grounded in how your teams actually work.
                 </div>
 
-                {/* Stat Blocks moved here from bottom */}
+                {/* Qualitative principle cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
                     {[
-                        { stat: "+113%", title: "EBITDA Expansion", detail: "Year 1 ($10M baseline)" },
-                        { stat: "< 6 mo", title: "Full Payback", detail: "Implementation cost recovered" },
-                        { stat: "4.0x+", title: "Portfolio MOIC", detail: "3-year hold, 5+ companies" }
+                        { title: "Grounded in real workflows", detail: "We start with how work actually happens." },
+                        { title: "Practical over theoretical", detail: "Plans you can act on, not slide decks." },
+                        { title: "Built with your team", detail: "Capability that stays after we're done." }
                     ].map((item, idx) => (
                         <div
                             key={idx}
                             ref={addToStatsRef}
                             className="bg-navy-deep/50 rounded-2xl p-6 border border-white/5 flex flex-col items-center justify-center backdrop-blur-sm"
                         >
-                            <div className="font-mono text-3xl text-champagne mb-2">{item.stat}</div>
-                            <div className="font-sans font-bold text-base text-white mb-1">{item.title}</div>
+                            <div className="font-sans font-bold text-base text-white mb-2">{item.title}</div>
                             <div className="font-sans text-xs text-ghost-white/50">{item.detail}</div>
                         </div>
                     ))}
@@ -168,8 +158,8 @@ const Flywheel = () => {
                     {/* Inner static circle/text */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
                         <div className="w-[180px] h-[180px] md:w-[260px] md:h-[260px] bg-navy-deep rounded-full flex flex-col items-center justify-center shadow-[0_0_40px_rgba(94,192,138,0.15)] border border-brand-green/20 backdrop-blur-md">
-                            <span className="text-white/50 text-xs md:text-sm uppercase tracking-widest font-mono mb-1">EBITDA</span>
-                            <span className="font-sans font-extrabold text-4xl md:text-5xl text-champagne">+{ebitdaCount}%</span>
+                            <span className="text-white/50 text-xs md:text-sm uppercase tracking-widest font-mono mb-2">Our Process</span>
+                            <span className="font-serif italic text-2xl md:text-3xl text-champagne text-center px-6 leading-tight">Understand to Outcomes</span>
                         </div>
                     </div>
 
@@ -225,7 +215,7 @@ const Flywheel = () => {
                                     {React.createElement(STAGES[activeStage].icon, { size: 20 })}
                                 </span>
                                 <div>
-                                    <span className="font-mono text-champagne text-xs block mb-1">STAGE 0{STAGES[activeStage].number}</span>
+                                    <span className="font-mono text-champagne text-xs block mb-1">STEP 0{STAGES[activeStage].number}</span>
                                     <h3 className="font-sans font-bold text-2xl text-white">{STAGES[activeStage].name}</h3>
                                 </div>
                             </div>
@@ -242,7 +232,7 @@ const Flywheel = () => {
                         </div>
                     ) : (
                         <div className="text-center w-full text-ghost-white/30 font-sans italic">
-                            Hover over a stage to view system telemetry.
+                            Hover over a step to explore our process.
                         </div>
                     )}
                 </div>
@@ -251,7 +241,7 @@ const Flywheel = () => {
             {/* Closing Quote */}
             <div className="max-w-4xl mx-auto text-center relative z-10 pb-12">
                 <p className="font-serif italic text-2xl md:text-3xl text-brand-green/80">
-                    "Every closed job makes the next one easier."
+                    "Start where the value is clearest."
                 </p>
             </div>
 

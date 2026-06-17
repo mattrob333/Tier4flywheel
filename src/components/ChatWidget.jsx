@@ -4,7 +4,7 @@ import { MessageSquare, X, Send } from 'lucide-react';
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { role: 'agent', text: "Hi — I'm an AI assistant from Tier 4 Intelligence. I can answer questions about the Growth Flywheel, how our system works, or help you book a call with our team. What would you like to know?" }
+        { role: 'agent', text: "Hi — I'm an AI assistant from Tier 4 Intelligence. I can answer questions about how we help organizations find where AI creates value, our services, or how to start an AI Opportunity Audit. What would you like to know?" }
     ]);
     const [inputText, setInputText] = useState("");
 
@@ -18,7 +18,7 @@ const ChatWidget = () => {
 
         // Simulate agent response (stub for actual API endpoint connection)
         setTimeout(() => {
-            setMessages(prev => [...prev, { role: 'agent', text: "I'll connect you directly with Matt and the operations team. Shall I initiate a booking sequence?" }]);
+            setMessages(prev => [...prev, { role: 'agent', text: "Happy to help. The best first step is usually an AI Opportunity Audit — would you like me to point you to it, or connect you with our team?" }]);
         }, 1000);
     };
 

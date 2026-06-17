@@ -1,200 +1,169 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Star } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const STAGES_DATA = [
     {
         num: "01",
-        title: "Programmatic SEO & AI Web Presence",
-        desc: "Your website shows up when people search \"plumber near me\" or \"best HVAC in [city].\" We auto-generate 500–2,000+ hyper-local pages on your existing domain. LLM.txt optimization means your business gets cited by AI search engines like ChatGPT and Perplexity — not just indexed by Google. Shifts your lead mix from 50%+ paid to 30% organic — permanently.",
-        statMain: "70%",
-        statLabel: "reduction in cost-per-lead",
-        uiType: "seo"
+        title: "AI Opportunity Audit",
+        desc: "A structured assessment that identifies where AI can create the greatest impact across your organization. We map how work happens today, then surface the opportunities, risks, and priorities worth acting on — before you invest in building anything.",
+        statMain: "Clarity",
+        statLabel: "on where to start",
+        uiType: "audit"
     },
     {
         num: "02",
-        title: "Meta Ads & Paid Lead Generation",
-        desc: "Targeted Facebook, Instagram, and Google ads put your business in front of homeowners who need your service right now. We build the campaigns, manage the spend, and optimize daily. Every dollar works harder because the rest of the flywheel (AI answering, lead scoring, review loop) makes each lead more likely to convert and each customer more likely to refer.",
-        statMain: "$18",
-        statLabel: "average cost per qualified lead",
-        uiType: "ads"
+        title: "AI Strategy & Blueprint",
+        desc: "A practical roadmap that aligns business goals, workflows, technology, and implementation priorities. You get a clear, sequenced plan for what to build, in what order, and how each initiative connects to measurable outcomes.",
+        statMain: "Roadmap",
+        statLabel: "aligned to your goals",
+        uiType: "blueprint"
     },
     {
         num: "03",
-        title: "AI Voice & Chat Agents",
-        desc: "Every call answered. Every chat engaged. Every after-hours lead captured. Our AI agents speak naturally, qualify leads, book appointments, and sync directly to your existing field service platform — 24/7/365. No missed revenue. No voicemail. No excuses.",
-        statMain: "95%+",
-        statLabel: "answer rate — every call, every time",
-        uiType: "telemetry"
+        title: "Custom AI Solutions",
+        desc: "Internal tools, assistants, automations, knowledge systems, and workflow enhancements tailored to your business. We design and implement solutions that support people, improve how work gets done, and create results you can measure.",
+        statMain: "Solutions",
+        statLabel: "built around your workflows",
+        uiType: "solutions"
     },
     {
         num: "04",
-        title: "Lead Scoring, Routing & Smart Dispatch",
-        desc: "A 10-minute delay drops lead qualification by 400%. Our system responds in under 2 minutes. Every lead gets scored, prioritized, and routed to the right technician — automatically. AI dispatch reads the job, the tech's skill profile, and the route to make the optimal match instantly. Adds 'virtual trucks' to your fleet without a single hire.",
-        statMain: "+12%",
-        statLabel: "average ticket size increase",
-        uiType: "dispatch"
+        title: "AI Enablement & Training",
+        desc: "Help leaders and teams build confidence, develop new capabilities, and adopt AI effectively. We meet people where they are and turn AI from an abstract mandate into practical, everyday capability.",
+        statMain: "Capability",
+        statLabel: "across leaders and teams",
+        uiType: "enablement"
     },
     {
         num: "05",
-        title: "Reputation & Review Engine",
-        desc: "After every completed job, the system sends a friendly review request. Happy customers get routed to Google. Unhappy customers get intercepted for resolution before they go public. AI writes personalized responses seeded with local SEO keywords. More 5-star reviews → higher rankings → more organic leads → the flywheel accelerates.",
-        statMain: "4.8★",
-        statLabel: "avg client rating — feeds back into Stage 1",
-        uiType: "reputation"
+        title: "Fractional AI Leadership",
+        desc: "Strategic guidance for organizations that need ongoing support navigating AI adoption and execution. We provide senior, hands-on leadership that keeps initiatives grounded, governed, and connected to real business value.",
+        statMain: "Guidance",
+        statLabel: "from strategy to execution",
+        uiType: "leadership"
     }
 ];
 
-// Micro UI Components (Simplified for demonstration, but structured exactly as spec)
+// Neutral, on-theme panels per service — workflow / diagram style, no busy dashboards.
 const MicroUI = ({ type }) => {
-    if (type === 'seo') {
+    if (type === 'audit') {
         return (
             <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto">
+                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Opportunity Map</div>
+                <div className="space-y-3">
+                    {[
+                        { label: "Customer support workflows", val: "92%", high: true },
+                        { label: "Knowledge & documentation", val: "78%", high: false },
+                        { label: "Reporting & analysis", val: "61%", high: false },
+                        { label: "Onboarding & training", val: "44%", high: false }
+                    ].map((row) => (
+                        <div key={row.label} className={`p-3 rounded-lg border ${row.high ? 'bg-brand-green/10 border-brand-green/30 shadow-[0_0_15px_rgba(94,192,138,0.15)]' : 'bg-slate-dark border-white/5'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs text-ghost-white/80">{row.label}</span>
+                                <span className={`text-xs font-mono ${row.high ? 'text-brand-green' : 'text-ghost-white/50'}`}>{row.val}</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                <div className={`h-full rounded-full ${row.high ? 'bg-brand-green' : 'bg-white/20'}`} style={{ width: row.val }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    if (type === 'blueprint') {
+        return (
+            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto">
+                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Implementation Roadmap</div>
                 <div className="space-y-4">
-                    <div className="h-16 rounded-lg bg-slate-dark border border-white/5 p-3 flex justify-between items-center opacity-50">
-                        <div><div className="w-24 h-4 bg-white/10 rounded mb-2"></div><div className="flex space-x-1"><span className="text-champagne text-xs">★★★★☆</span></div></div>
-                        <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Ad</span>
-                    </div>
-                    <div className="h-16 rounded-lg bg-slate-dark border border-white/5 p-3 flex justify-between items-center opacity-50">
-                        <div><div className="w-20 h-4 bg-white/10 rounded mb-2"></div><div className="flex space-x-1"><span className="text-champagne text-xs">★★★★☆</span></div></div>
-                        <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Ad</span>
-                    </div>
-                    <div className="h-20 rounded-lg bg-brand-green/10 border border-brand-green/30 p-4 flex justify-between items-center shadow-[0_0_15px_rgba(94,192,138,0.2)]">
-                        <div>
-                            <div className="text-white font-bold mb-1">Your Business</div>
-                            <div className="flex space-x-1"><span className="text-champagne text-xs">★★★★★</span></div>
+                    {["Discover", "Prioritize", "Build", "Scale"].map((phase, i) => (
+                        <div key={phase} className="flex items-center space-x-3">
+                            <div className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-mono text-xs ${i === 0 ? 'bg-brand-green text-white' : 'bg-slate-dark border border-white/10 text-ghost-white/60'}`}>
+                                {String(i + 1).padStart(2, '0')}
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-sm text-white font-medium">{phase}</div>
+                                <div className="h-1 mt-1.5 rounded-full bg-white/5 overflow-hidden">
+                                    <div className="h-full bg-brand-green/60 rounded-full" style={{ width: `${100 - i * 22}%` }}></div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded mb-1">Organic</span>
-                            <span className="font-mono text-brand-green text-xs">$0/lead</span>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         );
     }
 
-    if (type === 'ads') {
+    if (type === 'solutions') {
         return (
-            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto relative">
-                <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-500 font-bold text-xl">f</div>
-                    <div>
-                        <div className="text-white text-sm font-bold">Active Campaign</div>
-                        <div className="text-xs text-blue-400">Meta Ads Manager</div>
-                    </div>
-                </div>
-                <div className="space-y-3">
-                    <div className="bg-slate-dark p-3 rounded-lg border border-white/5 flex justify-between text-xs">
-                        <span className="text-ghost-white/60">Impressions</span>
-                        <span className="text-white">124.5k</span>
-                    </div>
-                    <div className="bg-slate-dark p-3 rounded-lg border border-white/5 flex justify-between text-xs">
-                        <span className="text-ghost-white/60">Conversion Rate</span>
-                        <span className="text-brand-green">4.8% &uarr;</span>
-                    </div>
-                    <div className="bg-brand-green/10 p-4 rounded-lg border border-brand-green/30 flex justify-between items-center text-sm shadow-[0_0_15px_rgba(94,192,138,0.15)]">
-                        <span className="text-brand-green font-bold">Cost per Lead</span>
-                        <span className="text-brand-green font-mono font-bold">$18.40 &darr;</span>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (type === 'telemetry') {
-        return (
-            <div className="bg-[#0F0F14] rounded-2xl p-6 border border-white/5 w-full font-mono text-xs text-ghost-white/70 max-w-sm ml-auto">
-                <div className="flex justify-between mb-4">
-                    <span className="text-white">TELEMETRY</span>
-                    <span className="flex items-center text-green-400"><span className="w-2 h-2 rounded-full bg-green-400 animate-pulse mr-2"></span>LIVE</span>
-                </div>
-                <div className="space-y-2">
-                    <div><span className="text-ghost-white/40">[11:47 PM]</span> Inbound call — Alpharetta, GA</div>
-                    <div><span className="text-ghost-white/40">[11:47 PM]</span> AI Agent answered in 0.8s</div>
-                    <div><span className="text-ghost-white/40">[11:47 PM]</span> Intent: Emergency HVAC repair</div>
-                    <div className="text-brand-green"><span className="text-ghost-white/40">[11:47 PM]</span> Appointment booked: Tomorrow 8AM</div>
-                    <div className="text-green-400"><span className="text-ghost-white/40">[11:47 PM]</span> CRM ticket created ✓</div>
-                    <div className="text-green-400"><span className="text-ghost-white/40">[11:48 PM]</span> SMS confirmation sent to homeowner ✓</div>
-                    <div className="mt-2 animate-pulse text-brand-green">_</div>
-                </div>
-            </div>
-        );
-    }
-
-    if (type === 'scoring') {
-        return (
-            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto relative">
-                <div className="absolute top-4 right-4 bg-slate-dark text-white font-mono text-xs px-2 py-1 rounded">0:00 &rarr; 1:47</div>
-                <div className="text-white font-bold mb-4">New Lead Detected</div>
-                <div className="bg-slate-dark p-4 rounded-xl border border-white/5 mb-4 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 h-1 bg-brand-green w-[90%]"></div>
-                    <div className="text-sm text-ghost-white/80 mb-2">Emergency AC Repair needed. System completely down.</div>
-                    <div className="flex justify-between items-end">
-                        <span className="text-xs text-ghost-white/50">Est. Value: $4,500</span>
-                        <span className="text-xs font-bold text-brand-green">URGENCY: HIGH</span>
-                    </div>
-                </div>
-                <div className="flex justify-center my-2 text-ghost-white/30">&darr;</div>
-                <div className="bg-brand-green/10 p-4 rounded-xl border border-brand-green/30 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-brand-green/20 flex items-center justify-center text-white font-bold">TC</div>
-                    <div>
-                        <div className="text-sm font-bold text-white">Top Closer Assigned</div>
-                        <div className="text-xs text-brand-green">94% close rate</div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (type === 'dispatch') {
-        return (
-            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full max-w-sm ml-auto font-mono text-sm relative">
-                <div className="mb-4 text-ghost-white/60">LIVE ROUTE OPTIMIZATION</div>
-
-                {/* Decorative Grid/Map */}
-                <div className="h-32 bg-[#0F0F14] rounded-lg mb-6 relative overflow-hidden border border-white/5">
-                    <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-                    {/* Dots and lines */}
-                    <svg className="w-full h-full absolute inset-0 text-brand-green z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <path d="M 20 20 L 80 50 L 30 80" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_3s_linear_infinite]" />
-                        <circle cx="20" cy="20" r="4" fill="currentColor" />
-                        <circle cx="80" cy="50" r="4" fill="currentColor" />
-                        <circle cx="30" cy="80" r="4" fill="currentColor" />
+            <div className="bg-[#0F0F14] rounded-2xl p-6 border border-white/5 w-full max-w-sm ml-auto">
+                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Workflow</div>
+                <div className="relative h-44">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:22px_22px] rounded-lg"></div>
+                    <svg className="w-full h-full absolute inset-0 text-brand-green" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <path d="M 15 25 L 50 50 L 85 25 M 50 50 L 50 85" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" className="animate-[dash_4s_linear_infinite]" opacity="0.7" />
+                        <circle cx="15" cy="25" r="3.5" fill="currentColor" />
+                        <circle cx="85" cy="25" r="3.5" fill="currentColor" />
+                        <circle cx="50" cy="85" r="3.5" fill="currentColor" />
                     </svg>
+                    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-green/15 border border-brand-green/40 rounded-lg px-3 py-2 text-center shadow-[0_0_20px_rgba(94,192,138,0.2)]">
+                        <div className="text-[10px] font-mono text-brand-green">AI ASSIST</div>
+                        <div className="text-xs text-white">in the loop</div>
+                    </div>
                 </div>
+                <div className="mt-4 text-xs text-ghost-white/60">People and systems, working together.</div>
+            </div>
+        );
+    }
 
-                <div className="space-y-3">
-                    <div className="bg-slate-dark p-3 rounded-lg border border-white/5 flex justify-between text-xs">
-                        <span>Drive Time</span>
-                        <span className="text-green-400">47m &rarr; 38m ✓</span>
-                    </div>
-                    <div className="bg-slate-dark p-3 rounded-lg border border-white/5 flex justify-between text-xs">
-                        <span>Utilization</span>
-                        <span className="text-green-400">71% &rarr; 83% ✓</span>
-                    </div>
+    if (type === 'enablement') {
+        return (
+            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto">
+                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Team Enablement</div>
+                <div className="space-y-4">
+                    {[
+                        { label: "Leadership", val: 86 },
+                        { label: "Operations", val: 72 },
+                        { label: "Frontline teams", val: 64 }
+                    ].map((row) => (
+                        <div key={row.label}>
+                            <div className="flex justify-between text-xs mb-1.5">
+                                <span className="text-ghost-white/80">{row.label}</span>
+                                <span className="text-brand-green font-mono">confident</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                                <div className="h-full bg-brand-green rounded-full" style={{ width: `${row.val}%` }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-5 bg-brand-green/10 border border-brand-green/30 rounded-lg p-3 text-xs text-brand-green">
+                    Capability that compounds over time.
                 </div>
             </div>
         );
     }
 
-    if (type === 'reputation') {
+    if (type === 'leadership') {
         return (
-            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full max-w-sm ml-auto relative">
-                <div className="bg-ivory rounded-xl p-4 mb-6 shadow-xl relative z-10">
-                    <div className="flex mb-2">
-                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className="text-[#C9A84C] fill-[#C9A84C] w-4 h-4 mr-1" />)}
-                    </div>
-                    <p className="text-xs text-navy-deep font-sans mb-2 font-medium">"Fastest response ever. Fixed my AC in the middle of the night. Highly recommend to anyone in Alpharetta."</p>
-                    <div className="text-[10px] text-navy-deep/50 uppercase tracing-wider">Google Review</div>
-                </div>
-
-                <div className="bg-slate-dark p-3 rounded-lg border border-brand-green/30 flex justify-between items-center text-xs font-mono relative z-10">
-                    <span className="text-white">Local Search Rank</span>
-                    <span className="text-green-400">#4 &rarr; #1 ✓</span>
+            <div className="bg-navy-deep rounded-2xl p-6 border border-white/5 w-full font-sans max-w-sm ml-auto">
+                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Strategic Guidance</div>
+                <div className="space-y-3">
+                    {[
+                        "Aligned to business priorities",
+                        "Grounded in real workflows",
+                        "Governed and risk-aware",
+                        "Measured against outcomes"
+                    ].map((item) => (
+                        <div key={item} className="flex items-center space-x-3 bg-slate-dark border border-white/5 rounded-lg p-3">
+                            <span className="w-2 h-2 rounded-full bg-brand-green shrink-0"></span>
+                            <span className="text-xs text-ghost-white/80">{item}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -239,7 +208,7 @@ const StageCards = () => {
     };
 
     return (
-        <section ref={containerRef} id="how-it-works" className="relative w-full bg-[#0B1426] pb-32">
+        <section ref={containerRef} id="services" className="relative w-full bg-[#0B1426] pb-32">
             {STAGES_DATA.map((stage, i) => (
                 <div
                     key={stage.num}
@@ -255,7 +224,7 @@ const StageCards = () => {
                             </div>
                             <div className="relative z-10">
                                 <div className="font-mono text-sm tracking-widest text-champagne mb-6 uppercase">
-                                    Stage {stage.num}
+                                    Service {stage.num} — From Opportunity to Implementation
                                 </div>
                                 <h3 className="font-sans font-bold text-4xl md:text-5xl text-white tracking-tight mb-8">
                                     {stage.title}

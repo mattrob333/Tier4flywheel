@@ -34,13 +34,13 @@ function App() {
       <Navbar />
       <Hero />
       <Identity />
-      <AIReadinessAudit />
-      <Flywheel />
+      <SocialProof />
       <StageCards />
       <Philosophy />
-      <SocialProof />
       <BeyondHomeServices />
+      <Flywheel />
       <FAQSection />
+      <AIReadinessAudit />
       <CTASection />
       <Footer />
     </div>

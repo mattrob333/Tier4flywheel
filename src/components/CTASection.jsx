@@ -9,13 +9,13 @@ const CTASection = () => {
 
             <div className="max-w-4xl mx-auto relative z-10">
                 <h2 className="font-sans font-bold text-4xl md:text-5xl lg:text-6xl text-white tracking-tight mb-6 leading-tight">
-                    Let's See What the Flywheel Can Do for You.
+                    Ready to Find Where AI Creates Value?
                 </h2>
                 <p className="font-sans text-xl text-ghost-white/70 mb-10">
-                    Whether you run one company or a portfolio of twenty — we'll map the opportunity and show you exactly how the system works.
+                    Start with an AI Opportunity Audit and discover the opportunities, risks, and priorities that matter most for your organization.
                 </p>
                 <div className="font-mono text-xs md:text-sm text-brand-green/80 flex flex-wrap justify-center gap-x-4 gap-y-2 mb-12">
-                    Includes: SEO &amp; AI web presence &bull; Meta &amp; Google Ads &bull; AI voice/chat agents &bull; Smart lead routing &amp; dispatch &bull; Automated review management &bull; Dedicated strategist
+                    You'll leave with: A clear view of where AI fits &bull; The highest-value opportunities &bull; Key risks to manage &bull; A practical, prioritized place to start
                 </div>
 
                 <LeadCaptureForm />
@@ -29,15 +29,15 @@ const CTASection = () => {
                 <div className="flex flex-col md:flex-row justify-center items-center gap-6 md:gap-12 text-sm font-mono text-ghost-white/60">
                     <div className="flex items-center space-x-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-champagne"></span>
-                        <span>90-day deployment</span>
+                        <span>Practical</span>
                     </div>
                     <div className="flex items-center space-x-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-champagne"></span>
-                        <span>Managed 24/7</span>
+                        <span>Outcome-driven</span>
                     </div>
                     <div className="flex items-center space-x-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-champagne"></span>
-                        <span>PE-grade reporting</span>
+                        <span>Governed</span>
                     </div>
                 </div>
             </div>

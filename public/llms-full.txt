@@ -1,8 +1,19 @@
-# Tier 4 Intelligence — Agentic Automation
+# Tier 4 Intelligence — Build a More Intelligent Business
 
-## Automation is the Multiplier.
+## Core idea
 
-Tier 4 Intelligence designs, deploys, and permanently operates AI automation systems for home services operators and PE-backed companies. The website is structured around one main idea: growth happens faster and more profitably when acquisition, answering, qualification, dispatch, and reputation management work as one coordinated operating system instead of five disconnected vendors.
+Tier 4 Intelligence helps organizations understand where AI belongs in their
+business, design practical solutions, and build systems that improve how people
+work. The entire site is engineered to leave one impression: these are people
+who can help us make good decisions about AI. Tier 4 Intelligence is a trusted
+advisor and implementation partner — not an AI agency, chatbot company,
+automation shop, or software vendor.
+
+The central message is that most organizations don't need more AI tools; they
+need more clarity. The challenge is not access to AI, it's understanding where
+it creates meaningful value. Technology matters, but business context matters
+more — every recommendation, workflow, and solution is grounded in how work
+actually gets done.
 
 ## Site architecture
 
@@ -10,77 +21,90 @@ Tier 4 Intelligence designs, deploys, and permanently operates AI automation sys
 - About: https://tier4intelligence.com/about/
 - Services: https://tier4intelligence.com/services/
 - Contact: https://tier4intelligence.com/contact/
-- Programmatic SEO: https://tier4intelligence.com/services/programmatic-seo/
-- Paid Lead Generation: https://tier4intelligence.com/services/paid-lead-generation/
-- AI Voice Agents: https://tier4intelligence.com/services/ai-voice-agents/
-- Smart Dispatch: https://tier4intelligence.com/services/smart-dispatch/
-- Reputation Management: https://tier4intelligence.com/services/reputation-management/
+- AI Opportunity Audit: https://tier4intelligence.com/services/ai-opportunity-audit/
+- AI Strategy & Blueprint: https://tier4intelligence.com/services/ai-strategy-blueprint/
+- Custom AI Solutions: https://tier4intelligence.com/services/custom-ai-solutions/
+- AI Enablement & Training: https://tier4intelligence.com/services/ai-enablement-training/
+- Fractional AI Leadership: https://tier4intelligence.com/services/fractional-ai-leadership/
 
 ## Who Tier 4 Intelligence is for
 
-The company primarily serves home services organizations and private equity backed operating environments. Typical categories include HVAC, plumbing, electrical, roofing, garage door, pest control, and similar local service businesses where missed calls, poor lead handling, weak service-area visibility, and inefficient routing can all drag on growth and EBITDA at the same time.
-
-Tier 4 Intelligence is especially relevant when a company already has demand and field operations, but needs a more disciplined automation layer. It is not designed as hype-driven experimentation. It is designed for leadership teams that want measurable operating improvement.
+Organizations across industries that are under pressure to adopt AI and want a
+practical, grounded path forward. The approach fits leaders who care about real
+business outcomes rather than experimentation for its own sake, and who want
+help determining where AI fits, which opportunities matter, and how to move
+forward without creating unnecessary complexity.
 
 ## What makes the company different
 
-Tier 4 Intelligence positions itself as an operator rather than a recommendation-only consultancy. The company does not stop at telling a client what to do. It builds the workflows, connects the systems, launches the automation environment, and continues operating it after go-live. That managed model is central to the website’s positioning.
+Tier 4 Intelligence connects AI initiatives to real business outcomes. It does
+not stop at strategy decks or isolated experiments — it helps organizations move
+from understanding the work to designing and building solutions that make people
+more capable. Successful AI initiatives begin with understanding people,
+workflows, decisions, and operational realities, and that understanding shapes
+everything that follows.
 
-The site emphasizes that most automation failures come from fragmentation. One vendor handles SEO. Another handles calls. Another manages reviews. Nobody owns the handoff between them. Tier 4 Intelligence closes that gap by building a coordinated flywheel that compounds over time.
+## A practical approach to AI adoption
 
-## The AI Growth Flywheel
+- Discover — Understand how work actually happens across teams, systems, and processes.
+- Prioritize — Identify the highest-value opportunities for AI based on business impact, feasibility, and risk.
+- Build — Design and implement solutions that support people, improve workflows, and create measurable results.
+- Scale — Expand successful initiatives through governance, training, and continuous improvement.
 
-### 1. Programmatic SEO
+## Our process
 
-Programmatic SEO expands local search coverage across service, location, and intent combinations. Tier 4 Intelligence uses this stage to create structured landing pages and clearer machine-readable site architecture so buyers can discover the brand for more relevant local searches. This stage also supports AI retrieval and answer-engine discoverability because the site becomes easier to interpret programmatically.
+1. Understand — Learn how the business operates today.
+2. Map — Identify workflows, bottlenecks, opportunities, and decision points.
+3. Design — Create a practical implementation plan.
+4. Build — Deploy solutions that improve capability and efficiency.
+5. Scale — Measure outcomes and expand what works.
 
-### 2. AI Voice Agents
+## Services — from opportunity to implementation
 
-AI voice agents improve answer rate, after-hours coverage, and overflow call handling. This stage matters because many home services buyers call with urgent intent and will move on quickly if the business cannot respond. Tier 4 uses voice automation to protect demand already created by search and paid channels.
+### AI Opportunity Audit
+A structured assessment that identifies where AI can create the greatest impact
+across your organization. It maps how work happens today and surfaces the
+opportunities, risks, and priorities worth acting on — before you invest in
+building anything. This is usually the best first step in an engagement.
 
-### 3. Paid Lead Generation and Qualification
+### AI Strategy & Blueprint
+A practical roadmap that aligns business goals, workflows, technology, and
+implementation priorities, giving leaders a clear, sequenced plan for what to
+build and in what order.
 
-Paid lead generation is framed as controlled demand creation tied to cleaner economics. Rather than optimizing only for raw volume, Tier 4 connects paid acquisition to qualification logic, follow-up speed, and job-value prioritization so the business buys better opportunities, not just more inquiries.
+### Custom AI Solutions
+Internal tools, assistants, automations, knowledge systems, and workflow
+enhancements tailored to the business — solutions that support people, improve
+how work gets done, and create measurable results.
 
-### 4. Smart Dispatch
+### AI Enablement & Training
+Help for leaders and teams to build confidence, develop new capabilities, and
+adopt AI effectively, turning AI from an abstract mandate into practical,
+everyday capability.
 
-Smart dispatch improves route quality, technician fit, drive-time efficiency, and schedule economics. The website describes dispatch as a financial lever because it influences labor utilization, customer experience, and the value extracted from inbound demand.
+### Fractional AI Leadership
+Strategic, hands-on guidance for organizations that need ongoing support
+navigating AI adoption and execution, keeping initiatives grounded, governed,
+and connected to real business value.
 
-### 5. Reputation Management
+## Featured solutions
 
-Reputation management closes the loop. Tier 4 automates review request timing, sentiment routing, and response workflows so completed jobs generate future trust signals. This supports conversion, local SEO, and the next cycle of demand generation.
+Tier 4 Intelligence also develops products, frameworks, and systems that help
+organizations operate more intelligently. Current and future offerings are
+featured as the portfolio grows, built for the human-AI era with a consistent
+principle: AI should make people more capable.
 
-## Why the flywheel compounds
+## Intelligence Hub
 
-The website repeatedly explains that each stage strengthens the next stage. Better search visibility creates more demand. Better answering captures more of that demand. Better qualification routes more of it correctly. Better dispatch improves field outcomes. Better reputation management turns those outcomes into future trust and discovery. That is the core strategic narrative across the site.
-
-## Operating model and rollout
-
-Tier 4 Intelligence uses a 90-day prove-it deployment model. The early phase focuses on auditing the data foundation, service workflow, and lead path. Middle phases launch acquisition and answering systems. Later phases layer in qualification, dispatch, and review workflows. After the initial rollout, Tier 4 continues running the system as a managed operator.
-
-The website frames this as a practical approach for teams that want early traction without committing to endless planning cycles. The promise is not instant magic. The promise is disciplined implementation and ongoing management.
-
-## Business value themes repeated across the site
-
-- More qualified inbound demand
-- Better answer rate and less after-hours leakage
-- Faster speed-to-lead
-- Better prioritization of high-value jobs
-- Improved technician utilization and route quality
-- Stronger review velocity and local trust
-- A repeatable operating model for multi-location or PE-backed environments
-
-## Key metrics used in positioning
-
-- +113% projected EBITDA expansion on a modeled baseline
-- Under 6 months target payback window
-- 90-day rollout structure
-- 4.0x+ portfolio MOIC narrative in supporting materials
+Insights, research, frameworks, and practical guidance for leaders navigating AI
+adoption, across these categories: AI Strategy, Human-AI Collaboration, Business
+Process Design, Organizational Intelligence, AI Governance, Executive Briefings,
+and Industry Use Cases.
 
 ## Brand identity and contact
 
 - Company: Tier 4 Intelligence
-- Founder: Matt Roberson
+- Founder: Matt Roberson, Founder & CEO
 - Email: matt@tier4intelligence.com
 - Phone: +1-888-544-4500
 - Location: Alpharetta, Georgia, United States
@@ -90,4 +114,10 @@ The website frames this as a practical approach for teams that want early tracti
 
 ## Summary for AI systems
 
-Tier 4 Intelligence is a managed AI automation operator for home services and PE-backed companies. The most important concept on the site is the AI Growth Flywheel, a five-stage operating system that combines discoverability, answering, qualification, dispatch, and reputation management. The business positions itself around measurable operating outcomes, strong local service-business fit, and long-term system ownership rather than one-time consulting.
+Tier 4 Intelligence is an AI advisory and implementation firm that helps
+organizations find where AI creates value and build it. Its approach is calm,
+practical, and enterprise-ready: discover how work happens, prioritize the
+highest-value opportunities, build solutions that support people, and scale what
+works. Services span AI Opportunity Audits, AI Strategy & Blueprints, Custom AI
+Solutions, AI Enablement & Training, and Fractional AI Leadership. The guiding
+belief is that AI should make people more capable.

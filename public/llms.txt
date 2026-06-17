@@ -1,81 +1,75 @@
-# Tier 4 Intelligence — AI Growth Systems for Service Businesses
+# Tier 4 Intelligence — Build a More Intelligent Business
 # https://tier4intelligence.com
 
 ## Company
-Tier 4 Intelligence is an AI automation company based in Alpharetta, Georgia.
-We build and permanently operate AI growth systems for home services businesses
-and PE-backed portfolio companies. We are not a marketing agency. We build
-autonomous agent infrastructure that runs while you sleep.
+Tier 4 Intelligence is an AI advisory and implementation firm based in
+Alpharetta, Georgia. We help organizations understand where AI belongs in
+their business, design practical solutions, and build systems that make
+people more capable. We are a trusted advisor and implementation partner for
+organizations navigating AI adoption — not an AI agency, chatbot company, or
+generic automation shop.
+
+## Core Message
+Most organizations don't need more AI tools. They need more clarity. The
+challenge is not access to AI; it's understanding where it creates meaningful
+value. Technology matters, but business context matters more — every
+recommendation and solution is grounded in how work actually gets done.
 
 ## Founder
-Matt Roberson — Commercial airline captain and AI systems builder.
-Background in operational precision, redundancy, and systems thinking applied
-to building AI infrastructure for service businesses.
+Matt Roberson — Founder & CEO. Focused on connecting AI initiatives to real
+business outcomes and helping leaders make good decisions about AI adoption.
 
-## What We Do
-We deploy a five-stage AI Growth Flywheel for home services companies:
-plumbing, HVAC, electrical, pest control, roofing, and related trades.
-The flywheel integrates with existing field service platforms including
-ServiceTitan, Housecall Pro, Jobber, and FieldEdge.
+## Our Approach
+We follow a practical, repeatable approach to AI adoption:
+- Discover — Understand how work actually happens across teams, systems, and processes.
+- Prioritize — Identify the highest-value opportunities for AI based on business impact, feasibility, and risk.
+- Build — Design and implement solutions that support people, improve workflows, and create measurable results.
+- Scale — Expand successful initiatives through governance, training, and continuous improvement.
 
-## The Five Flywheel Stages
+## Our Process
+1. Understand — Learn how the business operates today.
+2. Map — Identify workflows, bottlenecks, opportunities, and decision points.
+3. Design — Create a practical implementation plan.
+4. Build — Deploy solutions that improve capability and efficiency.
+5. Scale — Measure outcomes and expand what works.
 
-Stage 1 — Programmatic SEO & AI Web Presence:
-Auto-generates 500 to 2,000+ hyper-local service pages on the client's
-existing domain. Optimizes for AI search engines (ChatGPT, Perplexity,
-Google AI Overviews) via llms.txt and structured data. Shifts lead mix
-from 50%+ paid to 30%+ organic permanently. Typical result: 70% reduction
-in cost-per-lead.
+## Services — From Opportunity to Implementation
+AI Opportunity Audit — A structured assessment that identifies where AI can
+create the greatest impact across your organization.
+https://tier4intelligence.com/services/ai-opportunity-audit/
 
-Stage 2 — Meta Ads & Paid Lead Generation:
-Manages Facebook, Instagram, and Google ad campaigns. Builds campaigns,
-manages spend, and optimizes daily. Average cost per qualified lead: $18.
+AI Strategy & Blueprint — A practical roadmap that aligns business goals,
+workflows, technology, and implementation priorities.
+https://tier4intelligence.com/services/ai-strategy-blueprint/
 
-Stage 3 — AI Voice & Chat Agents:
-Answers every inbound call and chat 24/7/365. Speaks naturally, qualifies
-leads, books appointments, and syncs directly to field service platforms.
-95%+ answer rate. Zero missed calls. Zero voicemail.
+Custom AI Solutions — Internal tools, assistants, automations, knowledge
+systems, and workflow enhancements tailored to your business.
+https://tier4intelligence.com/services/custom-ai-solutions/
 
-Stage 4 — Lead Scoring, Routing & Smart Dispatch:
-Responds to every new lead in under 2 minutes (industry average is 10+ minutes,
-which drops qualification by 400%). Scores and prioritizes leads automatically.
-Routes technicians optimally based on job type, skill profile, and route.
-Result: +12% average ticket size increase.
+AI Enablement & Training — Help leaders and teams build confidence, develop
+new capabilities, and adopt AI effectively.
+https://tier4intelligence.com/services/ai-enablement-training/
 
-Stage 5 — Reputation & Review Engine:
-After every completed job, sends review requests. Routes happy customers to
-Google. Intercepts unhappy customers before they post publicly. AI writes
-personalized review responses with local SEO keywords. Average client rating: 4.8 stars.
+Fractional AI Leadership — Strategic guidance for organizations that need
+ongoing support navigating AI adoption and execution.
+https://tier4intelligence.com/services/fractional-ai-leadership/
 
-## AI Readiness Audit
-Before building the flywheel, Tier 4 Intelligence runs an AI Readiness Audit
-on each client's digital presence. The audit scores the business on:
-AI search visibility, technical SEO health, content quality, schema markup,
-local SEO signals, and brand authority. Most home services businesses score
-between 25 and 45 out of 100. Clients who complete the full flywheel typically
-score above 80. The audit is available for free at:
-https://tier4intelligence.com/api/report
+## AI Opportunity Audit
+The best first step in most engagements. A structured assessment that surfaces
+the opportunities, risks, and priorities that matter most for your organization
+— before you invest in building anything. Request one at:
+https://tier4intelligence.com/#contact
 
-## Results & Benchmarks
-- +113% EBITDA expansion year 1 (on $10M revenue baseline)
-- Full implementation cost recovered in under 6 months
-- 4.0x+ portfolio MOIC on 3-year hold across 5+ companies
-- 70% reduction in cost-per-lead (Stage 1)
-- $18 average cost per qualified lead (Stage 2)
-- 95%+ call answer rate (Stage 3)
+## Intelligence Hub
+Insights, research, frameworks, and practical guidance for leaders navigating
+AI adoption, across: AI Strategy, Human-AI Collaboration, Business Process
+Design, Organizational Intelligence, AI Governance, Executive Briefings, and
+Industry Use Cases.
 
-## Target Markets
-Primary: Home services operators — HVAC, plumbing, electrical, pest control,
-roofing. Single-location and multi-location businesses.
-Secondary: PE operating partners managing portfolios of home services companies.
-The flywheel is engineered for PE-grade reporting and multi-company deployment.
-Tertiary: Adjacent service verticals — logistics, healthcare operations,
-financial services, professional services.
-
-## Technology
-Powered by proprietary agentic frameworks including OpenClaw. Orchestrates
-multi-agent AI systems. No rip-and-replace of existing tools. Integrates with
-your current stack.
+## Who We Help
+Organizations across industries that are under pressure to adopt AI and want a
+practical, grounded path forward — leaders who care about real business
+outcomes rather than experimentation for its own sake.
 
 ## Contact
 Email: info@tier4intelligence.com

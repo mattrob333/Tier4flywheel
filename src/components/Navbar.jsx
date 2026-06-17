@@ -48,7 +48,7 @@ const Navbar = () => {
 
                 {/* Links */}
                 <div className="hidden md:flex space-x-8 text-sm font-medium">
-                    {['The Flywheel', 'How It Works', 'Results', 'Contact'].map((link) => (
+                    {['Approach', 'Services', 'Why Us', 'Insights'].map((link) => (
                         <a
                             key={link}
                             href={`#${link.toLowerCase().replace(/ /g, '-')}`}
@@ -61,7 +61,7 @@ const Navbar = () => {
 
                 {/* CTA */}
                 <a href="#contact" className="inline-block magnetic-btn bg-brand-green text-white font-bold text-sm px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(94,192,138,0.3)]">
-                    Book a Call
+                    Start an Audit
                 </a>
             </nav>
         </div>

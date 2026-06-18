@@ -76,7 +76,7 @@ export function reportPrompt(t) {
 
 ${t.reportFraming}
 
-Return only JSON matching the requested schema. Include 5-8 recommendations sorted by impact then effort. Domains must stay in this order: ${t.domains.join(', ')}.`;
+Return only JSON matching the requested schema. Write concise plain text, not Markdown. Do not include URLs, citations, footnotes, or bracketed source links. Include 5-8 recommendations sorted by impact then effort. Domains must stay in this order: ${t.domains.join(', ')}.`;
 }
 
 export const followupPrompt =
@@ -106,13 +106,13 @@ export const reportSchema = {
   required: ['overall', 'band', 'execSummary', 'topFindings', 'domains', 'recommendations', 'roadmap', 'closing'],
   properties: {
     overall: { type: 'number', minimum: 1, maximum: 5 },
-    band: { type: 'string' },
-    execSummary: { type: 'string' },
+    band: { type: 'string', maxLength: 48 },
+    execSummary: { type: 'string', maxLength: 900 },
     topFindings: {
       type: 'array',
       minItems: 3,
       maxItems: 3,
-      items: { type: 'string' },
+      items: { type: 'string', maxLength: 220 },
     },
     domains: {
       type: 'array',
@@ -123,11 +123,11 @@ export const reportSchema = {
         additionalProperties: false,
         required: ['name', 'score', 'finding', 'meaning', 'rationale'],
         properties: {
-          name: { type: 'string' },
+          name: { type: 'string', maxLength: 80 },
           score: { type: 'number', minimum: 1, maximum: 5 },
-          finding: { type: 'string' },
-          meaning: { type: 'string' },
-          rationale: { type: 'string' },
+          finding: { type: 'string', maxLength: 420 },
+          meaning: { type: 'string', maxLength: 420 },
+          rationale: { type: 'string', maxLength: 520 },
         },
       },
     },
@@ -140,10 +140,10 @@ export const reportSchema = {
         additionalProperties: false,
         required: ['text', 'effort', 'impact', 'owner'],
         properties: {
-          text: { type: 'string' },
+          text: { type: 'string', maxLength: 220 },
           effort: { type: 'string', enum: ['Low', 'Med', 'High'] },
           impact: { type: 'string', enum: ['Low', 'Med', 'High'] },
-          owner: { type: 'string' },
+          owner: { type: 'string', maxLength: 80 },
         },
       },
     },
@@ -156,17 +156,17 @@ export const reportSchema = {
         additionalProperties: false,
         required: ['phase', 'title', 'items'],
         properties: {
-          phase: { type: 'string' },
-          title: { type: 'string' },
+          phase: { type: 'string', maxLength: 32 },
+          title: { type: 'string', maxLength: 120 },
           items: {
             type: 'array',
             minItems: 2,
             maxItems: 4,
-            items: { type: 'string' },
+            items: { type: 'string', maxLength: 180 },
           },
         },
       },
     },
-    closing: { type: 'string' },
+    closing: { type: 'string', maxLength: 420 },
   },
 };

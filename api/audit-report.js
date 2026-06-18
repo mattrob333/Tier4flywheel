@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       input,
       schema: reportSchema,
       schemaName: 'advisor_audit_report',
-      maxOutputTokens: 7000,
+      maxOutputTokens: 4000,
       reportModel: true,
     });
 

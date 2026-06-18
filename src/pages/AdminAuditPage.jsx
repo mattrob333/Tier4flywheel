@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
@@ -11,7 +11,7 @@ const STYLE = `
 .t4-wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px}
 .t4-mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 .t4-top{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--t4-line);padding-bottom:16px;margin-bottom:22px}
-.t4-brand-icon{width:34px;height:34px;object-fit:contain;flex:0 0 34px;filter:drop-shadow(0 0 14px rgba(94,192,138,.26))}
+.t4-brand-icon{width:44px;height:44px;object-fit:contain;flex:0 0 44px;filter:drop-shadow(0 0 16px rgba(94,192,138,.3))}
 .t4-top h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;color:#fff}
 .t4-top p{margin:0;font-size:12px;color:var(--t4-mut)}
 .t4-user{margin-left:auto;display:flex;align-items:center;gap:10px}
@@ -54,6 +54,7 @@ const STYLE = `
 .t4-qlist li{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px 14px 12px 44px;margin-bottom:8px;position:relative;font-size:14px}
 .t4-qlist li::before{counter-increment:q;content:counter(q);position:absolute;left:12px;top:12px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--t4-amber);background:var(--t4-panel2);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .t4-toast{font-size:12px;color:var(--t4-good);margin-left:8px}
+.t4-copybox{width:100%;min-height:130px;background:var(--t4-panel2);border:1px solid var(--t4-steel);color:var(--t4-txt);border-radius:var(--t4-r);padding:10px 12px;font-size:12px;font-family:"IBM Plex Mono",ui-monospace,monospace;line-height:1.45;margin-top:10px}
 .t4-rep-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
 .t4-score-big{text-align:center;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 22px;min-width:140px}
 .t4-score-big .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:40px;font-weight:700;color:var(--t4-good);line-height:1}
@@ -117,11 +118,47 @@ async function postJSON(path, payload, getAuthHeaders) {
 
 function CopyBtn({ text, label, icon: Icon = Clipboard }) {
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [manualCopy, setManualCopy] = useState(false);
+  const copyRef = useRef(null);
+
+  useEffect(() => {
+    if (!manualCopy || !copyRef.current) return;
+    copyRef.current.focus();
+    copyRef.current.select();
+  }, [manualCopy]);
 
   async function copy() {
-    await navigator.clipboard.writeText(text || '');
-    setDone(true);
-    window.setTimeout(() => setDone(false), 1800);
+    const value = text || '';
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = value;
+        el.setAttribute('readonly', '');
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        el.setSelectionRange(0, el.value.length);
+        const copied = document.execCommand('copy');
+        document.body.removeChild(el);
+        if (!copied) throw new Error('Clipboard command was blocked.');
+      }
+
+      setManualCopy(false);
+      setFailed(false);
+      setDone(true);
+      window.setTimeout(() => setDone(false), 1800);
+    } catch {
+      setDone(false);
+      setFailed(true);
+      setManualCopy(true);
+      window.setTimeout(() => setFailed(false), 2400);
+    }
   }
 
   return (
@@ -130,6 +167,16 @@ function CopyBtn({ text, label, icon: Icon = Clipboard }) {
         {Icon ? <Icon /> : null} {label}
       </button>
       {done && <span className="t4-toast">Copied</span>}
+      {failed && <span className="t4-toast" style={{ color: 'var(--t4-bad)' }}>Select text below and press Ctrl+C</span>}
+      {manualCopy && (
+        <textarea
+          ref={copyRef}
+          className="t4-copybox"
+          readOnly
+          value={text || ''}
+          onFocus={(event) => event.target.select()}
+        />
+      )}
     </>
   );
 }

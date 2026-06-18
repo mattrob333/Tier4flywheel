@@ -37,13 +37,12 @@ const Navbar = () => {
         "
             >
                 {/* Logo */}
-                <a href="#home" className="flex items-center space-x-2 cursor-pointer link-lift no-underline text-ghost-white">
-                    <span className="font-sans font-extrabold tracking-tight text-xl">
-                        TIER <span className="text-brand-green">4</span>
-                    </span>
-                    <span className="font-sans font-normal tracking-[0.15em] text-sm hidden md:inline-block">
-                        INTELLIGENCE
-                    </span>
+                <a href="#home" className="flex items-center cursor-pointer link-lift no-underline text-ghost-white shrink-0">
+                    <img
+                        src="/brand/tier4-logo-color-dark.svg"
+                        alt="Tier 4 Intelligence"
+                        className="h-9 w-auto max-w-[132px] object-contain"
+                    />
                 </a>
 
                 {/* Links */}

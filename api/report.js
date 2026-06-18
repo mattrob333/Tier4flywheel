@@ -80,7 +80,7 @@ async function runAudit(domain) {
     results.meta.allowsClaudeBot = rb.includes('ClaudeBot');
     results.meta.allowsPerplexity = rb.includes('PerplexityBot');
     results.meta.allowsGoogleExtended = rb.includes('Google-Extended');
-  } catch (e) {
+  } catch {
     results.meta.allowsGPTBot = false;
   }
 
@@ -88,7 +88,7 @@ async function runAudit(domain) {
   try {
     const r = await fetchUrl(`${url}/llms.txt`);
     results.meta.hasLlmsTxt = r.status === 200 && r.body.length > 50;
-  } catch (e) {
+  } catch {
     results.meta.hasLlmsTxt = false;
   }
 
@@ -96,7 +96,7 @@ async function runAudit(domain) {
   try {
     const r = await fetchUrl(`${url}/llms-full.txt`);
     results.meta.hasLlmsFullTxt = r.status === 200 && r.body.length > 50;
-  } catch (e) {
+  } catch {
     results.meta.hasLlmsFullTxt = false;
   }
 
@@ -105,7 +105,7 @@ async function runAudit(domain) {
     const r = await fetchUrl(`${url}/sitemap.xml`);
     const matches = r.body.match(/<loc>/g);
     results.meta.sitemapCount = matches ? matches.length : 0;
-  } catch (e) {
+  } catch {
     results.meta.sitemapCount = 0;
   }
 

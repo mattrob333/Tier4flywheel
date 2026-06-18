@@ -54,8 +54,9 @@ const Footer = () => {
                         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                         <span className="font-mono text-xs text-green-400 uppercase tracking-widest">Build a More Intelligent Business</span>
                     </div>
-                    <div className="font-sans text-xs text-ghost-white/30">
-                        &copy; {new Date().getFullYear()} Tier 4 Intelligence. Alpharetta, GA.
+                    <div className="flex flex-col md:flex-row items-center gap-3 font-sans text-xs text-ghost-white/30">
+                        <span>&copy; {new Date().getFullYear()} Tier 4 Intelligence. Alpharetta, GA.</span>
+                        <a href="/admin" className="hover:text-ghost-white/70 transition-colors">Advisor Login</a>
                     </div>
                 </div>
 

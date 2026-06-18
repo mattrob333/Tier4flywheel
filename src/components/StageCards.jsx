@@ -100,22 +100,19 @@ const MicroUI = ({ type }) => {
 
     if (type === 'solutions') {
         return (
-            <div className="bg-[#0F0F14] rounded-2xl p-6 border border-white/5 w-full max-w-sm ml-auto">
-                <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase mb-5">Workflow</div>
-                <div className="relative h-44">
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:22px_22px] rounded-lg"></div>
-                    <svg className="w-full h-full absolute inset-0 text-brand-green" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <path d="M 15 25 L 50 50 L 85 25 M 50 50 L 50 85" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" className="animate-[dash_4s_linear_infinite]" opacity="0.7" />
-                        <circle cx="15" cy="25" r="3.5" fill="currentColor" />
-                        <circle cx="85" cy="25" r="3.5" fill="currentColor" />
-                        <circle cx="50" cy="85" r="3.5" fill="currentColor" />
-                    </svg>
-                    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-green/15 border border-brand-green/40 rounded-lg px-3 py-2 text-center shadow-[0_0_20px_rgba(94,192,138,0.2)]">
-                        <div className="text-[10px] font-mono text-brand-green">AI ASSIST</div>
-                        <div className="text-xs text-white">in the loop</div>
-                    </div>
+            <div className="bg-[#0F0F14] rounded-2xl border border-white/10 w-full max-w-xl ml-auto overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                    <div className="font-mono text-xs tracking-widest text-ghost-white/50 uppercase">Pedigree Org Map</div>
+                    <div className="h-2 w-2 rounded-full bg-brand-green shadow-[0_0_14px_rgba(94,192,138,0.75)]"></div>
                 </div>
-                <div className="mt-4 text-xs text-ghost-white/60">People and systems, working together.</div>
+                <div className="relative aspect-[16/10] bg-navy-deep">
+                    <img
+                        src="/product/pedigree-org-map-dashboard.png"
+                        alt="Pedigree dashboard showing an organization map"
+                        className="h-full w-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-navy-deep/55 via-transparent to-transparent"></div>
+                </div>
             </div>
         );
     }
@@ -209,7 +206,7 @@ const StageCards = () => {
 
     return (
         <section ref={containerRef} id="services" className="relative w-full bg-[#0B1426] pb-32">
-            {STAGES_DATA.map((stage, i) => (
+            {STAGES_DATA.map((stage) => (
                 <div
                     key={stage.num}
                     ref={addToRefs}

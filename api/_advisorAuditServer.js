@@ -186,6 +186,12 @@ export async function createTextResponse({ instructions, input, maxOutputTokens 
 
 export function handleApiError(res, error, fallback = 'Request failed') {
   const status = error.statusCode || error.status || 500;
+  const errorCode =
+    error.message === 'Missing OPENAI_API_KEY'
+      ? 'OPENAI_API_KEY_MISSING'
+      : error.message === 'Missing CLERK_SECRET_KEY'
+        ? 'CLERK_SECRET_KEY_MISSING'
+        : undefined;
   const safeMessage =
     status >= 500 && process.env.NODE_ENV === 'production'
       ? fallback
@@ -195,5 +201,5 @@ export function handleApiError(res, error, fallback = 'Request failed') {
     console.error('[advisor-audit]', error);
   }
 
-  return res.status(status).json({ error: safeMessage });
+  return res.status(status).json({ error: safeMessage, ...(errorCode ? { errorCode } : {}) });
 }

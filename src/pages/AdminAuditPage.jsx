@@ -11,7 +11,7 @@ const STYLE = `
 .t4-wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px}
 .t4-mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 .t4-top{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--t4-line);padding-bottom:16px;margin-bottom:22px}
-.t4-badge{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:700;font-size:12px;letter-spacing:.12em;color:#fff;background:var(--t4-good);padding:4px 8px;border-radius:5px}
+.t4-brand-icon{width:34px;height:34px;object-fit:contain;flex:0 0 34px;filter:drop-shadow(0 0 14px rgba(94,192,138,.26))}
 .t4-top h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;color:#fff}
 .t4-top p{margin:0;font-size:12px;color:var(--t4-mut)}
 .t4-user{margin-left:auto;display:flex;align-items:center;gap:10px}
@@ -379,7 +379,7 @@ Looking forward to it.`
       <style>{STYLE}</style>
       <div className="t4-wrap">
         <div className="t4-top">
-          <span className="t4-badge">T4</span>
+          <img className="t4-brand-icon" src="/brand/tier4-icon-color.png" alt="Tier 4" />
           <div style={{ flex: 1 }}>
             <h1>Advisor Audit Pipeline</h1>
             <p>Tier 4 Intelligence | internal</p>

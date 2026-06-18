@@ -1,6 +1,7 @@
 import React from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton } from '@clerk/react';
-import { BarChart3, ClipboardList, Search } from 'lucide-react';
+import { ClipboardList, FolderOpen, Search } from 'lucide-react';
+import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 
 const STYLE = `
@@ -17,6 +18,7 @@ const STYLE = `
 .admin-sub{font-size:17px;line-height:1.7;color:rgba(240,242,245,.72);max-width:720px;margin:0}
 .admin-grid{display:grid;grid-template-columns:1fr;gap:18px}
 @media(min-width:760px){.admin-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:980px){.admin-grid{grid-template-columns:repeat(3,1fr)}}
 .admin-card{display:flex;flex-direction:column;gap:18px;text-decoration:none;color:inherit;background:rgba(26,31,46,.82);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:24px;min-height:240px;box-shadow:0 24px 70px rgba(0,0,0,.18);transition:.16s}
 .admin-card:hover{transform:translateY(-2px);border-color:rgba(94,192,138,.42);box-shadow:0 28px 90px rgba(94,192,138,.08)}
 .admin-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(94,192,138,.1);border:1px solid rgba(94,192,138,.28);color:#5EC08A}
@@ -56,13 +58,25 @@ function AdminDashboard({ devMode = false }) {
           <a className="admin-card" href="/admin/audit">
             <span className="admin-icon"><ClipboardList /></span>
             <div>
-              <h2>AI Advisor Audit</h2>
+              <h2>New AI Advisor Audit</h2>
               <p>
                 Research a prospect, generate tailored call questions, paste the transcript, and produce a scored AI
                 audit report with a follow-up email.
               </p>
             </div>
             <span className="admin-meta">Open audit pipeline</span>
+          </a>
+
+          <a className="admin-card" href="/admin/audits">
+            <span className="admin-icon"><FolderOpen /></span>
+            <div>
+              <h2>Saved Audits</h2>
+              <p>
+                Reopen advisor audit drafts and reports. Superuser access can review all advisor activity once
+                Supabase storage is connected.
+              </p>
+            </div>
+            <span className="admin-meta">Open audit history</span>
           </a>
 
           <a className="admin-card" href="/admin/seo-audit">
@@ -107,20 +121,22 @@ export default function AdminHomePage() {
   if (!clerkKey) return <MissingAuthConfig />;
 
   return (
-    <div className="admin-root">
-      <style>{STYLE}</style>
-      <ClerkLoaded>
-        <Show when="signed-out">
-          <div className="admin-auth">
-            <h1>Tier 4 advisor sign-in</h1>
-            <p>Sign in to access internal advisor tools.</p>
-            <SignIn routing="hash" />
-          </div>
-        </Show>
-        <Show when="signed-in">
-          <AdminDashboard />
-        </Show>
-      </ClerkLoaded>
-    </div>
+    <AdvisorGate>
+      <div className="admin-root">
+        <style>{STYLE}</style>
+        <ClerkLoaded>
+          <Show when="signed-out">
+            <div className="admin-auth">
+              <h1>Tier 4 advisor sign-in</h1>
+              <p>Sign in to access internal advisor tools.</p>
+              <SignIn routing="hash" />
+            </div>
+          </Show>
+          <Show when="signed-in">
+            <AdminDashboard />
+          </Show>
+        </ClerkLoaded>
+      </div>
+    </AdvisorGate>
   );
 }

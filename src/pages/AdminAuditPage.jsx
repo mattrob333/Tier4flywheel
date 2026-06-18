@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
+import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
 
@@ -84,6 +85,7 @@ const STYLE = `
 .t4-phase ul{margin:0;padding-left:18px;font-size:13px}
 .t4-emailbox{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 18px;white-space:pre-wrap;font-size:13px;margin-top:12px}
 .t4-note{font-size:12px;color:var(--t4-mut);margin-top:26px;border-top:1px solid var(--t4-line);padding-top:14px}
+.t4-save-note{font-size:12px;color:var(--t4-warn);margin:12px 0 0}
 .t4-typegrid{display:flex;flex-direction:column;gap:10px}
 .t4-typecard{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:14px 16px;cursor:pointer;transition:.15s;width:100%;font-family:inherit;color:var(--t4-txt)}
 .t4-typecard:hover{border-color:var(--t4-steel)}
@@ -100,10 +102,13 @@ const STYLE = `
 
 const STEPS = ['Client', 'Questions', 'Transcript', 'Report'];
 
+const getEmptyAuthHeaders = async () => ({});
+
 async function postJSON(path, payload, getAuthHeaders) {
   const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
   const res = await fetch(path, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...authHeaders,
@@ -114,6 +119,37 @@ async function postJSON(path, payload, getAuthHeaders) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Request failed.');
   return data;
+}
+
+async function getJSON(path, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    headers: authHeaders,
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+function auditRowToClient(row) {
+  return {
+    name: row.client_name || '',
+    url: row.client_url || '',
+    desc: row.client_desc || '',
+    typeKey: row.audit_type_key || 'discovery',
+    author: row.author_name || '',
+    typeName: row.audit_type_name || '',
+  };
+}
+
+function auditRowToResearch(row) {
+  if (!row.research && !Array.isArray(row.questions)) return null;
+  return {
+    research: row.research || '',
+    questions: Array.isArray(row.questions) ? row.questions : [],
+  };
 }
 
 function CopyBtn({ text, label, icon: Icon = Clipboard }) {
@@ -351,9 +387,13 @@ function Report({ rep, client, type }) {
 }
 
 function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
+  const initialAuditId = useMemo(() => new URLSearchParams(window.location.search).get('auditId') || '', []);
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(Boolean(initialAuditId));
   const [err, setErr] = useState('');
+  const [saveNote, setSaveNote] = useState('');
+  const [auditId, setAuditId] = useState(initialAuditId);
   const [client, setClient] = useState({
     name: '',
     url: '',
@@ -368,14 +408,52 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
 
   const type = getAuditType(client.typeKey);
 
+  useEffect(() => {
+    if (!initialAuditId) return;
+
+    let cancelled = false;
+    async function loadSavedAudit() {
+      setErr('');
+      setLoadingSaved(true);
+      try {
+        const data = await getJSON(`/api/advisor-audits?id=${encodeURIComponent(initialAuditId)}`, getAuthHeaders);
+        const row = data.audit;
+        if (!row || cancelled) return;
+
+        const nextResearch = auditRowToResearch(row);
+        setAuditId(row.id);
+        setClient(auditRowToClient(row));
+        setResearch(nextResearch);
+        setTranscript(row.transcript || '');
+        setReport(row.report || null);
+        setFollowup(row.followup_email || '');
+        setStep(row.report ? 4 : nextResearch ? 2 : 1);
+      } catch (error) {
+        if (!cancelled) setErr(error.message || 'Could not load that saved audit.');
+      } finally {
+        if (!cancelled) setLoadingSaved(false);
+      }
+    }
+
+    loadSavedAudit();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAuditId, getAuthHeaders]);
+
   function reset() {
     setStep(1);
+    setAuditId('');
     setClient({ name: '', url: '', desc: '', typeKey: 'discovery', author: '' });
     setResearch(null);
     setTranscript('');
     setReport(null);
     setFollowup('');
     setErr('');
+    setSaveNote('');
+    if (window.location.search.includes('auditId=')) {
+      window.history.replaceState(null, '', '/admin/audit');
+    }
   }
 
   async function runStep(action) {
@@ -390,10 +468,33 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     }
   }
 
+  async function saveAuditMilestone(status, patch = {}) {
+    try {
+      const payload = {
+        id: auditId || undefined,
+        client: { ...(patch.client || client), typeName: type.name },
+        research: patch.research === undefined ? research : patch.research,
+        transcript: patch.transcript === undefined ? transcript : patch.transcript,
+        report: patch.report === undefined ? report : patch.report,
+        followup: patch.followup === undefined ? followup : patch.followup,
+        status,
+      };
+      const saved = await postJSON('/api/advisor-audits', payload, getAuthHeaders);
+      if (saved.audit?.id) setAuditId(saved.audit.id);
+      setSaveNote('');
+      return saved.audit || null;
+    } catch (error) {
+      console.warn('[advisor-audit-save]', error);
+      setSaveNote('Generated, but audit history is not connected yet.');
+      return null;
+    }
+  }
+
   const doResearch = () =>
     runStep(async () => {
       const result = await postJSON('/api/audit-research', { client }, getAuthHeaders);
       setResearch(result);
+      await saveAuditMilestone('questions_ready', { research: result });
       setStep(2);
     });
 
@@ -402,6 +503,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       const result = await postJSON('/api/audit-report', { client, transcript }, getAuthHeaders);
       setReport(result);
       setFollowup('');
+      await saveAuditMilestone('report_ready', { report: result, followup: '' });
       setStep(4);
     });
 
@@ -409,6 +511,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     runStep(async () => {
       const result = await postJSON('/api/audit-followup', { client, report }, getAuthHeaders);
       setFollowup(result.email);
+      await saveAuditMilestone('followup_ready', { followup: result.email });
     });
 
   const clientNote = research
@@ -450,8 +553,16 @@ Looking forward to it.`
         </div>
 
         {err && <div className="t4-err">{err}</div>}
+        {saveNote && <div className="t4-save-note">{saveNote}</div>}
 
-        {busy && (
+        {loadingSaved && (
+          <div className="t4-load">
+            <div className="t4-spin" />
+            <p>Loading saved audit...</p>
+          </div>
+        )}
+
+        {busy && !loadingSaved && (
           <div className="t4-load">
             <div className="t4-spin" />
             <p>
@@ -464,7 +575,7 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && step === 1 && (
+        {!busy && !loadingSaved && step === 1 && (
           <div>
             <div className="t4-eyebrow">Step 1 | New Client</div>
             <h2 className="t4-h2">Who are we meeting?</h2>
@@ -551,7 +662,7 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && step === 2 && research && (
+        {!busy && !loadingSaved && step === 2 && research && (
           <div>
             <div className="t4-eyebrow">Step 2 | Your Call Questions</div>
             <h2 className="t4-h2">
@@ -586,7 +697,7 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && step === 3 && (
+        {!busy && !loadingSaved && step === 3 && (
           <div>
             <div className="t4-eyebrow">Step 3 | Paste The Transcript</div>
             <h2 className="t4-h2">Drop in the call transcript</h2>
@@ -613,7 +724,7 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && step === 4 && report && (
+        {!busy && !loadingSaved && step === 4 && report && (
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
             <Report rep={report} client={client} type={type} />
@@ -666,10 +777,10 @@ function MissingAuthConfig() {
 function ClerkAuditShell() {
   const { getToken } = useAuth();
 
-  const getAuthHeaders = async () => {
+  const getAuthHeaders = useCallback(async () => {
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  }, [getToken]);
 
   return (
     <AuditPipeline
@@ -688,7 +799,7 @@ export default function AdminAuditPage() {
   const devBypass = isAdvisorAuthBypass();
 
   if (devBypass) {
-    return <AuditPipeline devMode getAuthHeaders={async () => ({})} />;
+    return <AuditPipeline devMode getAuthHeaders={getEmptyAuthHeaders} />;
   }
 
   if (!clerkKey) {
@@ -696,20 +807,22 @@ export default function AdminAuditPage() {
   }
 
   return (
-    <div className="t4-root">
-      <style>{STYLE}</style>
-      <ClerkLoaded>
-        <Show when="signed-out">
-          <div className="t4-auth">
-            <h1>Tier 4 advisor sign-in</h1>
-            <p>Sign in to run internal AI audit workflows.</p>
-            <SignIn routing="hash" />
-          </div>
-        </Show>
-        <Show when="signed-in">
-          <ClerkAuditShell />
-        </Show>
-      </ClerkLoaded>
-    </div>
+    <AdvisorGate>
+      <div className="t4-root">
+        <style>{STYLE}</style>
+        <ClerkLoaded>
+          <Show when="signed-out">
+            <div className="t4-auth">
+              <h1>Tier 4 advisor sign-in</h1>
+              <p>Sign in to run internal AI audit workflows.</p>
+              <SignIn routing="hash" />
+            </div>
+          </Show>
+          <Show when="signed-in">
+            <ClerkAuditShell />
+          </Show>
+        </ClerkLoaded>
+      </div>
+    </AdvisorGate>
   );
 }

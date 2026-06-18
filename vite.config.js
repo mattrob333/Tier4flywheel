@@ -12,6 +12,10 @@ const apiHandlers = {
   '/api/audit-research': () => import('./api/audit-research.js'),
   '/api/audit-report': () => import('./api/audit-report.js'),
   '/api/audit-followup': () => import('./api/audit-followup.js'),
+  '/api/advisor-audits': () => import('./api/advisor-audits.js'),
+  '/api/advisor-gate': () => import('./api/advisor-gate/index.js'),
+  '/api/advisor-gate/status': () => import('./api/advisor-gate/status.js'),
+  '/api/advisor-gate/logout': () => import('./api/advisor-gate/logout.js'),
 }
 
 function createVercelLikeResponse(res) {
@@ -23,6 +27,10 @@ function createVercelLikeResponse(res) {
     json(payload) {
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify(payload))
+    },
+    setHeader(name, value) {
+      res.setHeader(name, value)
+      return this
     },
   }
 }

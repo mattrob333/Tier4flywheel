@@ -57,26 +57,47 @@ function listEnv(name) {
     .filter(Boolean);
 }
 
-async function assertAllowedEmail(userId) {
-  const allowedDomains = listEnv('AUDIT_ALLOWED_EMAIL_DOMAINS').map((x) => x.toLowerCase());
-  const allowedEmails = listEnv('AUDIT_ALLOWED_EMAILS').map((x) => x.toLowerCase());
-  if (!allowedDomains.length && !allowedEmails.length) return null;
+export function isAuditSuperuserEmail(email) {
+  if (!email) return false;
+  return listEnv('AUDIT_SUPERUSER_EMAILS')
+    .map((x) => x.toLowerCase())
+    .includes(String(email).toLowerCase());
+}
 
-  const user = await getClerk().users.getUser(userId);
+function getPrimaryEmail(user) {
   const primary =
     user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId) ||
     user.emailAddresses[0];
-  const email = primary?.emailAddress?.toLowerCase();
+  return primary?.emailAddress?.toLowerCase() || '';
+}
 
-  if (!email) {
+function getDisplayName(user) {
+  return [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || '';
+}
+
+async function getAdvisorProfile(userId) {
+  const user = await getClerk().users.getUser(userId);
+  return {
+    userId,
+    email: getPrimaryEmail(user),
+    name: getDisplayName(user),
+  };
+}
+
+function assertAllowedEmail(profile) {
+  const allowedDomains = listEnv('AUDIT_ALLOWED_EMAIL_DOMAINS').map((x) => x.toLowerCase());
+  const allowedEmails = listEnv('AUDIT_ALLOWED_EMAILS').map((x) => x.toLowerCase());
+  if (!allowedDomains.length && !allowedEmails.length) return;
+
+  if (!profile.email) {
     const err = new Error('No verified user email found.');
     err.statusCode = 403;
     throw err;
   }
 
-  const domain = email.split('@')[1] || '';
-  if (allowedEmails.includes(email) || allowedDomains.includes(domain)) {
-    return email;
+  const domain = profile.email.split('@')[1] || '';
+  if (allowedEmails.includes(profile.email) || allowedDomains.includes(domain)) {
+    return;
   }
 
   const err = new Error('This account is not allowed to use the advisor audit.');
@@ -90,7 +111,12 @@ export async function requireAdvisorAuth(req) {
     process.env.VERCEL_GIT_COMMIT_REF === 'test/advisor-audit-no-texture';
 
   if (process.env.AUDIT_AUTH_BYPASS === 'true' || isTestPreviewBypass) {
-    return { userId: 'local-dev', email: 'local-dev' };
+    return {
+      userId: 'local-dev',
+      email: 'local-dev@tier4intelligence.com',
+      name: 'Local Dev',
+      isSuperuser: true,
+    };
   }
 
   if (!process.env.CLERK_SECRET_KEY) {
@@ -119,8 +145,9 @@ export async function requireAdvisorAuth(req) {
     throw err;
   }
 
-  const email = await assertAllowedEmail(payload.sub);
-  return { userId: payload.sub, email };
+  const profile = await getAdvisorProfile(payload.sub);
+  assertAllowedEmail(profile);
+  return { ...profile, isSuperuser: isAuditSuperuserEmail(profile.email) };
 }
 
 export async function createStructuredResponse({
@@ -187,11 +214,12 @@ export async function createTextResponse({ instructions, input, maxOutputTokens 
 export function handleApiError(res, error, fallback = 'Request failed') {
   const status = error.statusCode || error.status || 500;
   const errorCode =
-    error.message === 'Missing OPENAI_API_KEY'
+    error.errorCode ||
+    (error.message === 'Missing OPENAI_API_KEY'
       ? 'OPENAI_API_KEY_MISSING'
       : error.message === 'Missing CLERK_SECRET_KEY'
         ? 'CLERK_SECRET_KEY_MISSING'
-        : undefined;
+        : undefined);
   const safeMessage =
     status >= 500 && process.env.NODE_ENV === 'production'
       ? fallback

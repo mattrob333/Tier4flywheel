@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton } from '@clerk/react';
 import { ArrowLeft, ExternalLink, Search } from 'lucide-react';
+import AdvisorGate from '../components/AdvisorGate';
 
 const STYLE = `
 .seo-root{min-height:100vh;background:#0B1426;color:#F0F2F5;font-family:Inter,system-ui,sans-serif}
@@ -124,20 +125,22 @@ export default function AdminSeoAuditPage() {
   if (!clerkKey) return <MissingAuthConfig />;
 
   return (
-    <div className="seo-root">
-      <style>{STYLE}</style>
-      <ClerkLoaded>
-        <Show when="signed-out">
-          <div className="seo-auth">
-            <h1>Tier 4 advisor sign-in</h1>
-            <p>Sign in to access the internal GEO audit launcher.</p>
-            <SignIn routing="hash" />
-          </div>
-        </Show>
-        <Show when="signed-in">
-          <SeoAuditTool />
-        </Show>
-      </ClerkLoaded>
-    </div>
+    <AdvisorGate>
+      <div className="seo-root">
+        <style>{STYLE}</style>
+        <ClerkLoaded>
+          <Show when="signed-out">
+            <div className="seo-auth">
+              <h1>Tier 4 advisor sign-in</h1>
+              <p>Sign in to access the internal GEO audit launcher.</p>
+              <SignIn routing="hash" />
+            </div>
+          </Show>
+          <Show when="signed-in">
+            <SeoAuditTool />
+          </Show>
+        </ClerkLoaded>
+      </div>
+    </AdvisorGate>
   );
 }

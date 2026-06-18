@@ -7,6 +7,7 @@ import App from './App.jsx'
 import AuditPage from './pages/AuditPage.jsx'
 import AdminHomePage from './pages/AdminHomePage.jsx'
 import AdminAuditPage from './pages/AdminAuditPage.jsx'
+import AdminAuditsPage from './pages/AdminAuditsPage.jsx'
 import AdminSeoAuditPage from './pages/AdminSeoAuditPage.jsx'
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -131,6 +132,7 @@ const routes = (
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/admin" element={<AdminHomePage />} />
         <Route path="/admin/audit" element={<AdminAuditPage />} />
+        <Route path="/admin/audits" element={<AdminAuditsPage />} />
         <Route path="/admin/seo-audit" element={<AdminSeoAuditPage />} />
       </Routes>
     </BrowserRouter>

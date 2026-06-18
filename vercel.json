@@ -85,6 +85,22 @@
     "api/audit-followup.js": {
       "maxDuration": 30,
       "memory": 1024
+    },
+    "api/advisor-audits.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/advisor-gate/index.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/advisor-gate/status.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/advisor-gate/logout.js": {
+      "maxDuration": 10,
+      "memory": 512
     }
   }
 }

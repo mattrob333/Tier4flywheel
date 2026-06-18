@@ -84,5 +84,7 @@ export function verifyGatePassword(password) {
     throw err;
   }
 
-  return safeEqual(password || '', expected);
+  const normalizedInput = String(password || '').trim();
+  const normalizedExpected = String(expected).trim().replace(/^["']|["']$/g, '');
+  return safeEqual(normalizedInput, normalizedExpected);
 }

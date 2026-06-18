@@ -1,6 +1,7 @@
 import React from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton } from '@clerk/react';
 import { BarChart3, ClipboardList, Search } from 'lucide-react';
+import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 
 const STYLE = `
 .admin-root{min-height:100vh;background:#0B1426;color:#F0F2F5;font-family:Inter,system-ui,sans-serif}
@@ -100,7 +101,7 @@ function MissingAuthConfig() {
 
 export default function AdminHomePage() {
   const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const devBypass = import.meta.env.VITE_AUDIT_AUTH_BYPASS === 'true';
+  const devBypass = isAdvisorAuthBypass();
 
   if (devBypass) return <AdminDashboard devMode />;
   if (!clerkKey) return <MissingAuthConfig />;

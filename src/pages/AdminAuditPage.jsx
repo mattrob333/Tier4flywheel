@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
+import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
 
 const STYLE = `
@@ -637,7 +638,7 @@ function ClerkAuditShell() {
 
 export default function AdminAuditPage() {
   const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const devBypass = import.meta.env.VITE_AUDIT_AUTH_BYPASS === 'true';
+  const devBypass = isAdvisorAuthBypass();
 
   if (devBypass) {
     return <AuditPipeline devMode getAuthHeaders={async () => ({})} />;

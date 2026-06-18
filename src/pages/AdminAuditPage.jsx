@@ -1,0 +1,667 @@
+import React, { useMemo, useState } from 'react';
+import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
+import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
+import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
+
+const STYLE = `
+:root{--t4-ink:#0B1426;--t4-panel:#1A1F2E;--t4-panel2:#0F172A;--t4-line:rgba(255,255,255,.1);--t4-txt:#F0F2F5;--t4-mut:rgba(240,242,245,.62);--t4-amber:#C9A84C;--t4-amber-dim:rgba(201,168,76,.76);--t4-steel:#5EC08A;--t4-good:#5EC08A;--t4-warn:#C9A84C;--t4-bad:#d66a6a;--t4-r:8px}
+.t4-root{background:var(--t4-ink);color:var(--t4-txt);min-height:100vh;font-family:Inter,system-ui,sans-serif;line-height:1.5}
+.t4-root *{box-sizing:border-box}
+.t4-wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px}
+.t4-mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.t4-top{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--t4-line);padding-bottom:16px;margin-bottom:22px}
+.t4-badge{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:700;font-size:12px;letter-spacing:.12em;color:#fff;background:var(--t4-good);padding:4px 8px;border-radius:5px}
+.t4-top h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;color:#fff}
+.t4-top p{margin:0;font-size:12px;color:var(--t4-mut)}
+.t4-user{margin-left:auto;display:flex;align-items:center;gap:10px}
+.t4-steps{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap}
+.t4-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t4-mut);padding:7px 12px;border:1px solid var(--t4-line);border-radius:20px}
+.t4-step .num{font-family:"IBM Plex Mono",ui-monospace,monospace;width:18px;height:18px;border-radius:50%;background:var(--t4-line);color:var(--t4-txt);display:flex;align-items:center;justify-content:center;font-size:11px}
+.t4-step.act{border-color:var(--t4-good);color:var(--t4-txt)}
+.t4-step.act .num{background:var(--t4-good);color:#fff}
+.t4-step.done .num{background:var(--t4-good);color:var(--t4-ink)}
+.t4-eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--t4-amber-dim);margin-bottom:8px}
+.t4-h2{font-size:24px;font-weight:700;margin:0 0 6px;color:#fff;letter-spacing:-.02em}
+.t4-sub{color:var(--t4-mut);font-size:14px;margin:0 0 24px;max-width:64ch}
+.t4-field{margin-bottom:18px}
+.t4-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.t4-field .hint{color:var(--t4-mut);font-weight:400;font-size:12px}
+.t4-input,.t4-area{width:100%;background:var(--t4-panel2);border:1px solid var(--t4-line);color:var(--t4-txt);border-radius:var(--t4-r);padding:10px 12px;font-size:14px;font-family:inherit}
+.t4-area{min-height:90px;resize:vertical;line-height:1.55}
+.t4-area.big{min-height:260px}
+.t4-input:focus,.t4-area:focus{outline:none;border-color:var(--t4-good)}
+.t4-row{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:600px){.t4-row{grid-template-columns:1fr 1fr}}
+.t4-btn,.t4-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--t4-r);cursor:pointer;font-family:inherit;transition:.15s;min-height:40px}
+.t4-btn{background:var(--t4-good);color:#fff;border:none;font-weight:700;font-size:14px;padding:11px 18px;box-shadow:0 0 24px rgba(94,192,138,.2)}
+.t4-btn:hover{background:#6dcc98}
+.t4-btn:disabled{opacity:.5;cursor:not-allowed}
+.t4-ghost{background:none;border:1px solid var(--t4-line);color:var(--t4-mut);font-size:13px;padding:9px 14px}
+.t4-ghost:hover{color:var(--t4-txt);border-color:var(--t4-steel)}
+.t4-btn svg,.t4-ghost svg{width:16px;height:16px}
+.t4-btnrow{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+.t4-load{text-align:center;padding:70px 0}
+.t4-spin{width:34px;height:34px;border:3px solid var(--t4-line);border-top-color:var(--t4-amber);border-radius:50%;margin:0 auto 18px;animation:t4spin 1s linear infinite}
+@keyframes t4spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion){.t4-spin{animation:none}}
+.t4-load p{color:var(--t4-mut);font-size:14px}
+.t4-err{background:var(--t4-panel);border:1px solid var(--t4-bad);border-left-width:3px;border-radius:var(--t4-r);padding:14px 16px;font-size:13px;margin:16px 0}
+.t4-brief{background:var(--t4-panel);border:1px solid var(--t4-line);border-left:3px solid var(--t4-steel);border-radius:0 var(--t4-r) var(--t4-r) 0;padding:14px 18px;margin-bottom:20px}
+.t4-brief .glab{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4-steel);margin-bottom:6px}
+.t4-brief p{font-size:14px;margin:0}
+.t4-qlist{counter-reset:q;list-style:none;padding:0;margin:0}
+.t4-qlist li{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px 14px 12px 44px;margin-bottom:8px;position:relative;font-size:14px}
+.t4-qlist li::before{counter-increment:q;content:counter(q);position:absolute;left:12px;top:12px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--t4-amber);background:var(--t4-panel2);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.t4-toast{font-size:12px;color:var(--t4-good);margin-left:8px}
+.t4-rep-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.t4-score-big{text-align:center;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 22px;min-width:140px}
+.t4-score-big .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:40px;font-weight:700;color:var(--t4-good);line-height:1}
+.t4-score-big .b{font-size:12px;color:var(--t4-mut);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
+.t4-sec{margin:24px 0}
+.t4-sec h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4-amber-dim);border-bottom:1px solid var(--t4-line);padding-bottom:8px;margin:0 0 14px;font-weight:700}
+.t4-gauge{display:flex;align-items:center;gap:10px;margin:6px 0}
+.t4-gauge .gn{font-size:13px;flex:1}
+.t4-bars{display:flex;gap:3px}
+.t4-pip{width:18px;height:8px;border-radius:2px;background:var(--t4-line)}
+.t4-pip.on{background:var(--t4-good)}
+.t4-gauge .gv{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;color:var(--t4-good);width:30px;text-align:right}
+.t4-finding{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:14px 16px;margin-bottom:10px}
+.t4-finding .ft{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:12px}
+.t4-finding h4{font-size:14px;margin:0;color:#fff;font-weight:700}
+.t4-finding p{font-size:13px;margin:4px 0}
+.t4-finding .lab{color:var(--t4-mut);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.t4-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.t4-tbl th{text-align:left;color:var(--t4-mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--t4-line)}
+.t4-tbl td{padding:9px 10px;border-bottom:1px solid var(--t4-line);vertical-align:top}
+.t4-tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
+.tag-High{background:rgba(95,179,126,.16);color:var(--t4-good)}
+.tag-Med{background:rgba(217,139,84,.16);color:var(--t4-warn)}
+.tag-Low{background:rgba(139,151,168,.16);color:var(--t4-mut)}
+.t4-phase{border-left:2px solid var(--t4-good);padding-left:16px;margin-bottom:16px}
+.t4-phase .pt{font-weight:700;font-size:14px;margin-bottom:6px;color:#fff}
+.t4-phase ul{margin:0;padding-left:18px;font-size:13px}
+.t4-emailbox{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 18px;white-space:pre-wrap;font-size:13px;margin-top:12px}
+.t4-note{font-size:12px;color:var(--t4-mut);margin-top:26px;border-top:1px solid var(--t4-line);padding-top:14px}
+.t4-typegrid{display:flex;flex-direction:column;gap:10px}
+.t4-typecard{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:14px 16px;cursor:pointer;transition:.15s;width:100%;font-family:inherit;color:var(--t4-txt)}
+.t4-typecard:hover{border-color:var(--t4-steel)}
+.t4-typecard.sel{border-color:var(--t4-good);background:rgba(94,192,138,.08)}
+.t4-typecard .tc-radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--t4-line);margin-top:3px;flex-shrink:0}
+.t4-typecard.sel .tc-radio{border-color:var(--t4-good);background:radial-gradient(circle,var(--t4-good) 0 5px,transparent 5px)}
+.t4-typecard .tc-name{font-size:15px;font-weight:700;color:#fff}
+.t4-typecard .tc-tag{font-size:12px;color:var(--t4-good);margin:2px 0 5px}
+.t4-typecard .tc-desc{font-size:12.5px;color:var(--t4-mut);line-height:1.5}
+.t4-auth{max-width:460px;margin:0 auto;padding:72px 20px;text-align:center}
+.t4-auth h1{font-size:24px;color:#fff;margin:0 0 8px}
+.t4-auth p{color:var(--t4-mut);font-size:14px;margin:0 0 22px}
+`;
+
+const STEPS = ['Client', 'Questions', 'Transcript', 'Report'];
+
+async function postJSON(path, payload, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+function CopyBtn({ text, label, icon: Icon = Clipboard }) {
+  const [done, setDone] = useState(false);
+
+  async function copy() {
+    await navigator.clipboard.writeText(text || '');
+    setDone(true);
+    window.setTimeout(() => setDone(false), 1800);
+  }
+
+  return (
+    <>
+      <button className="t4-ghost" type="button" onClick={copy} disabled={!text}>
+        {Icon ? <Icon /> : null} {label}
+      </button>
+      {done && <span className="t4-toast">Copied</span>}
+    </>
+  );
+}
+
+function Gauge({ name, score }) {
+  const value = Number(score) || 0;
+  return (
+    <div className="t4-gauge">
+      <span className="gn">{name}</span>
+      <span className="t4-bars">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span key={n} className={`t4-pip${n <= Math.round(value) ? ' on' : ''}`} />
+        ))}
+      </span>
+      <span className="gv">{value.toFixed(1)}</span>
+    </div>
+  );
+}
+
+function buildMarkdown(rep, client, type) {
+  return `# ${type.name} - ${client.name}
+Overall: ${Number(rep.overall).toFixed(1)}/5 - ${rep.band}
+
+## Executive Summary
+${rep.execSummary}
+
+Top findings:
+${(rep.topFindings || []).map((f) => `- ${f}`).join('\n')}
+
+## Scorecard
+${(rep.domains || []).map((d) => `- ${d.name}: ${d.score}/5`).join('\n')}
+
+## Findings
+${(rep.domains || [])
+  .map((d) => `### ${d.name} - ${d.score}/5
+${d.finding}
+Means: ${d.meaning}
+Why: ${d.rationale}`)
+  .join('\n\n')}
+
+## Recommendations
+${(rep.recommendations || [])
+  .map((x, i) => `${i + 1}. ${x.text} [${x.effort}/${x.impact}] - ${x.owner}`)
+  .join('\n')}
+
+## 90-Day Roadmap
+${(rep.roadmap || [])
+  .map((p) => `${p.phase} - ${p.title}
+${(p.items || []).map((it) => `  - ${it}`).join('\n')}`)
+  .join('\n')}
+
+${rep.closing}`;
+}
+
+function Report({ rep, client, type }) {
+  const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
+
+  return (
+    <div>
+      <div className="t4-rep-head">
+        <div>
+          <div className="t4-eyebrow">
+            {client.name} | {new Date().toLocaleDateString()}
+          </div>
+          <h2 className="t4-h2">{type.name}</h2>
+          <p className="t4-sub" style={{ marginBottom: 0 }}>
+            Prepared by {client.author || 'Tier 4 Intelligence'}
+          </p>
+        </div>
+        <div className="t4-score-big">
+          <div className="n">{Number(rep.overall).toFixed(1)}</div>
+          <div className="b">{rep.band}</div>
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Executive Summary</h3>
+        <p style={{ fontSize: 14 }}>{rep.execSummary}</p>
+        <ol style={{ fontSize: 13, paddingLeft: 18, marginTop: 10 }}>
+          {(rep.topFindings || []).map((f, k) => (
+            <li key={k} style={{ margin: '4px 0' }}>
+              {f}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Scorecard</h3>
+        {(rep.domains || []).map((d, k) => (
+          <Gauge key={k} name={d.name} score={d.score} />
+        ))}
+      </div>
+
+      <div className="t4-sec">
+        <h3>Domain Findings</h3>
+        {(rep.domains || []).map((d, k) => (
+          <div className="t4-finding" key={k}>
+            <div className="ft">
+              <h4>{d.name}</h4>
+              <span className="t4-tag tag-Med">{d.score}/5</span>
+            </div>
+            <p>{d.finding}</p>
+            <p>
+              <span className="lab">Means | </span>
+              {d.meaning}
+            </p>
+            <p style={{ color: 'var(--t4-mut)' }}>
+              <span className="lab">Why | </span>
+              {d.rationale}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="t4-sec">
+        <h3>Recommendations</h3>
+        <table className="t4-tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Action</th>
+              <th>Effort</th>
+              <th>Impact</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(rep.recommendations || []).map((r, k) => (
+              <tr key={k}>
+                <td className="t4-mono">{k + 1}</td>
+                <td>{r.text}</td>
+                <td>
+                  <span className={`t4-tag tag-${r.effort}`}>{r.effort}</span>
+                </td>
+                <td>
+                  <span className={`t4-tag tag-${r.impact}`}>{r.impact}</span>
+                </td>
+                <td style={{ color: 'var(--t4-mut)' }}>{r.owner}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="t4-sec">
+        <h3>90-Day Roadmap</h3>
+        {(rep.roadmap || []).map((p, k) => (
+          <div className="t4-phase" key={k}>
+            <div className="pt">
+              {p.phase} - {p.title}
+            </div>
+            <ul>
+              {(p.items || []).map((it, j) => (
+                <li key={j}>{it}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="t4-sec">
+        <h3>Closing</h3>
+        <p style={{ fontSize: 14 }}>{rep.closing}</p>
+      </div>
+
+      <div className="t4-btnrow">
+        <CopyBtn text={markdown} label="Copy report as Markdown" />
+      </div>
+    </div>
+  );
+}
+
+function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
+  const [step, setStep] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [client, setClient] = useState({
+    name: '',
+    url: '',
+    desc: '',
+    typeKey: 'discovery',
+    author: '',
+  });
+  const [research, setResearch] = useState(null);
+  const [transcript, setTranscript] = useState('');
+  const [report, setReport] = useState(null);
+  const [followup, setFollowup] = useState('');
+
+  const type = getAuditType(client.typeKey);
+
+  function reset() {
+    setStep(1);
+    setClient({ name: '', url: '', desc: '', typeKey: 'discovery', author: '' });
+    setResearch(null);
+    setTranscript('');
+    setReport(null);
+    setFollowup('');
+    setErr('');
+  }
+
+  async function runStep(action) {
+    setErr('');
+    setBusy(true);
+    try {
+      await action();
+    } catch (error) {
+      setErr(error.message || 'Something went wrong. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const doResearch = () =>
+    runStep(async () => {
+      const result = await postJSON('/api/audit-research', { client }, getAuthHeaders);
+      setResearch(result);
+      setStep(2);
+    });
+
+  const doReport = () =>
+    runStep(async () => {
+      const result = await postJSON('/api/audit-report', { client, transcript }, getAuthHeaders);
+      setReport(result);
+      setFollowup('');
+      setStep(4);
+    });
+
+  const doFollowup = () =>
+    runStep(async () => {
+      const result = await postJSON('/api/audit-followup', { client, report }, getAuthHeaders);
+      setFollowup(result.email);
+    });
+
+  const clientNote = research
+    ? `Hi there,
+
+Ahead of our conversation, here are the areas we'll cover. No prep required; we'll walk through them together.
+
+${research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+Looking forward to it.`
+    : '';
+
+  return (
+    <div className="t4-root">
+      <style>{STYLE}</style>
+      <div className="t4-wrap">
+        <div className="t4-top">
+          <span className="t4-badge">T4</span>
+          <div style={{ flex: 1 }}>
+            <h1>Advisor Audit Pipeline</h1>
+            <p>Tier 4 Intelligence | internal</p>
+          </div>
+          {devMode && <span className="t4-tag tag-Med">Dev bypass</span>}
+          {step > 1 && (
+            <button className="t4-ghost" type="button" onClick={reset}>
+              <RotateCcw /> Start over
+            </button>
+          )}
+          {userSlot}
+        </div>
+
+        <div className="t4-steps">
+          {STEPS.map((s, i) => (
+            <div key={s} className={`t4-step${step === i + 1 ? ' act' : step > i + 1 ? ' done' : ''}`}>
+              <span className="num">{step > i + 1 ? 'ok' : i + 1}</span>
+              {s}
+            </div>
+          ))}
+        </div>
+
+        {err && <div className="t4-err">{err}</div>}
+
+        {busy && (
+          <div className="t4-load">
+            <div className="t4-spin" />
+            <p>
+              {step === 1
+                ? 'Researching the company and writing tailored questions...'
+                : step === 3
+                  ? 'Reading the call and scoring the report...'
+                  : 'Working...'}
+            </p>
+          </div>
+        )}
+
+        {!busy && step === 1 && (
+          <div>
+            <div className="t4-eyebrow">Step 1 | New Client</div>
+            <h2 className="t4-h2">Who are we meeting?</h2>
+            <p className="t4-sub">
+              Enter whatever you have. Name plus a URL or a sentence is enough. The tool researches them and builds the
+              questions you'll lead the call with.
+            </p>
+
+            <div className="t4-row">
+              <div className="t4-field">
+                <label>Company name</label>
+                <input
+                  className="t4-input"
+                  value={client.name}
+                  onChange={(e) => setClient({ ...client, name: e.target.value })}
+                  placeholder="e.g. Acme Distributors"
+                />
+              </div>
+              <div className="t4-field">
+                <label>
+                  Website <span className="hint">optional</span>
+                </label>
+                <input
+                  className="t4-input"
+                  value={client.url}
+                  onChange={(e) => setClient({ ...client, url: e.target.value })}
+                  placeholder="acme.com"
+                />
+              </div>
+            </div>
+
+            <div className="t4-field">
+              <label>
+                Anything you know <span className="hint">optional - a sentence helps</span>
+              </label>
+              <textarea
+                className="t4-area"
+                value={client.desc}
+                onChange={(e) => setClient({ ...client, desc: e.target.value })}
+                placeholder="Who they are, why they reached out, who you're meeting..."
+              />
+            </div>
+
+            <div className="t4-field">
+              <label>
+                Your name <span className="hint">signs the report</span>
+              </label>
+              <input
+                className="t4-input"
+                value={client.author}
+                onChange={(e) => setClient({ ...client, author: e.target.value })}
+                placeholder="e.g. Matt"
+              />
+            </div>
+
+            <div className="t4-field">
+              <label>
+                Audit type <span className="hint">pick the conversation that fits this prospect</span>
+              </label>
+              <div className="t4-typegrid">
+                {Object.entries(AUDIT_TYPES).map(([key, item]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`t4-typecard${client.typeKey === key ? ' sel' : ''}`}
+                    onClick={() => setClient({ ...client, typeKey: key })}
+                  >
+                    <div className="tc-radio" />
+                    <div>
+                      <div className="tc-name">{item.name}</div>
+                      <div className="tc-tag">{item.tagline}</div>
+                      <div className="tc-desc">{item.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="t4-btnrow">
+              <button className="t4-btn" type="button" disabled={!client.name.trim()} onClick={doResearch}>
+                Research & build questions <ArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!busy && step === 2 && research && (
+          <div>
+            <div className="t4-eyebrow">Step 2 | Your Call Questions</div>
+            <h2 className="t4-h2">
+              {client.name} - {type.name}
+            </h2>
+            <p className="t4-sub">
+              Lead the call with these. Ask, then listen. Send them to the client beforehand if you like so they can come
+              prepared.
+            </p>
+
+            <div className="t4-brief">
+              <div className="glab">What we found</div>
+              <p>{research.research}</p>
+            </div>
+
+            <ol className="t4-qlist">
+              {research.questions.map((q, k) => (
+                <li key={k}>{q}</li>
+              ))}
+            </ol>
+
+            <div className="t4-btnrow">
+              <CopyBtn text={research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')} label="Copy questions" />
+              <CopyBtn text={clientNote} label="Copy client-ready version" />
+              <button className="t4-ghost" type="button" onClick={doResearch}>
+                <RefreshCw /> Regenerate
+              </button>
+              <button className="t4-btn" type="button" onClick={() => setStep(3)}>
+                I've had the call <ArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!busy && step === 3 && (
+          <div>
+            <div className="t4-eyebrow">Step 3 | Paste The Transcript</div>
+            <h2 className="t4-h2">Drop in the call transcript</h2>
+            <p className="t4-sub">
+              Paste the full transcript from Fireflies, Google Meet, or Teams. The tool reads it, scores each area, and
+              writes the report.
+            </p>
+            <div className="t4-field">
+              <textarea
+                className="t4-area big"
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder="Paste the full call transcript here..."
+              />
+            </div>
+            <div className="t4-btnrow">
+              <button className="t4-ghost" type="button" onClick={() => setStep(2)}>
+                <ArrowLeft /> Back to questions
+              </button>
+              <button className="t4-btn" type="button" disabled={transcript.trim().length < 40} onClick={doReport}>
+                Generate audit report <ArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!busy && step === 4 && report && (
+          <div>
+            <div className="t4-eyebrow">Step 4 | Report</div>
+            <Report rep={report} client={client} type={type} />
+            <div className="t4-sec">
+              <h3>Post-Call Email</h3>
+              {followup ? (
+                <>
+                  <div className="t4-emailbox">{followup}</div>
+                  <div className="t4-btnrow">
+                    <CopyBtn text={followup} label="Copy email" icon={Mail} />
+                    <button className="t4-ghost" type="button" onClick={doFollowup}>
+                      <RefreshCw /> Redraft
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="t4-btnrow">
+                  <button className="t4-ghost" type="button" onClick={doFollowup}>
+                    <Mail /> Draft a follow-up email
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="t4-note">
+          Drafts are starting points, not final deliverables or legal advice. Review the report and confirm scores
+          against the transcript before anything goes to the client.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MissingAuthConfig() {
+  return (
+    <div className="t4-root">
+      <style>{STYLE}</style>
+      <div className="t4-auth">
+        <h1>Advisor audit is not configured yet</h1>
+        <p>
+          Add Clerk keys or set <span className="t4-mono">VITE_AUDIT_AUTH_BYPASS=true</span> for local UI testing.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ClerkAuditShell() {
+  const { getToken } = useAuth();
+
+  const getAuthHeaders = async () => {
+    const token = await getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  return (
+    <AuditPipeline
+      getAuthHeaders={getAuthHeaders}
+      userSlot={
+        <div className="t4-user">
+          <UserButton afterSignOutUrl="/admin/audit" />
+        </div>
+      }
+    />
+  );
+}
+
+export default function AdminAuditPage() {
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const devBypass = import.meta.env.VITE_AUDIT_AUTH_BYPASS === 'true';
+
+  if (devBypass) {
+    return <AuditPipeline devMode getAuthHeaders={async () => ({})} />;
+  }
+
+  if (!clerkKey) {
+    return <MissingAuthConfig />;
+  }
+
+  return (
+    <div className="t4-root">
+      <style>{STYLE}</style>
+      <ClerkLoaded>
+        <Show when="signed-out">
+          <div className="t4-auth">
+            <h1>Tier 4 advisor sign-in</h1>
+            <p>Sign in to run internal AI audit workflows.</p>
+            <SignIn routing="hash" />
+          </div>
+        </Show>
+        <Show when="signed-in">
+          <ClerkAuditShell />
+        </Show>
+      </ClerkLoaded>
+    </div>
+  );
+}

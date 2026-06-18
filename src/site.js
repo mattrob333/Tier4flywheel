@@ -81,7 +81,7 @@ const wireLeadForms = () => {
           'success',
           'Request received. Tier 4 Intelligence will follow up shortly.',
         )
-      } catch (error) {
+      } catch {
         setFormStatus(
           statusElement,
           'error',

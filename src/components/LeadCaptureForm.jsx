@@ -39,7 +39,7 @@ const LeadCaptureForm = () => {
             } else {
                 setStatus('error');
             }
-        } catch (error) {
+        } catch {
             setStatus('error');
         }
     };

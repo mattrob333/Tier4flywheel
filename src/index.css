@@ -45,3 +45,34 @@
     transform: translateY(-1px);
   }
 }
+
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverMain,
+.cl-userButtonPopoverFooter,
+.cl-userProfileModalCard,
+.cl-userProfileModalContent {
+  background: #1A1F2E !important;
+  color: #F0F2F5 !important;
+}
+
+.cl-userButtonPopoverActionButton,
+.cl-userButtonPopoverActionButtonText,
+.cl-userButtonPopoverActionButtonIcon {
+  color: #F0F2F5 !important;
+}
+
+.cl-userButtonPopoverActionButton:hover {
+  background: rgba(94, 192, 138, 0.1) !important;
+}
+
+.cl-userProfileModalContent,
+.cl-userProfileModalCard {
+  width: min(92vw, 760px) !important;
+  max-width: 760px !important;
+}
+
+.cl-userProfile-root,
+.cl-userProfile-root .cl-cardBox {
+  width: 100% !important;
+  max-width: 760px !important;
+}

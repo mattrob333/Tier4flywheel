@@ -10,7 +10,7 @@ import { URL } from 'url';
 const cache = new Map();
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-function fetchUrl(url, options = {}) {
+function fetchUrl(url, options = {}, redirectCount = 0) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const lib = parsed.protocol === 'https:' ? https : http;
@@ -21,9 +21,17 @@ function fetchUrl(url, options = {}) {
       },
       timeout: 8000
     }, (res) => {
+      const location = res.headers.location;
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && location && redirectCount < 5) {
+        res.resume();
+        const nextUrl = new URL(location, url).toString();
+        resolve(fetchUrl(nextUrl, options, redirectCount + 1));
+        return;
+      }
+
       let data = '';
       res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve({ status: res.statusCode, body: data, headers: res.headers }));
+      res.on('end', () => resolve({ status: res.statusCode, body: data, headers: res.headers, finalUrl: url }));
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
@@ -38,7 +46,12 @@ async function runAudit(domain) {
   let pageRes;
   try {
     pageRes = await fetchUrl(url);
+    if (pageRes.status >= 400) {
+      throw new Error(`HTTP ${pageRes.status}`);
+    }
+
     const html = pageRes.body;
+    results.url = pageRes.finalUrl || url;
 
     // Title
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -111,6 +124,23 @@ async function runAudit(domain) {
 
   // SCORING
   const m = results.meta;
+
+  if (m.fetchError) {
+    results.scores = {
+      citability: { score: 0, max: 25 },
+      brand: { score: 0, max: 20 },
+      content: { score: 0, max: 20 },
+      technical: { score: 0, max: 15 },
+      schema: { score: 0, max: 10 },
+      platform: { score: 0, max: 10 },
+    };
+    results.total = 0;
+    results.issues.push({
+      severity: 'critical',
+      text: `The audit could not crawl the homepage (${m.fetchError}). Confirm the domain is live and publicly reachable before trusting this score.`,
+    });
+    return results;
+  }
 
   // 1. AI Citability (25)
   let cit = 0;

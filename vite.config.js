@@ -13,6 +13,7 @@ const apiHandlers = {
   '/api/audit-report': () => import('./api/audit-report.js'),
   '/api/audit-followup': () => import('./api/audit-followup.js'),
   '/api/advisor-audits': () => import('./api/advisor-audits.js'),
+  '/api/report': () => import('./api/report.js'),
   '/api/advisor-gate': () => import('./api/advisor-gate/index.js'),
   '/api/advisor-gate/status': () => import('./api/advisor-gate/status.js'),
   '/api/advisor-gate/logout': () => import('./api/advisor-gate/logout.js'),
@@ -27,6 +28,9 @@ function createVercelLikeResponse(res) {
     json(payload) {
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify(payload))
+    },
+    send(payload) {
+      res.end(payload)
     },
     setHeader(name, value) {
       res.setHeader(name, value)
@@ -51,6 +55,7 @@ export default defineConfig(({ mode }) => {
 
             try {
               const mod = await loadHandler()
+              req.query = Object.fromEntries(new URL(req.url || '/', 'http://localhost').searchParams.entries())
               await mod.default(req, createVercelLikeResponse(res))
             } catch (error) {
               console.error('[local-api]', error)

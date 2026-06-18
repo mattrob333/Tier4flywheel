@@ -40,7 +40,7 @@ const clerkAppearance = {
     },
     cardBox: {
       width: '100%',
-      maxWidth: '400px',
+      maxWidth: 'min(92vw, 720px)',
       backgroundColor: '#1A1F2E',
       border: '1px solid rgba(255,255,255,.12)',
       boxShadow: '0 28px 90px rgba(0,0,0,.38)',
@@ -120,6 +120,43 @@ const clerkAppearance = {
     },
     formResendCodeLink: {
       color: '#5EC08A',
+    },
+    userButtonPopoverCard: {
+      backgroundColor: '#1A1F2E',
+      border: '1px solid rgba(255,255,255,.12)',
+      boxShadow: '0 24px 80px rgba(0,0,0,.45)',
+      color: '#F0F2F5',
+      minWidth: '340px',
+    },
+    userButtonPopoverActionButton: {
+      color: '#F0F2F5',
+    },
+    userButtonPopoverActionButtonText: {
+      color: '#F0F2F5',
+      fontWeight: 700,
+    },
+    userButtonPopoverActionButtonIcon: {
+      color: 'rgba(240,242,245,.68)',
+    },
+    userButtonPopoverFooter: {
+      backgroundColor: '#1A1F2E',
+      borderTop: '1px solid rgba(255,255,255,.08)',
+    },
+    userButtonPopoverMain: {
+      backgroundColor: '#1A1F2E',
+    },
+    userProfileModalContent: {
+      width: 'min(92vw, 760px)',
+      maxWidth: '760px',
+    },
+    userProfileModalCard: {
+      width: 'min(92vw, 760px)',
+      maxWidth: '760px',
+      backgroundColor: '#1A1F2E',
+      color: '#F0F2F5',
+    },
+    userProfileRoot: {
+      width: '100%',
     },
   },
 }

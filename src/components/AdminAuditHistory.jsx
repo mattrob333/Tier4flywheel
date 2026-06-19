@@ -89,7 +89,7 @@ function safeFileName(value) {
 }
 
 function scoreLabel(audit) {
-  const score = Number(audit.overall_score ?? audit.report?.overall);
+  const score = Number(audit.overall_score ?? audit.report?.client_report?.overall ?? audit.report?.overall);
   const scale = Number(audit.report?.score_scale || (audit.audit_type_key === 'geo' ? 100 : 5));
   if (!Number.isFinite(score)) return '-';
   if (scale === 100) return `${Math.round(score)}/100`;
@@ -199,27 +199,35 @@ function buildReportText(audit) {
       .trim();
   }
 
+  // Client-facing export. New reports nest the client layer under client_report;
+  // legacy reports are flat. Never export the advisor_intelligence layer.
+  const r = report.client_report && typeof report.client_report === 'object' ? report.client_report : report;
+  const execSummary = r.executive_summary || r.execSummary || '';
+  const topFindings = r.top_findings || r.topFindings || [];
+  const scorecard = r.scorecard || r.domains || [];
+
   const sections = [
     `# ${audit.client_name || 'Advisor Audit'} - ${typeLabel(audit)}`,
     '',
     `Advisor: ${audit.owner_name || audit.owner_email || '-'}`,
     `Sales stage: ${salesStageLabel(salesStageValue(audit))}`,
-    `Score: ${scoreLabel(audit)}${report.band ? ` (${report.band})` : ''}`,
-    report.executive_summary ? `\n## Executive Summary\n${report.executive_summary}` : '',
-    report.business_risk ? `\n## Business Risk\n${report.business_risk}` : '',
-    report.primary_opportunity ? `\n## Primary Opportunity\n${report.primary_opportunity}` : '',
-    Array.isArray(report.topFindings) && report.topFindings.length
-      ? `\n## Top Findings\n${listText(report.topFindings)}`
+    `Score: ${scoreLabel(audit)}${r.band ? ` (${r.band})` : ''}`,
+    execSummary ? `\n## Executive Summary\n${execSummary}` : '',
+    r.business_risk ? `\n## Business Risk\n${r.business_risk}` : '',
+    Array.isArray(topFindings) && topFindings.length ? `\n## Top Findings\n${listText(topFindings)}` : '',
+    Array.isArray(scorecard) && scorecard.length
+      ? `\n## Scorecard\n${scorecard
+          .map((d) => `- ${d.name || 'Domain'}: ${d.score ?? '-'}/5`)
+          .join('\n')}`
       : '',
-    Array.isArray(report.recommendations) && report.recommendations.length
-      ? `\n## Recommendations\n${report.recommendations
+    Array.isArray(r.recommendations) && r.recommendations.length
+      ? `\n## Recommendations\n${r.recommendations
           .map((rec) => {
             if (typeof rec === 'string') return `- ${rec}`;
             return [
               `### ${rec.title || 'Recommendation'}`,
               rec.client_action ? `Client action: ${rec.client_action}` : '',
               rec.business_reason ? `Business reason: ${rec.business_reason}` : '',
-              rec.internal_solution_mapping ? `Internal mapping: ${rec.internal_solution_mapping}` : '',
               rec.impact ? `Impact: ${rec.impact}` : '',
               rec.effort ? `Effort: ${rec.effort}` : '',
               rec.owner ? `Owner: ${rec.owner}` : '',
@@ -229,12 +237,12 @@ function buildReportText(audit) {
           })
           .join('\n\n')}`
       : '',
-    report.roadmap
-      ? `\n## ${report.roadmap.title || 'Roadmap'}\n${(report.roadmap.phases || [])
+    r.roadmap
+      ? `\n## ${r.roadmap.title || 'Roadmap'}\n${(r.roadmap.phases || [])
           .map((phase) => `### ${phase.period || ''} ${phase.theme || ''}\n${listText(phase.actions)}`)
           .join('\n\n')}`
       : '',
-    report.closing ? `\n## Closing\n${report.closing}` : '',
+    r.closing ? `\n## Closing\n${r.closing}` : '',
   ];
 
   return sections.filter(Boolean).join('\n').trim();

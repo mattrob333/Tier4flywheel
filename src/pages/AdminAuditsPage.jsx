@@ -55,7 +55,7 @@ function formatDate(value) {
 }
 
 function scoreLabel(audit) {
-  const score = Number(audit.overall_score ?? audit.report?.overall);
+  const score = Number(audit.overall_score ?? audit.report?.client_report?.overall ?? audit.report?.overall);
   return Number.isFinite(score) ? `${score.toFixed(1)}/5` : '-';
 }
 

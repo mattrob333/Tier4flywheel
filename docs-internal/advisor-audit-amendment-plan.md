@@ -3,7 +3,8 @@
 > Clean client report · Compact readout assistant · Economic Opportunity layer
 >
 > Branch: `claude/audit-economic-layer` (based on `origin/master` @ `03647f7`)
-> Status: PLANNING — no implementation code written yet.
+> Status: Phase 1 IMPLEMENTED (clean client report, three-layer schema, compact
+> readout assistant, markdown rendering, parse-model bugfix). Phases 2-5 pending.
 
 This plan maps the PRD amendment onto the **actual** current codebase. File paths and
 line numbers below reflect the live `master` state so each task is concrete.

@@ -2,42 +2,57 @@ function list(items) {
   return Array.isArray(items) ? items.filter(Boolean).map((item) => `- ${item}`).join('\n') : '';
 }
 
+function money(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  return `$${number.toLocaleString('en-US')}`;
+}
+
 export function buildReadoutGuideText(guide) {
   if (!guide) return '';
 
+  const economic = guide.economic_validation || {};
+  const estimate = money(economic.estimated_annual_cost);
+
   return [
-    '# Readout Call Guide',
+    '# Readout Call Assistant',
     '',
-    '## Opening Script',
+    guide.conversation_goal ? `Goal: ${guide.conversation_goal}` : '',
+    '',
+    '## Open the Call',
     guide.opening_script || '',
     '',
-    '## Executive Summary Check',
-    list(guide.executive_summary_check),
+    '## Confirm the Report',
+    list(guide.confirm_report_questions),
     '',
-    '## Scorecard Discussion',
-    ...(guide.scorecard_discussion || []).map((item) =>
-      [
-        `### ${item.domain || 'Domain'} (${item.score || 'score not shown'})`,
-        item.explanation || '',
-        list(item.questions),
-      ].filter(Boolean).join('\n\n'),
-    ),
+    '## Validate the Economics',
+    estimate ? `Estimated annual cost: ${estimate}` : 'Estimated annual cost: not yet quantified',
+    economic.validation_script || '',
+    list(economic.questions),
     '',
-    '## Findings Discussion',
-    ...(guide.findings_discussion || []).map((item) =>
-      [`### ${item.finding || 'Finding'}`, list(item.questions)].filter(Boolean).join('\n\n'),
-    ),
+    '## Prioritize the Next Step',
+    list(guide.priority_questions),
+    guide.next_step_options && guide.next_step_options.length ? 'Next step options:' : '',
+    list(guide.next_step_options),
     '',
-    '## Recommendation Prioritization',
-    ...(guide.recommendation_prioritization || []).map((item) =>
-      [`### ${item.recommendation || 'Recommendation'}`, list(item.questions)].filter(Boolean).join('\n\n'),
-    ),
+    '## Capture Buying Signals',
+    list(guide.buying_signal_checklist),
     '',
-    '## Offer Fit Questions',
-    list(guide.offer_fit_questions),
+    '## Objections',
+    list(guide.objection_questions),
     '',
-    '## Closing Script',
+    '## Close',
     guide.closing_script || '',
+    '',
+    ...(guide.optional_deep_dive_questions && guide.optional_deep_dive_questions.length
+      ? [
+          '## Optional Deep Dive',
+          ...guide.optional_deep_dive_questions.map((item) =>
+            [`### ${item.section || 'Section'}`, list(item.questions)].filter(Boolean).join('\n\n'),
+          ),
+        ]
+      : []),
   ].filter((part) => part !== '').join('\n').trim();
 }
 

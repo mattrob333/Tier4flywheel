@@ -47,8 +47,8 @@ function expectedOverall(domains) {
   return Number(mean.toFixed(1));
 }
 
-function validateRoadmap(report, errors) {
-  const roadmap = report?.roadmap;
+function validateRoadmap(cr, errors) {
+  const roadmap = cr?.roadmap;
   if (!roadmap || typeof roadmap !== 'object' || Array.isArray(roadmap)) {
     errors.push('roadmap must be an object with title and phases.');
     return;
@@ -67,8 +67,8 @@ function validateRoadmap(report, errors) {
   }
 }
 
-function validateRecommendations(report, errors) {
-  const recommendations = Array.isArray(report?.recommendations) ? report.recommendations : [];
+function validateRecommendations(cr, errors) {
+  const recommendations = Array.isArray(cr?.recommendations) ? cr.recommendations : [];
 
   recommendations.forEach((recommendation, index) => {
     const title = text(recommendation?.title);
@@ -92,8 +92,8 @@ function validateRecommendations(report, errors) {
   });
 }
 
-function validatePilot(report, errors) {
-  const pilot = report?.recommended_first_pilot;
+function validatePilot(cr, errors) {
+  const pilot = cr?.recommended_first_pilot;
   if (!pilot || typeof pilot !== 'object') {
     errors.push('recommended_first_pilot is required.');
     return;
@@ -118,47 +118,41 @@ function validatePilot(report, errors) {
   });
 }
 
-function validatePedigreeFit(report, errors) {
-  const fit = report?.pedigree_fit;
-  if (!fit || typeof fit !== 'object') {
-    errors.push('pedigree_fit is required.');
-    return;
-  }
-
-  if (!['None', 'Light', 'Moderate', 'Strong'].includes(fit.fit_level)) {
-    errors.push('pedigree_fit.fit_level is invalid.');
-  }
-
-  if (!text(fit.reason)) {
-    errors.push('pedigree_fit.reason is empty.');
-  }
-
-  if (!text(fit.suggested_next_step)) {
-    errors.push('pedigree_fit.suggested_next_step is empty.');
-  }
+function validateClientCleanliness(cr, errors) {
+  visitStrings(cr, (value, path) => {
+    if (PRODUCT_TITLE.test(value)) {
+      errors.push(`client_report${path.replace(/^root/, '')} contains internal product language.`);
+    }
+  });
 }
 
-function validateDomains(report, errors) {
-  const domains = Array.isArray(report?.domains) ? report.domains : [];
+function validateDomains(cr, errors) {
+  const domains = Array.isArray(cr?.scorecard) ? cr.scorecard : [];
 
   domains.forEach((domain, index) => {
     if (!text(domain?.finding)) {
-      errors.push(`domains[${index}].finding is empty.`);
+      errors.push(`scorecard[${index}].finding is empty.`);
     }
     if (!text(domain?.meaning)) {
-      errors.push(`domains[${index}].meaning is empty.`);
+      errors.push(`scorecard[${index}].meaning is empty.`);
     }
     if (!text(domain?.why_it_matters)) {
-      errors.push(`domains[${index}].why_it_matters is empty.`);
+      errors.push(`scorecard[${index}].why_it_matters is empty.`);
     }
     if (!text(domain?.evidence)) {
-      errors.push(`domains[${index}].evidence is empty.`);
+      errors.push(`scorecard[${index}].evidence is empty.`);
     }
   });
 }
 
 export function validateAdvisorReport(report) {
   const errors = [];
+
+  // Accept both the new nested shape and the legacy flat shape.
+  const cr =
+    report && typeof report.client_report === 'object' && report.client_report
+      ? report.client_report
+      : report || {};
 
   visitStrings(report, (value, path) => {
     if (hasNonAscii(value)) {
@@ -172,27 +166,21 @@ export function validateAdvisorReport(report) {
     }
   });
 
-  if (!text(report?.business_risk)) {
-    errors.push('business_risk is required.');
-  }
-  if (!text(report?.primary_opportunity)) {
-    errors.push('primary_opportunity is required.');
-  }
-  if (!text(report?.ai_use_case_governance_signal)) {
-    errors.push('ai_use_case_governance_signal is required.');
+  if (!text(cr?.business_risk)) {
+    errors.push('client_report.business_risk is required.');
   }
 
-  const expected = expectedOverall(report?.domains);
-  const actual = Number(report?.overall);
+  const expected = expectedOverall(cr?.scorecard);
+  const actual = Number(cr?.overall);
   if (expected !== null && Number.isFinite(actual) && Math.abs(Number(actual.toFixed(1)) - expected) > 0.05) {
-    errors.push(`overall must equal the one-decimal mean of domain scores (${expected}).`);
+    errors.push(`client_report.overall must equal the one-decimal mean of scorecard scores (${expected}).`);
   }
 
-  validateDomains(report, errors);
-  validateRecommendations(report, errors);
-  validatePilot(report, errors);
-  validatePedigreeFit(report, errors);
-  validateRoadmap(report, errors);
+  validateClientCleanliness(cr, errors);
+  validateDomains(cr, errors);
+  validateRecommendations(cr, errors);
+  validatePilot(cr, errors);
+  validateRoadmap(cr, errors);
 
   return errors;
 }

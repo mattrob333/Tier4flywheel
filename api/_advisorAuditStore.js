@@ -54,9 +54,21 @@ function bool(value) {
   return value === true;
 }
 
+// Reports use a nested { client_report } shape; legacy reports were flat.
+function reportClientLayer(report) {
+  if (report && typeof report.client_report === 'object' && report.client_report) {
+    return report.client_report;
+  }
+  return report || {};
+}
+
 function reportScore(report) {
-  const score = Number(report?.overall);
+  const score = Number(reportClientLayer(report)?.overall);
   return Number.isFinite(score) ? score : null;
+}
+
+function reportBand(report) {
+  return clean(reportClientLayer(report)?.band, 100) || null;
 }
 
 function tableAuditFromPayload(auth, payload, id) {
@@ -81,7 +93,7 @@ function tableAuditFromPayload(auth, payload, id) {
     report,
     followup_email: clean(payload.followup, 12000) || null,
     overall_score: reportScore(report),
-    score_band: clean(report?.band, 100) || null,
+    score_band: reportBand(report),
     status: clean(payload.status, 80) || 'draft',
     updated_at: new Date().toISOString(),
   };

@@ -59,6 +59,14 @@ The three audit types are:
 
 The browser never receives `OPENAI_API_KEY`. All OpenAI calls are made from Vercel serverless API functions.
 
+## Report Layers
+
+The report is generated in three separated layers so the client-facing output stays product-neutral:
+
+- `client_report` - the honest audit the advisor can show or send to the client. Executive summary, scorecard, findings, recommendations, recommended pilot, roadmap, next-step options, and (when quantified) the Economic Opportunity Assessment. It never contains Pedigree, internal SKU names, or demo recommendations.
+- `advisor_intelligence` - internal only. Governance signal, next-step signals, proposal-type suggestion, PRD readiness, objections to explore, and internal solution mapping. Shown in a collapsible internal panel and excluded from client exports.
+- `system_metadata` - quality flags and economic capture status for the learning loop.
+
 ## Report Quality Guardrails
 
 The report endpoint uses structured JSON schema output plus a validation and repair pass.
@@ -67,11 +75,10 @@ The validator checks for:
 
 - non-ASCII/corrupted characters
 - unfinished or truncated sentences
-- missing business risk, primary opportunity, pilot, governance signal, and Pedigree fit fields
+- missing business risk and incomplete domain findings
+- internal product language (Pedigree/SKU) leaking into the client-facing report
 - roadmap title/date mismatch
-- overall score math
-- product-language leaks in client-facing recommendation titles
-- missing domain evidence and why-it-matters explanations
+- overall score math (one-decimal mean of scorecard scores)
 
 If validation fails, the server runs one repair request and only returns the report if the repaired JSON passes validation.
 
@@ -146,6 +153,9 @@ Required for the advisor AI audit:
 OPENAI_API_KEY=
 OPENAI_AUDIT_MODEL=gpt-5.5
 OPENAI_AUDIT_REPORT_MODEL=gpt-5.5
+# Optional. Parses long transcripts in chunks; defaults to OPENAI_AUDIT_MODEL.
+# Only set to a different model if your account has access to it.
+OPENAI_AUDIT_PARSE_MODEL=gpt-5.5
 ```
 
 Required for Clerk:

@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ArrowRight, Clipboard, Download, Mail, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
+import Markdown from '../components/Markdown';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
+import { normalizeReport } from '../lib/reportShape';
 
 const STYLE = `
 :root{--t4-ink:#0B1426;--t4-panel:#1A1F2E;--t4-panel2:#0F172A;--t4-line:rgba(255,255,255,.1);--t4-txt:#F0F2F5;--t4-mut:rgba(240,242,245,.62);--t4-amber:#C9A84C;--t4-amber-dim:rgba(201,168,76,.76);--t4-steel:#5EC08A;--t4-good:#5EC08A;--t4-warn:#C9A84C;--t4-bad:#d66a6a;--t4-r:8px}
@@ -121,6 +123,26 @@ const STYLE = `
 .t4-auth{max-width:460px;margin:0 auto;padding:72px 20px;text-align:center}
 .t4-auth h1{font-size:24px;color:#fff;margin:0 0 8px}
 .t4-auth p{color:var(--t4-mut);font-size:14px;margin:0 0 22px}
+.t4-md{font-size:14px;color:var(--t4-txt)}
+.t4-md h1{font-size:18px;color:#fff;margin:14px 0 8px}
+.t4-md h2{font-size:16px;color:#fff;margin:14px 0 6px}
+.t4-md h3{font-size:14px;color:var(--t4-amber-dim);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+.t4-md p{margin:6px 0}
+.t4-md ul,.t4-md ol{margin:6px 0;padding-left:20px}
+.t4-md li{margin:3px 0}
+.t4-md strong{color:#fff}
+.t4-internal{border:1px dashed var(--t4-amber-dim);border-radius:var(--t4-r);background:rgba(201,168,76,.06);padding:14px 16px;margin-top:18px}
+.t4-internal>summary{cursor:pointer;font-weight:800;color:var(--t4-amber);font-size:13px;letter-spacing:.04em}
+.t4-internal .lab{color:var(--t4-amber-dim)}
+.t4-readout{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media(max-width:760px){.t4-readout{grid-template-columns:1fr}}
+.t4-card{border:1px solid var(--t4-line);border-radius:var(--t4-r);background:var(--t4-panel2);padding:14px 16px;margin-bottom:12px}
+.t4-card h4{margin:0 0 6px;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:.06em}
+.t4-card p{margin:6px 0;font-size:13px}
+.t4-card ul{margin:6px 0;padding-left:18px;font-size:13px}
+.t4-card li{margin:4px 0}
+.t4-card .cost{font-size:18px;font-weight:800;color:var(--t4-amber)}
+.t4-card details>summary{cursor:pointer;color:var(--t4-mut);font-size:12px;margin-top:6px}
 `;
 
 const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Readout', 'Proposal'];
@@ -486,10 +508,6 @@ function recommendationReason(recommendation) {
   return recommendation?.business_reason || '';
 }
 
-function recommendationMapping(recommendation) {
-  return recommendation?.internal_solution_mapping || '';
-}
-
 function cleanList(items) {
   return Array.isArray(items) ? items.filter(Boolean) : [];
 }
@@ -642,52 +660,47 @@ function roadmapPhases(report) {
   return [];
 }
 
+// Client-facing markdown export. Product-neutral by design: no Pedigree,
+// governance signal, or internal mapping is ever included here.
 function buildMarkdown(rep, client, type) {
   if (rep?.geo_audit) return buildGeoMarkdown(rep, client);
 
+  const r = normalizeReport(rep).client || {};
+  const nextSteps = cleanList(r.next_step_options);
+
   return `# ${type.name} - ${client.name}
-Overall: ${Number(rep.overall).toFixed(1)}/5 - ${rep.band}
+Overall: ${Number(r.overall).toFixed(1)}/5 - ${r.band}
 
 ## Executive Summary
-${rep.execSummary}
+${r.execSummary}
 
-${rep.business_risk ? `## Business Risk\n${rep.business_risk}\n` : ''}
+${r.business_risk ? `## Business Risk\n${r.business_risk}\n` : ''}
 
-${rep.primary_opportunity ? `## Primary Opportunity\n${rep.primary_opportunity}\n` : ''}
-
-${rep.recommended_first_pilot ? `## Recommended First Pilot
-${rep.recommended_first_pilot.title}
-${rep.recommended_first_pilot.why_this_first}
+${r.recommended_first_pilot ? `## Recommended First Pilot
+${r.recommended_first_pilot.title}
+${r.recommended_first_pilot.why_this_first}
 
 Target users:
-${cleanList(rep.recommended_first_pilot.target_users).map((item) => `- ${item}`).join('\n')}
+${cleanList(r.recommended_first_pilot.target_users).map((item) => `- ${item}`).join('\n')}
 
 Required data sources:
-${cleanList(rep.recommended_first_pilot.required_data_sources).map((item) => `- ${item}`).join('\n')}
+${cleanList(r.recommended_first_pilot.required_data_sources).map((item) => `- ${item}`).join('\n')}
 
 Success metrics:
-${cleanList(rep.recommended_first_pilot.success_metrics).map((item) => `- ${item}`).join('\n')}
+${cleanList(r.recommended_first_pilot.success_metrics).map((item) => `- ${item}`).join('\n')}
 
 Risk controls:
-${cleanList(rep.recommended_first_pilot.risk_controls).map((item) => `- ${item}`).join('\n')}
-` : ''}
-
-${rep.ai_use_case_governance_signal ? `## AI Use Case Governance Signal\n${rep.ai_use_case_governance_signal}\n` : ''}
-
-${rep.pedigree_fit ? `## Pedigree Fit
-Fit level: ${rep.pedigree_fit.fit_level}
-Reason: ${rep.pedigree_fit.reason}
-Suggested next step: ${rep.pedigree_fit.suggested_next_step}
+${cleanList(r.recommended_first_pilot.risk_controls).map((item) => `- ${item}`).join('\n')}
 ` : ''}
 
 Top findings:
-${(rep.topFindings || []).map((f) => `- ${f}`).join('\n')}
+${(r.topFindings || []).map((f) => `- ${f}`).join('\n')}
 
 ## Scorecard
-${(rep.domains || []).map((d) => `- ${d.name}: ${d.score}/5`).join('\n')}
+${(r.domains || []).map((d) => `- ${d.name}: ${d.score}/5`).join('\n')}
 
 ## Findings
-${(rep.domains || [])
+${(r.domains || [])
   .map((d) => `### ${d.name} - ${d.score}/5
 ${d.finding}
 Means: ${d.meaning}
@@ -696,21 +709,21 @@ Evidence: ${d.evidence || 'Not included in this saved report.'}`)
   .join('\n\n')}
 
 ## Recommendations
-${(rep.recommendations || [])
+${(r.recommendations || [])
   .map((x, i) => {
     const reason = recommendationReason(x) ? ` Reason: ${recommendationReason(x)}` : '';
-    const mapping = recommendationMapping(x) ? ` Internal mapping: ${recommendationMapping(x)}.` : '';
-    return `${i + 1}. ${recommendationTitle(x)} - ${recommendationAction(x)}${reason}${mapping} Effort: ${x.effort} | Impact: ${x.impact} | Owner: ${x.owner}`;
+    return `${i + 1}. ${recommendationTitle(x)} - ${recommendationAction(x)}${reason} Effort: ${x.effort} | Impact: ${x.impact} | Owner: ${x.owner}`;
   })
   .join('\n')}
 
-## ${roadmapTitle(rep)}
-${roadmapPhases(rep)
+## ${roadmapTitle(r)}
+${roadmapPhases(r)
   .map((p) => `${p.period} - ${p.theme}
 ${(p.actions || []).map((it) => `  - ${it}`).join('\n')}`)
   .join('\n')}
 
-${rep.closing}`;
+${nextSteps.length ? `## Next Step Options\n${nextSteps.map((s) => `- ${s}`).join('\n')}\n` : ''}
+${r.closing || ''}`;
 }
 
 function GeoReport({ rep, client }) {
@@ -860,10 +873,95 @@ function GeoReport({ rep, client }) {
   );
 }
 
+function AdvisorIntelligence({ advisor }) {
+  if (!advisor) return null;
+  const signals = cleanList(advisor.next_step_signals);
+  const objections = cleanList(advisor.objections_to_explore);
+  const mapping = Array.isArray(advisor.internal_solution_mapping) ? advisor.internal_solution_mapping : [];
+  const legacyFit = advisor.legacy_pedigree_fit;
+  const hasAny =
+    advisor.ai_governance_signal ||
+    signals.length ||
+    advisor.proposal_type_suggestion ||
+    advisor.prd_readiness ||
+    objections.length ||
+    mapping.length ||
+    legacyFit;
+  if (!hasAny) return null;
+
+  return (
+    <details className="t4-internal">
+      <summary>Advisor Intelligence (internal - not shown to client or exported)</summary>
+      <div style={{ marginTop: 12, fontSize: 13 }}>
+        {advisor.ai_governance_signal && (
+          <p>
+            <span className="lab">AI governance signal | </span>
+            {advisor.ai_governance_signal}
+          </p>
+        )}
+        {advisor.proposal_type_suggestion && (
+          <p>
+            <span className="lab">Proposal type suggestion | </span>
+            {advisor.proposal_type_suggestion}
+          </p>
+        )}
+        {advisor.prd_readiness && (
+          <p>
+            <span className="lab">PRD readiness | </span>
+            {advisor.prd_readiness}
+          </p>
+        )}
+        {signals.length > 0 && (
+          <>
+            <p className="lab">Next-step signals</p>
+            <ul style={{ paddingLeft: 18 }}>
+              {signals.map((s, k) => (
+                <li key={k}>{s}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        {objections.length > 0 && (
+          <>
+            <p className="lab">Objections to explore</p>
+            <ul style={{ paddingLeft: 18 }}>
+              {objections.map((s, k) => (
+                <li key={k}>{s}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        {mapping.length > 0 && (
+          <>
+            <p className="lab">Internal solution mapping</p>
+            <ul style={{ paddingLeft: 18 }}>
+              {mapping.map((m, k) => (
+                <li key={k}>
+                  {[m.recommendation, m.signal, m.internal_note].filter(Boolean).join(' - ')}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {legacyFit && (
+          <p style={{ color: 'var(--t4-mut)' }}>
+            <span className="lab">Legacy fit note | </span>
+            {legacyFit.fit_level} fit - {legacyFit.reason}
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function Report({ rep, client, type }) {
   const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
+  const norm = useMemo(() => normalizeReport(rep), [rep]);
 
   if (rep?.geo_audit) return <GeoReport rep={rep} client={client} />;
+
+  const r = norm.client || {};
+  const nextSteps = cleanList(r.next_step_options);
 
   return (
     <div>
@@ -878,16 +976,16 @@ function Report({ rep, client, type }) {
           </p>
         </div>
         <div className="t4-score-big">
-          <div className="n">{Number(rep.overall).toFixed(1)}</div>
-          <div className="b">{rep.band}</div>
+          <div className="n">{Number(r.overall).toFixed(1)}</div>
+          <div className="b">{r.band}</div>
         </div>
       </div>
 
       <div className="t4-sec">
         <h3>Executive Summary</h3>
-        <p style={{ fontSize: 14 }}>{rep.execSummary}</p>
+        <p style={{ fontSize: 14 }}>{r.execSummary}</p>
         <ol style={{ fontSize: 13, paddingLeft: 18, marginTop: 10 }}>
-          {(rep.topFindings || []).map((f, k) => (
+          {(r.topFindings || []).map((f, k) => (
             <li key={k} style={{ margin: '4px 0' }}>
               {f}
             </li>
@@ -895,33 +993,28 @@ function Report({ rep, client, type }) {
         </ol>
       </div>
 
-      {rep.business_risk && (
+      {r.business_risk && (
         <div className="t4-sec">
           <h3>Business Risk</h3>
-          <p style={{ fontSize: 14 }}>{rep.business_risk}</p>
+          <p style={{ fontSize: 14 }}>{r.business_risk}</p>
         </div>
       )}
 
-      {rep.primary_opportunity && (
-        <div className="t4-sec">
-          <h3>Primary Opportunity</h3>
-          <p style={{ fontSize: 14 }}>{rep.primary_opportunity}</p>
-        </div>
-      )}
+      {norm.economic && <EconomicOpportunity economic={norm.economic} />}
 
-      {rep.recommended_first_pilot && (
+      {r.recommended_first_pilot && (
         <div className="t4-sec">
           <h3>Recommended First Pilot</h3>
           <div className="t4-finding">
             <div className="ft">
-              <h4>{rep.recommended_first_pilot.title}</h4>
+              <h4>{r.recommended_first_pilot.title}</h4>
             </div>
-            <p>{rep.recommended_first_pilot.why_this_first}</p>
+            <p>{r.recommended_first_pilot.why_this_first}</p>
             <div className="t4-row" style={{ marginTop: 12 }}>
               <div>
                 <p className="lab">Target users</p>
                 <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
-                  {cleanList(rep.recommended_first_pilot.target_users).map((item, index) => (
+                  {cleanList(r.recommended_first_pilot.target_users).map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
                 </ul>
@@ -929,7 +1022,7 @@ function Report({ rep, client, type }) {
               <div>
                 <p className="lab">Data sources</p>
                 <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
-                  {cleanList(rep.recommended_first_pilot.required_data_sources).map((item, index) => (
+                  {cleanList(r.recommended_first_pilot.required_data_sources).map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
                 </ul>
@@ -937,7 +1030,7 @@ function Report({ rep, client, type }) {
               <div>
                 <p className="lab">Success metrics</p>
                 <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
-                  {cleanList(rep.recommended_first_pilot.success_metrics).map((item, index) => (
+                  {cleanList(r.recommended_first_pilot.success_metrics).map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
                 </ul>
@@ -945,7 +1038,7 @@ function Report({ rep, client, type }) {
               <div>
                 <p className="lab">Risk controls</p>
                 <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
-                  {cleanList(rep.recommended_first_pilot.risk_controls).map((item, index) => (
+                  {cleanList(r.recommended_first_pilot.risk_controls).map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
                 </ul>
@@ -955,40 +1048,16 @@ function Report({ rep, client, type }) {
         </div>
       )}
 
-      {rep.ai_use_case_governance_signal && (
-        <div className="t4-sec">
-          <h3>AI Use Case Governance Signal</h3>
-          <p style={{ fontSize: 14 }}>{rep.ai_use_case_governance_signal}</p>
-        </div>
-      )}
-
-      {rep.pedigree_fit && (
-        <div className="t4-sec">
-          <h3>Pedigree Fit</h3>
-          <div className="t4-finding">
-            <div className="ft">
-              <h4>{rep.pedigree_fit.fit_level} fit</h4>
-              <span className="t4-tag tag-Medium">Internal</span>
-            </div>
-            <p>{rep.pedigree_fit.reason}</p>
-            <p style={{ color: 'var(--t4-mut)' }}>
-              <span className="lab">Next step | </span>
-              {rep.pedigree_fit.suggested_next_step}
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="t4-sec">
         <h3>Scorecard</h3>
-        {(rep.domains || []).map((d, k) => (
+        {(r.domains || []).map((d, k) => (
           <Gauge key={k} name={d.name} score={d.score} />
         ))}
       </div>
 
       <div className="t4-sec">
         <h3>Domain Findings</h3>
-        {(rep.domains || []).map((d, k) => (
+        {(r.domains || []).map((d, k) => (
           <div className="t4-finding" key={k}>
             <div className="ft">
               <h4>{d.name}</h4>
@@ -1020,29 +1089,27 @@ function Report({ rep, client, type }) {
             <tr>
               <th>#</th>
               <th>Action</th>
-              <th>Internal</th>
               <th>Impact</th>
               <th>Effort</th>
               <th>Owner</th>
             </tr>
           </thead>
           <tbody>
-            {(rep.recommendations || []).map((r, k) => (
+            {(r.recommendations || []).map((rec, k) => (
               <tr key={k}>
                 <td className="t4-mono">{k + 1}</td>
                 <td>
-                  <div className="t4-rec-title">{recommendationTitle(r)}</div>
-                  <div>{recommendationAction(r)}</div>
-                  {recommendationReason(r) && <div className="t4-rec-copy">{recommendationReason(r)}</div>}
-                </td>
-                <td style={{ color: 'var(--t4-mut)' }}>{recommendationMapping(r) || 'Not mapped'}</td>
-                <td>
-                  <span className={`t4-tag tag-${tagClass(r.impact)}`}>{r.impact}</span>
+                  <div className="t4-rec-title">{recommendationTitle(rec)}</div>
+                  <div>{recommendationAction(rec)}</div>
+                  {recommendationReason(rec) && <div className="t4-rec-copy">{recommendationReason(rec)}</div>}
                 </td>
                 <td>
-                  <span className={`t4-tag tag-${tagClass(r.effort)}`}>{r.effort}</span>
+                  <span className={`t4-tag tag-${tagClass(rec.impact)}`}>{rec.impact}</span>
                 </td>
-                <td style={{ color: 'var(--t4-mut)' }}>{r.owner}</td>
+                <td>
+                  <span className={`t4-tag tag-${tagClass(rec.effort)}`}>{rec.effort}</span>
+                </td>
+                <td style={{ color: 'var(--t4-mut)' }}>{rec.owner}</td>
               </tr>
             ))}
           </tbody>
@@ -1050,8 +1117,8 @@ function Report({ rep, client, type }) {
       </div>
 
       <div className="t4-sec">
-        <h3>{roadmapTitle(rep)}</h3>
-        {roadmapPhases(rep).map((p, k) => (
+        <h3>{roadmapTitle(r)}</h3>
+        {roadmapPhases(r).map((p, k) => (
           <div className="t4-phase" key={k}>
             <div className="pt">
               {p.period} - {p.theme}
@@ -1065,14 +1132,215 @@ function Report({ rep, client, type }) {
         ))}
       </div>
 
-      <div className="t4-sec">
-        <h3>Closing</h3>
-        <p style={{ fontSize: 14 }}>{rep.closing}</p>
-      </div>
+      {nextSteps.length > 0 && (
+        <div className="t4-sec">
+          <h3>Next Step Options</h3>
+          <ul style={{ fontSize: 14, paddingLeft: 18 }}>
+            {nextSteps.map((s, k) => (
+              <li key={k} style={{ margin: '4px 0' }}>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {r.closing && (
+        <div className="t4-sec">
+          <h3>Closing</h3>
+          <p style={{ fontSize: 14 }}>{r.closing}</p>
+        </div>
+      )}
 
       <div className="t4-btnrow">
-        <CopyBtn text={markdown} label="Copy report as Markdown" />
+        <CopyBtn text={markdown} label="Copy client report as Markdown" />
       </div>
+
+      <AdvisorIntelligence advisor={norm.advisor} />
+    </div>
+  );
+}
+
+function money(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  return `$${num.toLocaleString('en-US')}`;
+}
+
+// Renders the client-facing Economic Opportunity Assessment when economics
+// have been quantified. Phase 2 populates this; renders nothing until then.
+function EconomicOpportunity({ economic }) {
+  if (!economic) return null;
+  const insufficient =
+    economic.status === 'insufficient_data' || economic.status === 'not_assessed';
+
+  return (
+    <div className="t4-sec">
+      <h3>Economic Opportunity Assessment</h3>
+      {insufficient ? (
+        <div className="t4-finding">
+          <p>Economic impact was not fully quantified in this call.</p>
+          {cleanList(economic.suggested_follow_up_questions).length > 0 && (
+            <>
+              <p className="lab">Suggested follow-up questions</p>
+              <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+                {cleanList(economic.suggested_follow_up_questions).map((q, k) => (
+                  <li key={k}>{q}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="t4-finding">
+          {economic.annual_cost_estimate != null && (
+            <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--t4-amber)' }}>
+              {money(economic.annual_cost_estimate)} / year estimated
+            </p>
+          )}
+          {economic.calculation_basis && (
+            <p>
+              <span className="lab">Basis | </span>
+              {economic.calculation_basis}
+            </p>
+          )}
+          {(economic.annual_savings_low != null || economic.annual_savings_high != null) && (
+            <p>
+              <span className="lab">Potential recaptured value | </span>
+              {money(economic.annual_savings_low)}
+              {economic.annual_savings_high != null ? ` to ${money(economic.annual_savings_high)}` : ''} / year
+            </p>
+          )}
+          {economic.confidence && (
+            <p>
+              <span className="lab">Confidence | </span>
+              {economic.confidence}
+            </p>
+          )}
+          {cleanList(economic.assumptions).length > 0 && (
+            <>
+              <p className="lab">Assumptions</p>
+              <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+                {cleanList(economic.assumptions).map((a, k) => (
+                  <li key={k}>{a}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {economic.validation_question && (
+            <p style={{ color: 'var(--t4-mut)' }}>
+              <span className="lab">Validate on the next call | </span>
+              {economic.validation_question}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionList({ items }) {
+  const list = cleanList(items);
+  if (!list.length) return null;
+  return (
+    <ul>
+      {list.map((q, k) => (
+        <li key={k}>{q}</li>
+      ))}
+    </ul>
+  );
+}
+
+// Compact, live-call readout assistant. Renders the structured guide JSON as
+// cards instead of a long Markdown blob.
+function ReadoutAssistant({ guide }) {
+  if (!guide) {
+    return (
+      <p className="t4-sub" style={{ marginTop: 0 }}>
+        Generate the readout assistant to get a short, natural agenda for the second call.
+      </p>
+    );
+  }
+
+  const economic = guide.economic_validation || {};
+  const estimate = money(economic.estimated_annual_cost);
+  const deepDives = Array.isArray(guide.optional_deep_dive_questions) ? guide.optional_deep_dive_questions : [];
+
+  return (
+    <div>
+      <div className="t4-card">
+        <h4>Open the Call</h4>
+        {guide.conversation_goal && (
+          <p style={{ color: 'var(--t4-mut)' }}>{guide.conversation_goal}</p>
+        )}
+        <p>{guide.opening_script}</p>
+      </div>
+
+      <div className="t4-card">
+        <h4>Confirm the Report</h4>
+        <QuestionList items={guide.confirm_report_questions} />
+      </div>
+
+      <div className="t4-card">
+        <h4>Validate the Economics</h4>
+        <p className="cost">{estimate ? `${estimate} / year` : 'Not yet quantified'}</p>
+        {economic.validation_script && <p>{economic.validation_script}</p>}
+        <QuestionList items={economic.questions} />
+      </div>
+
+      <div className="t4-card">
+        <h4>Prioritize the Next Step</h4>
+        <QuestionList items={guide.priority_questions} />
+        {cleanList(guide.next_step_options).length > 0 && (
+          <>
+            <p className="lab" style={{ marginBottom: 0 }}>Next step options</p>
+            <ul>
+              {cleanList(guide.next_step_options).map((s, k) => (
+                <li key={k}>{s}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <div className="t4-card">
+        <h4>Capture Buying Signals</h4>
+        <div className="t4-checkgrid">
+          {cleanList(guide.buying_signal_checklist).map((label, k) => (
+            <label className="t4-check" key={k}>
+              <input type="checkbox" />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="t4-card">
+        <h4>Objections</h4>
+        <QuestionList items={guide.objection_questions} />
+      </div>
+
+      <div className="t4-card">
+        <h4>Close</h4>
+        <p>{guide.closing_script}</p>
+      </div>
+
+      {deepDives.length > 0 && (
+        <div className="t4-card">
+          <details>
+            <summary>Optional deep-dive questions</summary>
+            <div style={{ marginTop: 8 }}>
+              {deepDives.map((item, k) => (
+                <div key={k} style={{ marginBottom: 8 }}>
+                  <p className="lab" style={{ marginBottom: 2 }}>{item.section}</p>
+                  <QuestionList items={item.questions} />
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
     </div>
   );
 }
@@ -1107,6 +1375,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
   const [proposalText, setProposalText] = useState('');
   const [proposalJson, setProposalJson] = useState(null);
   const [proposalStatus, setProposalStatus] = useState('draft');
+  const [proposalEditing, setProposalEditing] = useState(false);
 
   const type = getAuditType(client.typeKey);
 
@@ -1673,34 +1942,43 @@ Looking forward to it.`
             <div className="t4-eyebrow">Step 5 | Readout</div>
             <h2 className="t4-h2">Run the second call</h2>
             <p className="t4-sub">
-              Use the readout guide to pressure-test the audit, then paste the second call transcript and capture buying
-              signals.
+              Use the audit report as the agenda. Confirm what is accurate, identify what matters most, validate the
+              economics, and capture the next step.
             </p>
 
-            <div className="t4-sec">
-              <h3>Readout Guide</h3>
-              {readoutGuideText ? (
-                <>
-                  <div className="t4-emailbox">{readoutGuideText}</div>
-                  <div className="t4-btnrow">
-                    <CopyBtn text={readoutGuideText} label="Copy readout guide" />
-                    <button
-                      className="t4-ghost"
-                      type="button"
-                      onClick={() => downloadText(`${safeFileName(client.name)}-readout-guide.md`, readoutGuideText)}
-                    >
-                      <Download /> Download guide
-                    </button>
-                    <button className="t4-ghost" type="button" onClick={doReadoutGuide}>
-                      <RefreshCw /> Regenerate guide
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button className="t4-btn" type="button" onClick={doReadoutGuide}>
-                  Generate Readout Guide <ArrowRight />
-                </button>
-              )}
+            <div className="t4-readout">
+              <div className="t4-sec" style={{ marginTop: 0 }}>
+                <h3>Client-facing report</h3>
+                <Report rep={report} client={client} type={type} />
+              </div>
+
+              <div className="t4-sec" style={{ marginTop: 0 }}>
+                <h3>Readout assistant</h3>
+                {readoutGuide ? (
+                  <>
+                    <ReadoutAssistant guide={readoutGuide} />
+                    <div className="t4-btnrow">
+                      {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy assistant notes" />}
+                      {readoutGuideText && (
+                        <button
+                          className="t4-ghost"
+                          type="button"
+                          onClick={() => downloadText(`${safeFileName(client.name)}-readout-assistant.md`, readoutGuideText)}
+                        >
+                          <Download /> Download
+                        </button>
+                      )}
+                      <button className="t4-ghost" type="button" onClick={doReadoutGuide}>
+                        <RefreshCw /> Regenerate
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button className="t4-btn" type="button" onClick={doReadoutGuide}>
+                    Generate readout assistant <ArrowRight />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="t4-row">
@@ -1840,12 +2118,25 @@ Looking forward to it.`
 
             {proposalText && (
               <div className="t4-sec">
-                <h3>Editable Proposal</h3>
-                <textarea
-                  className="t4-area big"
-                  value={proposalText}
-                  onChange={(e) => setProposalText(e.target.value)}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ margin: 0 }}>Proposal</h3>
+                  <button
+                    className="t4-ghost"
+                    type="button"
+                    onClick={() => setProposalEditing((v) => !v)}
+                  >
+                    {proposalEditing ? 'Preview' : 'Edit'}
+                  </button>
+                </div>
+                {proposalEditing ? (
+                  <textarea
+                    className="t4-area big"
+                    value={proposalText}
+                    onChange={(e) => setProposalText(e.target.value)}
+                  />
+                ) : (
+                  <Markdown>{proposalText}</Markdown>
+                )}
                 <div className="t4-status-row">
                   {['draft', 'reviewed', 'sent', 'accepted', 'lost'].map((status) => (
                     <button

@@ -72,31 +72,36 @@ Return only JSON matching the requested schema. Use ASCII characters only. Do no
 }
 
 export function reportPrompt(t) {
-  return `You are a senior consultant at Tier 4 Intelligence (Alpharetta, GA) writing an "${t.name}" readout from a discovery call transcript. Extract evidence from the transcript yourself. Score these five dimensions 1-5: ${t.domains.join(', ')}. Rubric: 1 absent/ad hoc, 2 recognized but unaddressed, 3 workable foundations, 4 solid/resourced, 5 best-in-class. Bands: ${t.bands}. Overall must equal the one-decimal mean of the five domain scores. If a dimension isn't covered, give a conservative score and say the evidence is thin rather than inventing detail.
+  return `You are a senior consultant at Tier 4 Intelligence (Alpharetta, GA) writing an "${t.name}" readout from a discovery call transcript. Extract evidence from the transcript yourself. Score these five dimensions 1-5: ${t.domains.join(', ')}. Rubric: 1 absent/ad hoc, 2 recognized but unaddressed, 3 workable foundations, 4 solid/resourced, 5 best-in-class. Bands: ${t.bands}. The client_report.overall score must equal the one-decimal mean of the five scorecard scores. If a dimension isn't covered, give a conservative score and say the evidence is thin rather than inventing detail.
 
 ${t.reportFraming}
 
-Client-readiness rules:
-- Write for a business leader, not for internal product planning.
-- Include one direct business_risk statement that explains the "so what."
-- Include primary_opportunity as the core commercial insight in one or two crisp sentences.
-- Include recommended_first_pilot when the transcript supports one. Make it concrete, low-risk, human-reviewed, and easy to sell as a next step. Prefer phrasing like "2-week Advisor Knowledge Pilot Design Sprint" over generic strategy language when appropriate.
-- Include ai_use_case_governance_signal as a subtle governance bridge: approved use cases, owners, data access, review expectations, refresh cadence, and escalation paths before AI spreads department by department.
-- Include pedigree_fit for the salesperson. Do not say "buy Pedigree"; explain whether a lightweight registry, governance workflow, or evidence layer is a natural next conversation.
-- Recommendation titles must be advisory actions such as "Establish an authoritative inventory" or "Create auditor-ready evidence packs." Do not start titles with Tier 4, Pedigree, Discover, Govern, Enforce, SKU, or product language.
-- Put Tier 4/Pedigree service fit only in internal_solution_mapping.
-- Every domain finding must explain the finding, what it means, why it matters, and transcript evidence.
-- Roadmap title must match the periods used. Use "180-Day Roadmap" if any phase is "91-180 days"; otherwise use "90-Day Roadmap."
-- Keep the executive summary tight and centered on business risk, readiness, and next best action.
-- Complete every sentence. Do not leave text ending with words like "for", "and", "or", "to", "with", or with a comma or colon.
+You return THREE separate layers. Keep them strictly separated:
+
+1. client_report - the honest, product-neutral audit the advisor can show or send to the client.
+   - Write for a business leader. No internal product planning, no sales strategy.
+   - DO NOT include Pedigree, internal product names, SKU names, or demo recommendations anywhere in client_report. If the transcript shows a possible need for AI governance, describe it generically as AI use case tracking, ownership, data access visibility, a human review process, approved tools, or a lightweight AI operating model.
+   - executive_summary: tight, centered on business risk, readiness, and next best action.
+   - top_findings: exactly 3 plain-English findings.
+   - business_risk: one direct statement that explains the "so what."
+   - scorecard: the five domains in this order: ${t.domains.join(', ')}. Each entry explains the finding, what it means, why it matters, and transcript evidence.
+   - recommendations: 5-8 advisory actions sorted by impact then effort. Titles must be advisory actions such as "Establish an authoritative inventory" or "Create auditor-ready evidence packs." Never start a title with Tier 4, Pedigree, Discover, Govern, Enforce, SKU, or product language.
+   - recommended_first_pilot: concrete, low-risk, human-reviewed, easy to sell. Prefer phrasing like "2-week Advisor Knowledge Pilot Design Sprint" over generic strategy language.
+   - roadmap: title must match the periods used. Use "180-Day Roadmap" if any phase is "91-180 days"; otherwise "90-Day Roadmap."
+   - next_step_options: 2-5 neutral next-step choices the client could pick (for example a strategy roadmap, a focused pilot, a quick-win package, or a technical scoping exercise).
+
+2. advisor_intelligence - internal only, never shown to the client.
+   - ai_governance_signal: approved use cases, owners, data access, review expectations, refresh cadence, escalation paths before AI spreads department by department.
+   - next_step_signals, proposal_type_suggestion, prd_readiness, objections_to_explore.
+   - internal_solution_mapping: map findings to a generic signal (prefer the signal enum). Only the internal_note field may reference Pedigree or internal SKUs, and only when genuinely relevant.
+
+3. system_metadata - quality_flags for anything thin or risky, and economic_capture_status. Set economic_capture_status to "not_assessed" (economics are quantified in a separate step).
 
 Output hygiene:
 - Return only JSON matching the requested schema.
-- Use ASCII characters only.
-- Write concise plain text, not Markdown.
+- Use ASCII characters only. Write concise plain text, not Markdown.
 - Do not include Markdown headings, URLs, citations, footnotes, bracketed source links, smart quotes, em dashes, or corrupted characters.
-- Include 5-8 recommendations sorted by impact then effort.
-- Domains must stay in this order: ${t.domains.join(', ')}.`;
+- Complete every sentence. Do not leave text ending with words like "for", "and", "or", "to", "with", or with a comma or colon.`;
 }
 
 export function chunkAnalysisPrompt(t) {
@@ -148,8 +153,8 @@ Rules:
 - Fix only JSON structure, missing required fields, corrupted characters, roadmap consistency, score math, product-language placement, and formatting.
 - Complete any clipped or unfinished sentence without adding new substantive claims.
 - Use ASCII characters only.
-- Overall must equal the one-decimal mean of the five domain scores.
-- Product names belong only in internal_solution_mapping, not recommendation titles.
+- client_report.overall must equal the one-decimal mean of the five client_report.scorecard scores.
+- client_report must stay product-neutral: remove any Pedigree, internal product, SKU, or demo language from client_report and keep product references only inside advisor_intelligence.internal_solution_mapping.
 - If any roadmap phase is "91-180 days", the roadmap title must be "180-Day Roadmap"; otherwise use "90-Day Roadmap".
 - Return only valid JSON matching the requested schema.`;
 }
@@ -157,16 +162,24 @@ Rules:
 export const followupPrompt =
   'You are a Tier 4 Intelligence consultant. Write a short, warm post-call follow-up email to the client: thank them, name 1-2 things you heard, and tee up the readout as the next step. Plain text only, no subject line, under 130 words.';
 
-export const readoutGuidePrompt = `You are a Tier 4 Intelligence sales leader preparing an advisor for a second client readout call.
+export const readoutGuidePrompt = `You are a Tier 4 Intelligence sales leader creating a concise second-call readout assistant for an advisor.
 
-Write for the advisor, not the client. Use the audit report as the agenda. The goal is to pressure-test the report, learn which findings the client agrees with, uncover priority, urgency, budget, ownership, objections, and identify the best next step.
+The advisor will use the client-facing audit report as the main agenda on a live call. Your job is to give them a short, natural conversation aid - NOT a full call script and NOT a long document.
 
 Rules:
-- Use only the supplied audit, transcript, research, and questions.
-- Do not invent facts.
-- Keep the tone consultative, plain-English, and non-pushy.
-- Include fit questions for AI Strategy & Roadmap, focused AI pilot, GEO/SEO package, Pedigree demo, custom build PRD, automation/workflow implementation, and training/enablement.
-- Return only JSON matching the requested schema.
+- Output structured JSON only. Do not write a long Markdown blob.
+- Keep everything short enough to glance at on a live call.
+- opening_script and closing_script: at most 75 words each, conversational and non-pushy.
+- conversation_goal: one or two sentences.
+- confirm_report_questions: 3 to 5 questions that check what is accurate, overstated, or missing, and which finding matters most.
+- economic_validation: a short validation_script and 2 to 4 questions that pressure-test the estimated annual cost of the problem and surface missed costs (rework, delays, onboarding, client experience, missed revenue). If no cost estimate is supplied, set estimated_annual_cost to null and write questions that help quantify it.
+- priority_questions: 2 to 4 questions about which recommendation is a now item and who must be involved.
+- next_step_options: 2 to 5 neutral next-step choices (strategy roadmap, focused pilot, quick-win package, technical scoping).
+- buying_signal_checklist: short checkbox labels the advisor can tick (agreement, correction, economics validated/revised, budget, decision maker, timeline, proposal requested, PRD requested, governance discussed, no next step yet).
+- objection_questions: 2 to 4 gentle questions to surface hesitations.
+- optional_deep_dive_questions: deeper probes grouped by section, used only if the advisor expands them.
+- Do NOT include Pedigree fit or product pitches in the default readout. Mention AI governance only generically and only if the report supports it.
+- Use only the supplied audit, transcript, research, and questions. Do not invent facts.
 - Use ASCII characters only.`;
 
 export const proposalPrompt = `You are a Tier 4 Intelligence consultant writing an editable business proposal after a discovery call and readout call.
@@ -200,105 +213,97 @@ export const researchSchema = {
   },
 };
 
-export const reportSchema = {
+const pilotSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'title',
+    'why_this_first',
+    'target_users',
+    'required_data_sources',
+    'success_metrics',
+    'risk_controls',
+  ],
+  properties: {
+    title: { type: 'string', maxLength: 160 },
+    why_this_first: { type: 'string', maxLength: 720 },
+    target_users: { type: 'array', minItems: 2, maxItems: 5, items: { type: 'string', maxLength: 120 } },
+    required_data_sources: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', maxLength: 140 } },
+    success_metrics: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', maxLength: 160 } },
+    risk_controls: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', maxLength: 180 } },
+  },
+};
+
+const scorecardSchema = {
+  type: 'array',
+  minItems: 5,
+  maxItems: 5,
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['name', 'score', 'finding', 'meaning', 'why_it_matters', 'evidence'],
+    properties: {
+      name: { type: 'string', maxLength: 80 },
+      score: { type: 'number', minimum: 1, maximum: 5 },
+      finding: { type: 'string', maxLength: 620 },
+      meaning: { type: 'string', maxLength: 620 },
+      why_it_matters: { type: 'string', maxLength: 720 },
+      evidence: { type: 'string', maxLength: 720 },
+    },
+  },
+};
+
+const roadmapSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'phases'],
+  properties: {
+    title: { type: 'string', enum: ['90-Day Roadmap', '180-Day Roadmap'] },
+    phases: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['period', 'theme', 'actions'],
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['0-30 days', '31-60 days', '61-90 days', '31-90 days', '91-180 days'],
+          },
+          theme: { type: 'string', maxLength: 120 },
+          actions: { type: 'array', minItems: 2, maxItems: 4, items: { type: 'string', maxLength: 260 } },
+        },
+      },
+    },
+  },
+};
+
+// Client-facing layer: product-neutral. Never contains Pedigree, SKU, or internal mapping.
+const clientReportSchema = {
   type: 'object',
   additionalProperties: false,
   required: [
     'overall',
     'band',
-    'execSummary',
+    'executive_summary',
+    'top_findings',
     'business_risk',
-    'primary_opportunity',
-    'recommended_first_pilot',
-    'ai_use_case_governance_signal',
-    'pedigree_fit',
-    'topFindings',
-    'domains',
+    'scorecard',
     'recommendations',
+    'recommended_first_pilot',
     'roadmap',
+    'next_step_options',
     'closing',
   ],
   properties: {
     overall: { type: 'number', minimum: 1, maximum: 5 },
     band: { type: 'string', maxLength: 48 },
-    execSummary: { type: 'string', maxLength: 1200 },
+    executive_summary: { type: 'string', maxLength: 1200 },
+    top_findings: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 320 } },
     business_risk: { type: 'string', maxLength: 720 },
-    primary_opportunity: { type: 'string', maxLength: 720 },
-    recommended_first_pilot: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'title',
-        'why_this_first',
-        'target_users',
-        'required_data_sources',
-        'success_metrics',
-        'risk_controls',
-      ],
-      properties: {
-        title: { type: 'string', maxLength: 160 },
-        why_this_first: { type: 'string', maxLength: 720 },
-        target_users: {
-          type: 'array',
-          minItems: 2,
-          maxItems: 5,
-          items: { type: 'string', maxLength: 120 },
-        },
-        required_data_sources: {
-          type: 'array',
-          minItems: 2,
-          maxItems: 6,
-          items: { type: 'string', maxLength: 140 },
-        },
-        success_metrics: {
-          type: 'array',
-          minItems: 2,
-          maxItems: 6,
-          items: { type: 'string', maxLength: 160 },
-        },
-        risk_controls: {
-          type: 'array',
-          minItems: 2,
-          maxItems: 6,
-          items: { type: 'string', maxLength: 180 },
-        },
-      },
-    },
-    ai_use_case_governance_signal: { type: 'string', maxLength: 800 },
-    pedigree_fit: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['fit_level', 'reason', 'suggested_next_step'],
-      properties: {
-        fit_level: { type: 'string', enum: ['None', 'Light', 'Moderate', 'Strong'] },
-        reason: { type: 'string', maxLength: 620 },
-        suggested_next_step: { type: 'string', maxLength: 320 },
-      },
-    },
-    topFindings: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      items: { type: 'string', maxLength: 320 },
-    },
-    domains: {
-      type: 'array',
-      minItems: 5,
-      maxItems: 5,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['name', 'score', 'finding', 'meaning', 'why_it_matters', 'evidence'],
-        properties: {
-          name: { type: 'string', maxLength: 80 },
-          score: { type: 'number', minimum: 1, maximum: 5 },
-          finding: { type: 'string', maxLength: 620 },
-          meaning: { type: 'string', maxLength: 620 },
-          why_it_matters: { type: 'string', maxLength: 720 },
-          evidence: { type: 'string', maxLength: 720 },
-        },
-      },
-    },
+    scorecard: scorecardSchema,
     recommendations: {
       type: 'array',
       minItems: 5,
@@ -306,68 +311,94 @@ export const reportSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: [
-          'title',
-          'client_action',
-          'business_reason',
-          'internal_solution_mapping',
-          'impact',
-          'effort',
-          'owner',
-        ],
+        required: ['title', 'client_action', 'business_reason', 'impact', 'effort', 'owner'],
         properties: {
           title: { type: 'string', maxLength: 120 },
           client_action: { type: 'string', maxLength: 620 },
           business_reason: { type: 'string', maxLength: 520 },
-          internal_solution_mapping: {
-            type: 'string',
-            enum: [
-              'Pedigree Discover',
-              'Pedigree Govern',
-              'Pedigree Enforce',
-              'Strategy & Roadmap',
-              'Focused Pilot',
-              'None',
-            ],
-          },
-          effort: { type: 'string', enum: ['Low', 'Medium', 'High'] },
           impact: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+          effort: { type: 'string', enum: ['Low', 'Medium', 'High'] },
           owner: { type: 'string', maxLength: 80 },
         },
       },
     },
-    roadmap: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['title', 'phases'],
-      properties: {
-        title: { type: 'string', enum: ['90-Day Roadmap', '180-Day Roadmap'] },
-        phases: {
-          type: 'array',
-          minItems: 3,
-          maxItems: 3,
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['period', 'theme', 'actions'],
-            properties: {
-              period: {
-                type: 'string',
-                enum: ['0-30 days', '31-60 days', '61-90 days', '31-90 days', '91-180 days'],
-              },
-              theme: { type: 'string', maxLength: 120 },
-              actions: {
-                type: 'array',
-                minItems: 2,
-                maxItems: 4,
-                items: { type: 'string', maxLength: 260 },
-              },
-            },
+    recommended_first_pilot: pilotSchema,
+    roadmap: roadmapSchema,
+    next_step_options: { type: 'array', minItems: 2, maxItems: 5, items: { type: 'string', maxLength: 200 } },
+    closing: { type: 'string', maxLength: 420 },
+  },
+};
+
+// Internal layer: never shown to the client or included in client exports.
+const advisorIntelligenceSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'ai_governance_signal',
+    'next_step_signals',
+    'proposal_type_suggestion',
+    'prd_readiness',
+    'objections_to_explore',
+    'internal_solution_mapping',
+  ],
+  properties: {
+    ai_governance_signal: { type: 'string', maxLength: 800 },
+    next_step_signals: { type: 'array', minItems: 0, maxItems: 8, items: { type: 'string', maxLength: 200 } },
+    proposal_type_suggestion: { type: 'string', maxLength: 160 },
+    prd_readiness: { type: 'string', maxLength: 300 },
+    objections_to_explore: { type: 'array', minItems: 0, maxItems: 8, items: { type: 'string', maxLength: 240 } },
+    internal_solution_mapping: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['recommendation', 'signal', 'internal_note'],
+        properties: {
+          recommendation: { type: 'string', maxLength: 160 },
+          signal: {
+            type: 'string',
+            enum: [
+              'AI governance signal',
+              'AI use case tracking signal',
+              'Agent ownership signal',
+              'PRD readiness signal',
+              'Proposal opportunity signal',
+              'GEO/SEO signal',
+              'Custom build signal',
+              'Training signal',
+              'None',
+            ],
           },
+          internal_note: { type: 'string', maxLength: 240 },
         },
       },
     },
-    closing: { type: 'string', maxLength: 420 },
+  },
+};
+
+const systemMetadataSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['quality_flags', 'economic_capture_status'],
+  properties: {
+    quality_flags: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 160 } },
+    economic_capture_status: {
+      type: 'string',
+      enum: ['not_assessed', 'insufficient_data', 'estimated', 'client_validated', 'client_revised', 'client_rejected'],
+    },
+  },
+};
+
+export const reportSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['client_report', 'advisor_intelligence', 'system_metadata'],
+  properties: {
+    client_report: clientReportSchema,
+    advisor_intelligence: advisorIntelligenceSchema,
+    system_metadata: systemMetadataSchema,
   },
 };
 
@@ -455,88 +486,75 @@ export const readoutGuideSchema = {
   type: 'object',
   additionalProperties: false,
   required: [
+    'conversation_goal',
     'opening_script',
-    'executive_summary_check',
-    'scorecard_discussion',
-    'findings_discussion',
-    'recommendation_prioritization',
-    'offer_fit_questions',
+    'confirm_report_questions',
+    'economic_validation',
+    'priority_questions',
+    'next_step_options',
+    'buying_signal_checklist',
+    'objection_questions',
     'closing_script',
+    'optional_deep_dive_questions',
   ],
   properties: {
-    opening_script: { type: 'string', maxLength: 1200 },
-    executive_summary_check: {
+    conversation_goal: { type: 'string', maxLength: 400 },
+    opening_script: { type: 'string', maxLength: 700 },
+    confirm_report_questions: {
       type: 'array',
       minItems: 3,
-      maxItems: 6,
+      maxItems: 5,
       items: { type: 'string', maxLength: 240 },
     },
-    scorecard_discussion: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 8,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['domain', 'score', 'explanation', 'questions'],
-        properties: {
-          domain: { type: 'string', maxLength: 100 },
-          score: { type: 'string', maxLength: 40 },
-          explanation: { type: 'string', maxLength: 500 },
-          questions: {
-            type: 'array',
-            minItems: 2,
-            maxItems: 5,
-            items: { type: 'string', maxLength: 260 },
-          },
-        },
+    economic_validation: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['estimated_annual_cost', 'validation_script', 'questions'],
+      properties: {
+        estimated_annual_cost: { type: ['number', 'null'] },
+        validation_script: { type: 'string', maxLength: 500 },
+        questions: { type: 'array', minItems: 2, maxItems: 4, items: { type: 'string', maxLength: 260 } },
       },
     },
-    findings_discussion: {
+    priority_questions: {
       type: 'array',
-      minItems: 3,
+      minItems: 2,
+      maxItems: 4,
+      items: { type: 'string', maxLength: 240 },
+    },
+    next_step_options: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 5,
+      items: { type: 'string', maxLength: 200 },
+    },
+    buying_signal_checklist: {
+      type: 'array',
+      minItems: 4,
+      maxItems: 14,
+      items: { type: 'string', maxLength: 120 },
+    },
+    objection_questions: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 4,
+      items: { type: 'string', maxLength: 240 },
+    },
+    closing_script: { type: 'string', maxLength: 700 },
+    optional_deep_dive_questions: {
+      type: 'array',
+      minItems: 0,
       maxItems: 6,
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['finding', 'questions'],
+        required: ['section', 'questions'],
         properties: {
-          finding: { type: 'string', maxLength: 340 },
-          questions: {
-            type: 'array',
-            minItems: 3,
-            maxItems: 6,
-            items: { type: 'string', maxLength: 260 },
-          },
+          section: { type: 'string', maxLength: 120 },
+          questions: { type: 'array', minItems: 1, maxItems: 6, items: { type: 'string', maxLength: 260 } },
         },
       },
     },
-    recommendation_prioritization: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 8,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['recommendation', 'questions'],
-        properties: {
-          recommendation: { type: 'string', maxLength: 220 },
-          questions: {
-            type: 'array',
-            minItems: 3,
-            maxItems: 6,
-            items: { type: 'string', maxLength: 260 },
-          },
-        },
-      },
-    },
-    offer_fit_questions: {
-      type: 'array',
-      minItems: 5,
-      maxItems: 10,
-      items: { type: 'string', maxLength: 280 },
-    },
-    closing_script: { type: 'string', maxLength: 1000 },
   },
 };
 

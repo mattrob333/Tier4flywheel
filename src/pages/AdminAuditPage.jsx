@@ -16,9 +16,10 @@ const STYLE = `
 .t4-top h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;color:#fff}
 .t4-top p{margin:0;font-size:12px;color:var(--t4-mut)}
 .t4-user{margin-left:auto;display:flex;align-items:center;gap:10px}
-.t4-dashboard-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;border-radius:var(--t4-r);border:1px solid var(--t4-line);color:var(--t4-mut);font-size:13px;font-weight:700;text-decoration:none;padding:8px 12px}
-.t4-dashboard-link:hover{color:var(--t4-txt);border-color:var(--t4-steel)}
-.t4-dashboard-link svg{width:15px;height:15px}
+.t4-dashboard-row{display:flex;justify-content:flex-start;margin:-8px 0 22px}
+.t4-dashboard-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;border-radius:var(--t4-r);border:1px solid rgba(94,192,138,.34);background:rgba(94,192,138,.1);color:var(--t4-txt);font-size:13px;font-weight:800;text-decoration:none;padding:8px 13px;box-shadow:0 0 24px rgba(94,192,138,.08)}
+.t4-dashboard-link:hover{background:rgba(94,192,138,.16);border-color:var(--t4-steel);transform:translateY(-1px)}
+.t4-dashboard-link svg{width:16px;height:16px}
 .t4-steps{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap}
 .t4-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t4-mut);padding:7px 12px;border:1px solid var(--t4-line);border-radius:20px}
 .t4-step .num{font-family:"IBM Plex Mono",ui-monospace,monospace;width:18px;height:18px;border-radius:50%;background:var(--t4-line);color:var(--t4-txt);display:flex;align-items:center;justify-content:center;font-size:11px}
@@ -619,10 +620,13 @@ Looking forward to it.`
               <RotateCcw /> Start over
             </button>
           )}
-          <a className="t4-dashboard-link" href="/admin">
-            <ArrowLeft /> Dashboard
-          </a>
           {userSlot}
+        </div>
+
+        <div className="t4-dashboard-row">
+          <a className="t4-dashboard-link" href="/admin">
+            <ArrowLeft /> Advisor Dashboard
+          </a>
         </div>
 
         <div className="t4-steps">

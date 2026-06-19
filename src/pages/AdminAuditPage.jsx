@@ -156,11 +156,8 @@ const OUTCOME_FLAGS = [
   ['timeline_discussed', 'Timeline discussed'],
 ];
 
-const DIRECT_REPORT_CHAR_LIMIT = 24000;
-const REPORT_CHUNK_TARGET = 6000;
-const MIN_REPORT_CHUNK_TARGET = 1500;
-const FINAL_EVIDENCE_CHAR_LIMIT = 52000;
-const EVIDENCE_MERGE_GROUP_SIZE = 4;
+const REPORT_POLL_INTERVAL_MS = 3000;
+const REPORT_MAX_WAIT_MS = 9 * 60 * 1000;
 
 const getEmptyAuthHeaders = async () => ({});
 
@@ -190,7 +187,7 @@ async function postJSON(path, payload, getAuthHeaders) {
   if (!res.ok) {
     const fallback =
       res.status === 504
-        ? 'The report generator hit a server timeout while processing the transcript. Please try again so the app can process the transcript in smaller parts.'
+        ? 'The report request timed out while starting or checking the background job. Please try again.'
         : raw.slice(0, 180) || 'Request failed.';
     const error = new Error(data.error || fallback);
     error.status = res.status;
@@ -223,56 +220,11 @@ async function postJSONWithRetry(path, payload, getAuthHeaders, attempts = 2) {
   throw lastError;
 }
 
-function splitTranscriptIntoChunks(value, target = REPORT_CHUNK_TARGET, baseStart = 0) {
-  const transcript = String(value || '');
-  const chunks = [];
-  let start = 0;
-
-  while (start < transcript.length) {
-    let end = Math.min(start + target, transcript.length);
-
-    if (end < transcript.length) {
-      const windowStart = Math.max(start + Math.floor(target * 0.55), end - 1800);
-      const windowText = transcript.slice(windowStart, end);
-      const markers = ['\n\n', '\n', '. ', '? ', '! ', '; ', ', ', ' '];
-      let best = -1;
-
-      markers.forEach((marker) => {
-        const index = windowText.lastIndexOf(marker);
-        if (index > best) best = index + marker.length;
-      });
-
-      if (best > 0) end = windowStart + best;
-    }
-
-    if (end <= start) end = Math.min(start + target, transcript.length);
-
-    chunks.push({
-      index: chunks.length + 1,
-      start: baseStart + start,
-      end: baseStart + end,
-      text: transcript.slice(start, end),
-    });
-    start = end;
-  }
-
-  return chunks;
-}
-
-function groupItems(items, groupSize) {
-  const groups = [];
-  for (let index = 0; index < items.length; index += groupSize) {
-    groups.push(items.slice(index, index + groupSize));
-  }
-  return groups;
-}
-
-function jsonLength(value) {
-  return JSON.stringify(value || []).length;
-}
-
-function shouldMergeEvidencePackets(packets) {
-  return packets.length > 8 || jsonLength(packets) > FINAL_EVIDENCE_CHAR_LIMIT;
+function formatElapsed(ms) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = String(seconds % 60).padStart(2, '0');
+  return `${minutes}:${remainder}`;
 }
 
 async function patchJSON(path, payload, getAuthHeaders) {
@@ -1287,118 +1239,55 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       setReportProgress('');
       try {
         const cleanTranscript = transcript.trim();
-        let result;
+        const startedAt = Date.now();
 
-        if (cleanTranscript.length > DIRECT_REPORT_CHAR_LIMIT) {
-          const chunks = splitTranscriptIntoChunks(cleanTranscript);
-          const evidencePackets = [];
-          let parseRequestIndex = 1;
+        setReportProgress('Starting the background audit report...');
+        const started = await postJSON(
+          '/api/audit-report-start',
+          { client, transcript: cleanTranscript },
+          getAuthHeaders,
+        );
 
-          const parseChunk = async (chunk, label, depth = 0) => {
-            const ordinal = parseRequestIndex;
-            parseRequestIndex += 1;
-            const percent = Math.round((chunk.end / cleanTranscript.length) * 100);
-            setReportProgress(`Parsing transcript ${label} (${percent}%)...`);
+        if (!started.response_id) {
+          throw new Error('The report job did not return a background response id.');
+        }
 
-            try {
-              const packet = await postJSONWithRetry(
-                '/api/audit-report-chunk',
-                {
-                  client,
-                  chunk: chunk.text,
-                  chunkIndex: ordinal,
-                  totalChunks: chunks.length,
-                  charStart: chunk.start,
-                  charEnd: chunk.end,
-                },
-                getAuthHeaders,
-                3,
-              );
-              return [packet];
-            } catch (error) {
-              if (!isRetryablePostError(error) || chunk.text.length <= MIN_REPORT_CHUNK_TARGET) {
-                throw new Error(`Transcript parsing failed at ${label}: ${error.message || 'Request failed.'}`);
-              }
-
-              const nextTarget = Math.max(MIN_REPORT_CHUNK_TARGET, Math.ceil(chunk.text.length / 2));
-              const smallerChunks = splitTranscriptIntoChunks(chunk.text, nextTarget, chunk.start);
-              const packets = [];
-              for (let subIndex = 0; subIndex < smallerChunks.length; subIndex += 1) {
-                setReportProgress(`Retrying ${label} as smaller part ${subIndex + 1} of ${smallerChunks.length}...`);
-                const childPackets = await parseChunk(
-                  smallerChunks[subIndex],
-                  `${label}.${subIndex + 1}`,
-                  depth + 1,
-                );
-                packets.push(...childPackets);
-              }
-              return packets;
-            }
-          };
-
-          for (const chunk of chunks) {
-            const packets = await parseChunk(chunk, `part ${chunk.index} of ${chunks.length}`);
-            evidencePackets.push(...packets);
+        let result = null;
+        let responseId = started.response_id;
+        let repairAttempted = false;
+        while (!result) {
+          await wait(REPORT_POLL_INTERVAL_MS);
+          const elapsed = Date.now() - startedAt;
+          if (elapsed > REPORT_MAX_WAIT_MS) {
+            throw new Error('The report is still running after several minutes. Refresh the page and reopen this saved audit before trying again.');
           }
 
-          let finalEvidencePackets = evidencePackets;
-          let passIndex = 1;
-
-          while (shouldMergeEvidencePackets(finalEvidencePackets)) {
-            const groups = groupItems(finalEvidencePackets, EVIDENCE_MERGE_GROUP_SIZE);
-            if (groups.length <= 1) break;
-
-            const mergedPackets = [];
-            for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
-              setReportProgress(
-                `Organizing transcript evidence pass ${passIndex}, group ${groupIndex + 1} of ${groups.length}...`,
-              );
-              const merged = await postJSONWithRetry(
-                '/api/audit-report-evidence',
-                {
-                  client,
-                  evidencePackets: groups[groupIndex],
-                  passIndex,
-                  groupIndex,
-                  totalGroups: groups.length,
-                },
-                getAuthHeaders,
-                3,
-              ).catch((error) => {
-                throw new Error(
-                  `Transcript evidence merge failed in pass ${passIndex}, group ${groupIndex + 1}: ${
-                    error.message || 'Request failed.'
-                  }`,
-                );
-              });
-              mergedPackets.push(merged);
-            }
-
-            finalEvidencePackets = mergedPackets;
-            passIndex += 1;
-          }
-
-          setReportProgress('Writing the final report from the full transcript evidence...');
-          result = await postJSONWithRetry(
-            '/api/audit-report',
+          setReportProgress(
+            repairAttempted
+              ? `Cleaning up the audit report in the background (${formatElapsed(elapsed)} elapsed)...`
+              : `Writing the audit report in the background (${formatElapsed(elapsed)} elapsed)...`,
+          );
+          const status = await postJSONWithRetry(
+            '/api/audit-report-status',
             {
+              response_id: responseId,
               client,
-              chunkAnalyses: finalEvidencePackets,
-              transcriptMeta: {
-                original_chars: cleanTranscript.length,
-                chunk_count: chunks.length,
-                evidence_packets: finalEvidencePackets.length,
-                processing_mode: 'full_chunked',
-              },
+              transcriptMeta: { original_chars: cleanTranscript.length },
+              repair_attempted: repairAttempted,
             },
             getAuthHeaders,
-            3,
-          ).catch((error) => {
-            throw new Error(`Final report writing failed after transcript parsing completed: ${error.message || 'Request failed.'}`);
-          });
-        } else {
-          setReportProgress('Reading the call and scoring the report...');
-          result = await postJSONWithRetry('/api/audit-report', { client, transcript: cleanTranscript }, getAuthHeaders, 3);
+            2,
+          );
+
+          if (status.status === 'completed' && status.report) {
+            result = status.report;
+          } else if (status.status === 'repairing' && status.response_id) {
+            responseId = status.response_id;
+            repairAttempted = true;
+            setReportProgress(`Cleaning up the audit report in the background (${formatElapsed(elapsed)} elapsed)...`);
+          } else if (!['queued', 'in_progress'].includes(status.status)) {
+            throw new Error(`The background report ended with status ${status.status || 'unknown'}.`);
+          }
         }
 
         setReport(result);
@@ -1729,7 +1618,7 @@ Looking forward to it.`
                 placeholder="Paste the full call transcript here..."
               />
               <p className="t4-save-note">
-                Long transcripts are processed in parts so every section can be included in the audit evidence.
+                Reports run as background jobs, so longer calls can finish without holding one server request open.
               </p>
             </div>
             <div className="t4-btnrow">

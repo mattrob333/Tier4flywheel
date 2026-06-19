@@ -82,6 +82,14 @@
       "maxDuration": 60,
       "memory": 1024
     },
+    "api/audit-report-start.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/audit-report-status.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
     "api/audit-report-chunk.js": {
       "maxDuration": 60,
       "memory": 1024

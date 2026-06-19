@@ -187,12 +187,15 @@ async function requestStructuredOutput({
   model,
   parseModel,
   reportModel,
+  background = false,
+  store,
 }) {
   return getOpenAI().responses.create({
     model: model || (parseModel ? OPENAI_PARSE_MODEL : reportModel ? OPENAI_REPORT_MODEL : OPENAI_MODEL),
     instructions,
     input,
     max_output_tokens: maxOutputTokens,
+    ...(background ? { background: true, store: store ?? true } : {}),
     ...(webSearch
       ? {
           tools: [
@@ -303,6 +306,110 @@ export async function createStructuredResponse({
   if (repairedErrors.length) throw validationError(repairedErrors);
 
   return repairedParsed;
+}
+
+export async function createBackgroundStructuredResponse({
+  instructions,
+  input,
+  schema,
+  schemaName,
+  maxOutputTokens = 2500,
+  model,
+  parseModel = false,
+  reportModel = false,
+}) {
+  return requestStructuredOutput({
+    instructions,
+    input,
+    schema,
+    schemaName,
+    maxOutputTokens,
+    model,
+    parseModel,
+    reportModel,
+    background: true,
+    store: true,
+  });
+}
+
+function terminalBackgroundError(response) {
+  const error = new Error(response?.error?.message || `OpenAI background response ended with status ${response?.status || 'unknown'}.`);
+  error.statusCode = 502;
+  error.details = response?.error || response;
+  return error;
+}
+
+export async function retrieveBackgroundStructuredResponse({
+  responseId,
+  schema,
+  schemaName,
+  maxOutputTokens = 2500,
+  model,
+  parseModel = false,
+  reportModel = false,
+  validate,
+  repairInstructions,
+  repairInBackground = false,
+}) {
+  const response = await getOpenAI().responses.retrieve(responseId);
+  const status = response.status || 'unknown';
+
+  if (status === 'queued' || status === 'in_progress') {
+    return { status, responseId: response.id };
+  }
+
+  if (status !== 'completed') {
+    throw terminalBackgroundError(response);
+  }
+
+  let parsed = parseStructuredOutput(response);
+  let errors = validate ? validate(parsed) : [];
+  if (!errors.length) return { status, responseId: response.id, result: parsed };
+  if (!repairInstructions) throw validationError(errors);
+
+  const repairInput = [
+    'Validation errors:',
+    ...errors.map((error) => `- ${error}`),
+    '',
+    'Original JSON:',
+    JSON.stringify(parsed, null, 2),
+  ].join('\n');
+
+  if (repairInBackground) {
+    const repair = await createBackgroundStructuredResponse({
+      instructions: repairInstructions,
+      input: repairInput,
+      schema,
+      schemaName: `${schemaName}_repair`,
+      maxOutputTokens,
+      model,
+      parseModel,
+      reportModel,
+    });
+
+    return {
+      status: 'repairing',
+      responseId: repair.id,
+      errors,
+    };
+  }
+
+  const repaired = await requestStructuredOutput({
+    instructions: repairInstructions,
+    input: repairInput,
+    schema,
+    schemaName: `${schemaName}_repair`,
+    maxOutputTokens,
+    model,
+    parseModel,
+    reportModel,
+  });
+
+  parsed = parseStructuredOutput(repaired);
+  errors = validate ? validate(parsed) : [];
+  if (errors.length) throw validationError(errors);
+
+  return { status, responseId: response.id, result: parsed };
 }
 
 export async function createTextResponse({ instructions, input, maxOutputTokens = 800 }) {

@@ -98,6 +98,14 @@
       "maxDuration": 60,
       "memory": 1024
     },
+    "api/audit-economic-extract.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/audit-economic-impact.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
     "api/audit-readout-guide.js": {
       "maxDuration": 60,
       "memory": 1024

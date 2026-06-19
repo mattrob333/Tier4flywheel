@@ -11,9 +11,11 @@ import {
 } from './_advisorAuditServer.js';
 import {
   getAdvisorAudit,
+  getEconomicImpact,
   saveAuditReadout,
 } from './_advisorAuditStore.js';
 import { buildReadoutGuideText } from './_readoutProposalText.js';
+import { toNumber } from './_economicImpact.js';
 
 export default async function handler(req, res) {
   if (!requirePost(req, res)) return;
@@ -27,6 +29,9 @@ export default async function handler(req, res) {
     const audit = await getAdvisorAudit(auth, auditId);
     if (!audit.report) return res.status(400).json({ error: 'Generate an audit report before the readout guide.' });
     if (audit.report?.geo_audit) return res.status(400).json({ error: 'GEO audits do not use readout guides.' });
+
+    const economic = await getEconomicImpact(auth, audit.id).catch(() => null);
+    const estimatedCost = toNumber(economic?.annual_cost_estimate);
 
     const input = [
       `Client: ${audit.client_name}`,
@@ -43,6 +48,10 @@ export default async function handler(req, res) {
       '',
       'Audit report JSON:',
       JSON.stringify(audit.report, null, 2),
+      '',
+      estimatedCost !== null
+        ? `Estimated annual cost of the problem (use this exact number in economic_validation.estimated_annual_cost): ${estimatedCost}`
+        : 'No economic estimate is available yet; set economic_validation.estimated_annual_cost to null and ask questions that help quantify it.',
     ].join('\n');
 
     const guide = await createStructuredResponse({
@@ -53,6 +62,10 @@ export default async function handler(req, res) {
       maxOutputTokens: 5000,
       reportModel: true,
     });
+    // Trust the stored estimate over the model for the headline number.
+    if (estimatedCost !== null && guide.economic_validation) {
+      guide.economic_validation.estimated_annual_cost = estimatedCost;
+    }
     const guideText = buildReadoutGuideText(guide);
     const readout = await saveAuditReadout(auth, audit.id, {
       readout_id: body.readout_id,

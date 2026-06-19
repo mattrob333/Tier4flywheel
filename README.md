@@ -35,8 +35,14 @@ The public site remains available at `/`. The internal tools live under `/admin`
 - `POST /api/advisor-gate` - verifies the shared advisor access password and sets the signed HttpOnly gate cookie.
 - `GET /api/advisor-gate/status` - checks whether the advisor gate cookie is valid.
 - `POST /api/advisor-gate/logout` - clears the advisor gate cookie.
-- `POST /api/audit-research` - researches the company and returns a brief plus 10-15 call questions.
-- `POST /api/audit-report` - scores the transcript and returns the structured report JSON.
+- `POST /api/audit-research` - researches the company and returns a brief plus 10-15 call questions (including a few business-impact questions).
+- `POST /api/audit-report-start` / `POST /api/audit-report-status` - run report generation as a background job and poll for the result.
+- `POST /api/audit-economic-extract` - quantifies the economic cost of the problem from the discovery transcript and stores it.
+- `GET /api/audit-economic-impact?audit_id=<id>` - returns the latest economic estimate for an audit.
+- `PATCH /api/audit-economic-impact?id=<id>` - lets the advisor edit assumptions and recalculated values.
+- `POST /api/audit-readout-guide` - generates the compact readout assistant JSON for the second call.
+- `POST /api/audit-readout-transcript` - saves the readout transcript and outcome flags.
+- `POST /api/audit-proposal` - generates an editable proposal; `PATCH` updates its status.
 - `POST /api/audit-followup` - drafts the post-call follow-up email.
 - `GET /api/advisor-audits` - lists saved audits for the signed-in advisor, or all audits for configured superusers.
 - `GET /api/advisor-audits?id=<id>` - loads one saved audit with owner-or-superuser enforcement.
@@ -44,12 +50,14 @@ The public site remains available at `/`. The internal tools live under `/admin`
 
 ## Advisor Audit Flow
 
-The advisor audit pipeline has four steps:
+The advisor audit pipeline has six steps:
 
 1. **Client** - enter company name, optional website, context, advisor name, and audit type.
-2. **Questions** - generate a research brief and tailored discovery questions using server-side web search through the OpenAI Responses API.
-3. **Transcript** - paste the full call transcript.
-4. **Report** - generate a scored report, recommendations, roadmap, follow-up email, and copyable markdown.
+2. **Questions** - generate a research brief and tailored discovery questions (including business-impact questions) using server-side web search through the OpenAI Responses API.
+3. **Discovery** - paste the full discovery call transcript.
+4. **Report** - generate the client-facing report, then optionally click **Extract economic opportunity** to quantify the cost of the problem.
+5. **Readout** - run the second call using the compact readout assistant (report on the left, assistant cards on the right), validate the economics, and capture the transcript and buying signals.
+6. **Proposal** - turn the validated readout into an editable proposal.
 
 The three audit types are:
 
@@ -98,11 +106,15 @@ Before using persistence, run the checked-in schema:
 supabase/advisor_audit_schema.sql
 ```
 
-or the migration:
+or the migrations in order:
 
 ```bash
 supabase/migrations/20260618230500_advisor_audit_schema.sql
+supabase/migrations/20260619093000_readout_proposal_mvp.sql
+supabase/migrations/20260619140000_economic_impact.sql
 ```
+
+The latest migration adds the `audit_economic_impacts` table (one row per economic estimate, with client-stated vs advisor-calculated vs assumed inputs) plus denormalized economic fields on `advisor_audits`, `audit_readouts`, and `audit_proposals`.
 
 The server uses `SUPABASE_SERVICE_ROLE_KEY`, so row-level security is enabled in the database but app-level owner/superuser enforcement happens in the API.
 
@@ -240,14 +252,28 @@ The app is configured for Vercel in `vercel.json`:
 
 Deploy by pushing `master` to GitHub. Vercel builds from the repository and uses the Vercel environment variables.
 
-## Validation Checklist
+## Testing and Quality Checks
 
-Run before shipping changes:
+This project uses three automated gates. Run all three before shipping changes:
 
 ```bash
-npm run lint
-npm run build
+npm run lint    # ESLint: catches unused vars, bad imports, React mistakes
+npm test        # Unit tests (Node's built-in runner) for the pure logic
+npm run build   # Production build: fails on broken imports or syntax
 ```
+
+Unit tests live in `test/` and cover the pure, framework-free logic that is
+easy to break and important to get right:
+
+- `test/reportShape.test.js` - the report normalizer (new nested shape, legacy
+  flat shape, GEO passthrough).
+- `test/validation.test.js` - the report validator (clean report passes,
+  Pedigree/product language in the client report is rejected, score math).
+- `test/economicImpact.test.js` - economic extraction mapping and summaries.
+
+These are fast (no network, no database) because they test plain functions. The
+LLM calls and Supabase writes are not unit-tested here; verify those on a
+preview deploy with a real audit.
 
 Manual checks:
 

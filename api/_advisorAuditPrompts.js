@@ -68,6 +68,8 @@ How to pitch the questions: ${t.questionGuidance}
 
 Steps: (1) research what the company does, its industry, rough size, and anything relevant to their likely AI needs and systems; (2) write 10-15 plain-English, conversational discovery questions tailored to THIS company that a non-technical salesperson can ask to lead this specific kind of conversation. No jargon. Make at least a few questions specific to the company (reference their industry/products/situation). The questions should naturally surface what these areas need: ${t.domains.join(', ')}.
 
+Include 3 to 5 business impact questions near the end. Their purpose is to help the advisor quantify the cost of the problem using the client's own numbers. Ask naturally about people involved, hours spent, loaded hourly cost, error or rework frequency, delays, missed opportunities, and the cost of doing nothing. Do not make the call feel like a finance interrogation, and do not ask these before a real pain point has surfaced.
+
 Return only JSON matching the requested schema. Use ASCII characters only. Do not use Markdown headings.`;
 }
 
@@ -666,5 +668,82 @@ export const proposalSchema = {
     },
     recommended_next_meeting: { type: 'string', maxLength: 500 },
     pricing_notes: { type: 'string', maxLength: 700 },
+  },
+};
+
+export const economicExtractPrompt = `You are a Tier 4 Intelligence consultant quantifying the economic cost of a client's problem from a discovery call. The goal is to turn the pain into a defensible number the advisor can pressure-test on the next call.
+
+Hard rules:
+- NEVER invent numbers. Use only client-stated values, advisor-calculated values derived from client-stated values, or clearly labeled assumptions.
+- Always show the formula in plain words and as a simple calculation.
+- For every input, mark its source: client_stated, advisor_calculated, ai_inferred, or missing.
+- If the transcript does not contain enough data, set status to "insufficient_data", leave numeric estimates null, and provide suggested_follow_up_questions to ask next time.
+- Use conservative ranges for savings. Do not present low-confidence numbers as guarantees or ROI.
+- confidence is Low/Medium/High based on how grounded the inputs are.
+
+Calculation guidance: a common pattern is people_affected x hours_per_person_per_week x hourly_cost x weeks_per_year = annual_cost_estimate. Capture whatever the transcript supports (error frequency, cost per error, delay cost, missed revenue) and explain the basis.
+
+Return only JSON matching the requested schema. Use ASCII characters only. No Markdown.`;
+
+export const economicSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'status',
+    'currency',
+    'confidence',
+    'annual_cost_estimate',
+    'annual_savings_low',
+    'annual_savings_high',
+    'calculation_basis',
+    'formula',
+    'improvement_target',
+    'cost_drivers',
+    'inputs',
+    'assumptions',
+    'missing_inputs',
+    'evidence_quotes',
+    'validation_question',
+    'suggested_follow_up_questions',
+  ],
+  properties: {
+    status: { type: 'string', enum: ['estimated', 'insufficient_data'] },
+    currency: { type: 'string', maxLength: 8 },
+    confidence: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+    annual_cost_estimate: { type: ['number', 'null'] },
+    annual_savings_low: { type: ['number', 'null'] },
+    annual_savings_high: { type: ['number', 'null'] },
+    calculation_basis: { type: 'string', maxLength: 700 },
+    formula: { type: 'string', maxLength: 400 },
+    improvement_target: { type: 'string', maxLength: 240 },
+    cost_drivers: { type: 'array', minItems: 0, maxItems: 8, items: { type: 'string', maxLength: 200 } },
+    inputs: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label', 'value', 'source'],
+        properties: {
+          label: { type: 'string', maxLength: 120 },
+          value: { type: 'string', maxLength: 120 },
+          source: {
+            type: 'string',
+            enum: ['client_stated', 'advisor_calculated', 'ai_inferred', 'missing'],
+          },
+        },
+      },
+    },
+    assumptions: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+    missing_inputs: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 200 } },
+    evidence_quotes: { type: 'array', minItems: 0, maxItems: 8, items: { type: 'string', maxLength: 280 } },
+    validation_question: { type: 'string', maxLength: 320 },
+    suggested_follow_up_questions: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 240 },
+    },
   },
 };

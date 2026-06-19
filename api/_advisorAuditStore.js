@@ -1,4 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import {
+  auditEconomicFields,
+  economicRowFromExtraction,
+  toNumber,
+} from './_economicImpact.js';
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL;
@@ -404,4 +409,96 @@ export async function saveAuditProposal(auth, auditId, payload) {
   });
 
   return proposal;
+}
+
+const ECONOMIC_EDITABLE = [
+  'annual_cost_estimate',
+  'annual_savings_low',
+  'annual_savings_high',
+  'annual_revenue_opportunity',
+  'payback_months_low',
+  'payback_months_high',
+];
+
+export async function saveEconomicImpact(auth, auditId, extraction, options = {}) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  if (audit.owner_clerk_user_id !== auth.userId && !auth.isSuperuser) {
+    const err = new Error('You can only quantify economics for audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const row = {
+    id: randomUUID(),
+    ...economicRowFromExtraction(extraction, {
+      auditId: audit.id,
+      advisorId: auth.userId,
+      clientName: audit.client_name,
+      auditTypeKey: audit.audit_type_key,
+      readoutId: options.readoutId || null,
+      source: options.source || 'discovery_transcript',
+    }),
+  };
+
+  const rows = await supabaseFetch('audit_economic_impacts', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify([row]),
+  });
+
+  const saved = rows?.[0] || row;
+  await patchAuditLifecycle(audit.id, auditEconomicFields(saved));
+  return saved;
+}
+
+export async function getEconomicImpact(auth, auditId) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  const rows = await supabaseFetch(
+    `audit_economic_impacts?select=*&audit_id=eq.${encodeURIComponent(audit.id)}&order=updated_at.desc&limit=1`,
+    { method: 'GET' },
+  );
+  return rows?.[0] || null;
+}
+
+export async function updateEconomicImpact(auth, id, patch = {}) {
+  const existing = await supabaseFetch(
+    `audit_economic_impacts?select=*&id=eq.${encodeURIComponent(id)}&limit=1`,
+    { method: 'GET' },
+  );
+  const current = existing?.[0];
+  if (!current) {
+    const err = new Error('Economic impact not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Ownership is enforced through the parent audit.
+  const audit = await getAdvisorAudit(auth, current.audit_id);
+  if (audit.owner_clerk_user_id !== auth.userId && !auth.isSuperuser) {
+    const err = new Error('You can only edit economics for audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const fields = { updated_at: new Date().toISOString() };
+  ECONOMIC_EDITABLE.forEach((key) => {
+    if (key in patch) fields[key] = toNumber(patch[key]);
+  });
+  if (typeof patch.confidence === 'string') fields.confidence = patch.confidence;
+  if (typeof patch.status === 'string') fields.status = patch.status;
+  if (typeof patch.client_validation_notes === 'string') fields.client_validation_notes = patch.client_validation_notes;
+  if (patch.variables && typeof patch.variables === 'object') fields.variables = patch.variables;
+  if (Array.isArray(patch.assumptions)) fields.assumptions = patch.assumptions;
+  if (Array.isArray(patch.missing_inputs)) fields.missing_inputs = patch.missing_inputs;
+  if (Array.isArray(patch.validation_questions)) fields.validation_questions = patch.validation_questions;
+
+  const rows = await supabaseFetch(`audit_economic_impacts?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(fields),
+  });
+
+  const updated = rows?.[0] || { ...current, ...fields };
+  await patchAuditLifecycle(audit.id, auditEconomicFields(updated));
+  return updated;
 }

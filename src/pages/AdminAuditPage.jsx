@@ -954,7 +954,7 @@ function AdvisorIntelligence({ advisor }) {
   );
 }
 
-function Report({ rep, client, type }) {
+function Report({ rep, client, type, economic = null }) {
   const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
   const norm = useMemo(() => normalizeReport(rep), [rep]);
 
@@ -962,6 +962,7 @@ function Report({ rep, client, type }) {
 
   const r = norm.client || {};
   const nextSteps = cleanList(r.next_step_options);
+  const economicToShow = economic || norm.economic;
 
   return (
     <div>
@@ -1000,7 +1001,7 @@ function Report({ rep, client, type }) {
         </div>
       )}
 
-      {norm.economic && <EconomicOpportunity economic={norm.economic} />}
+      {economicToShow && <EconomicOpportunity economic={economicToShow} />}
 
       {r.recommended_first_pilot && (
         <div className="t4-sec">
@@ -1205,6 +1206,40 @@ function EconomicOpportunity({ economic }) {
               {economic.calculation_basis}
             </p>
           )}
+          {economic.formula && (
+            <p className="t4-mono" style={{ fontSize: 13 }}>
+              {economic.formula}
+            </p>
+          )}
+          {cleanList(economic.inputs).length > 0 && (
+            <>
+              <p className="lab">Inputs</p>
+              <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+                {cleanList(economic.inputs).map((input, k) => (
+                  <li key={k}>
+                    {input.label}: {input.value}
+                    {input.source ? ` (${String(input.source).replace(/_/g, ' ')})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {cleanList(economic.cost_drivers).length > 0 && (
+            <>
+              <p className="lab">Cost drivers</p>
+              <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+                {cleanList(economic.cost_drivers).map((d, k) => (
+                  <li key={k}>{d}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {economic.improvement_target && (
+            <p>
+              <span className="lab">Improvement target | </span>
+              {economic.improvement_target}
+            </p>
+          )}
           {(economic.annual_savings_low != null || economic.annual_savings_high != null) && (
             <p>
               <span className="lab">Potential recaptured value | </span>
@@ -1224,6 +1259,16 @@ function EconomicOpportunity({ economic }) {
               <ul style={{ fontSize: 13, paddingLeft: 18 }}>
                 {cleanList(economic.assumptions).map((a, k) => (
                   <li key={k}>{a}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {cleanList(economic.missing_inputs).length > 0 && (
+            <>
+              <p className="lab">Missing inputs</p>
+              <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+                {cleanList(economic.missing_inputs).map((m, k) => (
+                  <li key={k}>{m}</li>
                 ))}
               </ul>
             </>
@@ -1376,6 +1421,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
   const [proposalJson, setProposalJson] = useState(null);
   const [proposalStatus, setProposalStatus] = useState('draft');
   const [proposalEditing, setProposalEditing] = useState(false);
+  const [economic, setEconomic] = useState(null);
 
   const type = getAuditType(client.typeKey);
 
@@ -1409,6 +1455,20 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
         setProposalJson(row.proposal?.proposal_json || null);
         setProposalStatus(row.proposal?.proposal_status || 'draft');
         setStep(row.proposal ? 6 : row.readout ? 5 : row.report ? 4 : nextResearch ? 2 : 1);
+
+        if (row.report && !row.report.geo_audit) {
+          try {
+            const econ = await getJSON(
+              `/api/audit-economic-impact?audit_id=${encodeURIComponent(row.id)}`,
+              getAuthHeaders,
+            );
+            if (!cancelled) {
+              setEconomic(econ.economic || null);
+            }
+          } catch {
+            // economics are optional; ignore load failures
+          }
+        }
       } catch (error) {
         if (!cancelled) setErr(error.message || 'Could not load that saved audit.');
       } finally {
@@ -1570,6 +1630,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
         setProposalText('');
         setProposalJson(null);
         setProposalStatus('draft');
+        setEconomic(null);
         await saveAuditMilestone('report_ready', { report: result, followup: '' });
         setStep(4);
       } finally {
@@ -1582,6 +1643,18 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       const result = await postJSON('/api/audit-followup', { client, report }, getAuthHeaders);
       setFollowup(result.email);
       await saveAuditMilestone('followup_ready', { followup: result.email });
+    });
+
+  const doEconomicExtract = () =>
+    runStep(async () => {
+      let nextAuditId = auditId;
+      if (!nextAuditId) {
+        const saved = await saveAuditMilestone('report_ready');
+        nextAuditId = saved?.id || '';
+      }
+      if (!nextAuditId) throw new Error('Save the audit before extracting economics.');
+      const result = await postJSON('/api/audit-economic-extract', { audit_id: nextAuditId }, getAuthHeaders);
+      setEconomic(result.economic || null);
     });
 
   const doReadoutGuide = () =>
@@ -1904,7 +1977,21 @@ Looking forward to it.`
         {!busy && !loadingSaved && step === 4 && report && (
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
-            <Report rep={report} client={client} type={type} />
+            <Report rep={report} client={client} type={type} economic={economic} />
+            {!report.geo_audit && (
+              <div className="t4-sec">
+                <h3>Economic Opportunity</h3>
+                <p className="t4-sub" style={{ marginTop: 0 }}>
+                  Quantify the cost of the problem from the discovery call. Numbers come only from what the client said
+                  or what follows from it - nothing is invented.
+                </p>
+                <div className="t4-btnrow">
+                  <button className="t4-ghost" type="button" onClick={doEconomicExtract}>
+                    {economic ? <><RefreshCw /> Re-run economic extraction</> : 'Extract economic opportunity'}
+                  </button>
+                </div>
+              </div>
+            )}
             {!report.geo_audit && (
               <div className="t4-sec">
                 <h3>Post-Call Email</h3>
@@ -1949,7 +2036,7 @@ Looking forward to it.`
             <div className="t4-readout">
               <div className="t4-sec" style={{ marginTop: 0 }}>
                 <h3>Client-facing report</h3>
-                <Report rep={report} client={client} type={type} />
+                <Report rep={report} client={client} type={type} economic={economic} />
               </div>
 
               <div className="t4-sec" style={{ marginTop: 0 }}>

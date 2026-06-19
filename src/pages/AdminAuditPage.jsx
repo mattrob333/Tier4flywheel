@@ -157,7 +157,8 @@ const OUTCOME_FLAGS = [
 ];
 
 const DIRECT_REPORT_CHAR_LIMIT = 24000;
-const REPORT_CHUNK_TARGET = 9000;
+const REPORT_CHUNK_TARGET = 6000;
+const MIN_REPORT_CHUNK_TARGET = 1500;
 const FINAL_EVIDENCE_CHAR_LIMIT = 52000;
 const EVIDENCE_MERGE_GROUP_SIZE = 4;
 
@@ -222,7 +223,7 @@ async function postJSONWithRetry(path, payload, getAuthHeaders, attempts = 2) {
   throw lastError;
 }
 
-function splitTranscriptIntoChunks(value, target = REPORT_CHUNK_TARGET) {
+function splitTranscriptIntoChunks(value, target = REPORT_CHUNK_TARGET, baseStart = 0) {
   const transcript = String(value || '');
   const chunks = [];
   let start = 0;
@@ -248,8 +249,8 @@ function splitTranscriptIntoChunks(value, target = REPORT_CHUNK_TARGET) {
 
     chunks.push({
       index: chunks.length + 1,
-      start,
-      end,
+      start: baseStart + start,
+      end: baseStart + end,
       text: transcript.slice(start, end),
     });
     start = end;
@@ -1291,24 +1292,53 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
         if (cleanTranscript.length > DIRECT_REPORT_CHAR_LIMIT) {
           const chunks = splitTranscriptIntoChunks(cleanTranscript);
           const evidencePackets = [];
+          let parseRequestIndex = 1;
+
+          const parseChunk = async (chunk, label, depth = 0) => {
+            const ordinal = parseRequestIndex;
+            parseRequestIndex += 1;
+            const percent = Math.round((chunk.end / cleanTranscript.length) * 100);
+            setReportProgress(`Parsing transcript ${label} (${percent}%)...`);
+
+            try {
+              const packet = await postJSONWithRetry(
+                '/api/audit-report-chunk',
+                {
+                  client,
+                  chunk: chunk.text,
+                  chunkIndex: ordinal,
+                  totalChunks: chunks.length,
+                  charStart: chunk.start,
+                  charEnd: chunk.end,
+                },
+                getAuthHeaders,
+                3,
+              );
+              return [packet];
+            } catch (error) {
+              if (!isRetryablePostError(error) || chunk.text.length <= MIN_REPORT_CHUNK_TARGET) {
+                throw new Error(`Transcript parsing failed at ${label}: ${error.message || 'Request failed.'}`);
+              }
+
+              const nextTarget = Math.max(MIN_REPORT_CHUNK_TARGET, Math.ceil(chunk.text.length / 2));
+              const smallerChunks = splitTranscriptIntoChunks(chunk.text, nextTarget, chunk.start);
+              const packets = [];
+              for (let subIndex = 0; subIndex < smallerChunks.length; subIndex += 1) {
+                setReportProgress(`Retrying ${label} as smaller part ${subIndex + 1} of ${smallerChunks.length}...`);
+                const childPackets = await parseChunk(
+                  smallerChunks[subIndex],
+                  `${label}.${subIndex + 1}`,
+                  depth + 1,
+                );
+                packets.push(...childPackets);
+              }
+              return packets;
+            }
+          };
 
           for (const chunk of chunks) {
-            const percent = Math.round((chunk.end / cleanTranscript.length) * 100);
-            setReportProgress(`Parsing transcript part ${chunk.index} of ${chunks.length} (${percent}%)...`);
-            const packet = await postJSONWithRetry(
-              '/api/audit-report-chunk',
-              {
-                client,
-                chunk: chunk.text,
-                chunkIndex: chunk.index,
-                totalChunks: chunks.length,
-                charStart: chunk.start,
-                charEnd: chunk.end,
-              },
-              getAuthHeaders,
-              3,
-            );
-            evidencePackets.push(packet);
+            const packets = await parseChunk(chunk, `part ${chunk.index} of ${chunks.length}`);
+            evidencePackets.push(...packets);
           }
 
           let finalEvidencePackets = evidencePackets;
@@ -1334,7 +1364,13 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
                 },
                 getAuthHeaders,
                 3,
-              );
+              ).catch((error) => {
+                throw new Error(
+                  `Transcript evidence merge failed in pass ${passIndex}, group ${groupIndex + 1}: ${
+                    error.message || 'Request failed.'
+                  }`,
+                );
+              });
               mergedPackets.push(merged);
             }
 
@@ -1357,7 +1393,9 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
             },
             getAuthHeaders,
             3,
-          );
+          ).catch((error) => {
+            throw new Error(`Final report writing failed after transcript parsing completed: ${error.message || 'Request failed.'}`);
+          });
         } else {
           setReportProgress('Reading the call and scoring the report...');
           result = await postJSONWithRetry('/api/audit-report', { client, transcript: cleanTranscript }, getAuthHeaders, 3);

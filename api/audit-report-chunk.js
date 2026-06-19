@@ -66,8 +66,8 @@ export default async function handler(req, res) {
       input,
       schema: chunkEvidenceSchema,
       schemaName: 'advisor_audit_chunk_evidence',
-      maxOutputTokens: 3200,
-      reportModel: true,
+      maxOutputTokens: 2200,
+      parseModel: true,
     });
 
     return res.status(200).json({

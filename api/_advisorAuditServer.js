@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 
 const OPENAI_MODEL = process.env.OPENAI_AUDIT_MODEL || 'gpt-5.5';
 const OPENAI_REPORT_MODEL = process.env.OPENAI_AUDIT_REPORT_MODEL || OPENAI_MODEL;
+const OPENAI_PARSE_MODEL = process.env.OPENAI_AUDIT_PARSE_MODEL || process.env.OPENAI_AUDIT_CHUNK_MODEL || 'gpt-5.4-mini';
 const MANY_SPACES = /[ \t]{2,}/g;
 
 let openaiClient;
@@ -183,10 +184,12 @@ async function requestStructuredOutput({
   schemaName,
   webSearch,
   maxOutputTokens,
+  model,
+  parseModel,
   reportModel,
 }) {
   return getOpenAI().responses.create({
-    model: reportModel ? OPENAI_REPORT_MODEL : OPENAI_MODEL,
+    model: model || (parseModel ? OPENAI_PARSE_MODEL : reportModel ? OPENAI_REPORT_MODEL : OPENAI_MODEL),
     instructions,
     input,
     max_output_tokens: maxOutputTokens,
@@ -241,6 +244,8 @@ export async function createStructuredResponse({
   schemaName,
   webSearch = false,
   maxOutputTokens = 2500,
+  model,
+  parseModel = false,
   reportModel = false,
   validate,
   repairInstructions,
@@ -252,6 +257,8 @@ export async function createStructuredResponse({
     schemaName,
     webSearch,
     maxOutputTokens,
+    model,
+    parseModel,
     reportModel,
   });
 
@@ -286,6 +293,8 @@ export async function createStructuredResponse({
     schemaName: `${schemaName}_repair`,
     webSearch: false,
     maxOutputTokens,
+    model,
+    parseModel,
     reportModel,
   });
 

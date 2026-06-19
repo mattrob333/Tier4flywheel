@@ -46,6 +46,10 @@ function clean(value, max = 2000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
 }
 
+function bool(value) {
+  return value === true;
+}
+
 function reportScore(report) {
   const score = Number(report?.overall);
   return Number.isFinite(score) ? score : null;
@@ -126,12 +130,55 @@ export async function saveAdvisorAudit(auth, payload) {
   return rows?.[0] || row;
 }
 
+function latestByAuditId(rows) {
+  const map = new Map();
+  for (const row of rows || []) {
+    if (!map.has(row.audit_id)) map.set(row.audit_id, row);
+  }
+  return map;
+}
+
+async function attachLatestArtifacts(audits) {
+  const ids = (audits || []).map((audit) => audit.id).filter(Boolean);
+  if (!ids.length) return audits || [];
+
+  const inList = ids.map((id) => encodeURIComponent(id)).join(',');
+  let readouts = [];
+  let proposals = [];
+  try {
+    [readouts, proposals] = await Promise.all([
+      supabaseFetch(`audit_readouts?select=*&audit_id=in.(${inList})&order=updated_at.desc`, { method: 'GET' }),
+      supabaseFetch(`audit_proposals?select=*&audit_id=in.(${inList})&order=updated_at.desc`, { method: 'GET' }),
+    ]);
+  } catch (error) {
+    const message = String(error.message || '');
+    if (
+      error.statusCode === 404 ||
+      message.includes('audit_readouts') ||
+      message.includes('audit_proposals') ||
+      message.includes('relation')
+    ) {
+      return audits;
+    }
+    throw error;
+  }
+  const readoutByAudit = latestByAuditId(readouts);
+  const proposalByAudit = latestByAuditId(proposals);
+
+  return audits.map((audit) => ({
+    ...audit,
+    readout: readoutByAudit.get(audit.id) || null,
+    proposal: proposalByAudit.get(audit.id) || null,
+  }));
+}
+
 export async function listAdvisorAudits(auth) {
   const path = auth.isSuperuser
     ? 'advisor_audits?select=*&order=updated_at.desc'
     : `advisor_audits?select=*&owner_clerk_user_id=eq.${encodeURIComponent(auth.userId)}&order=updated_at.desc`;
 
-  return supabaseFetch(path, { method: 'GET' });
+  const audits = await supabaseFetch(path, { method: 'GET' });
+  return attachLatestArtifacts(audits);
 }
 
 export async function getAdvisorAudit(auth, id, options = {}) {
@@ -153,7 +200,8 @@ export async function getAdvisorAudit(auth, id, options = {}) {
     throw err;
   }
 
-  return row;
+  const [withArtifacts] = await attachLatestArtifacts([row]);
+  return withArtifacts || row;
 }
 
 export async function deleteAdvisorAudit(auth, id) {
@@ -194,4 +242,150 @@ export async function updateAdvisorAuditSalesStage(auth, id, salesStage) {
   });
 
   return rows?.[0] || { ...row, report: nextReport };
+}
+
+async function patchAuditLifecycle(id, fields) {
+  const rows = await supabaseFetch(`advisor_audits?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      ...fields,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+
+  return rows?.[0] || null;
+}
+
+function readoutRowFromPayload(auth, audit, payload, id) {
+  return {
+    id,
+    audit_id: audit.id,
+    advisor_id: auth.userId,
+    client_name: audit.client_name || '',
+    readout_guide_json: payload.readout_guide_json || null,
+    readout_guide_text: clean(payload.readout_guide_text, 30000) || null,
+    readout_transcript_text: clean(payload.readout_transcript_text, 120000) || null,
+    advisor_notes: clean(payload.advisor_notes, 30000) || null,
+    readout_call_date: clean(payload.readout_call_date, 40) || null,
+    participants: clean(payload.participants, 4000) || null,
+    client_agreement_level: clean(payload.client_agreement_level, 80) || null,
+    client_interest_level: clean(payload.client_interest_level, 80) || null,
+    selected_next_step: clean(payload.selected_next_step, 120) || null,
+    proposal_requested: bool(payload.proposal_requested),
+    prd_requested: bool(payload.prd_requested),
+    geo_package_discussed: bool(payload.geo_package_discussed),
+    pedigree_demo_discussed: bool(payload.pedigree_demo_discussed),
+    budget_discussed: bool(payload.budget_discussed),
+    decision_maker_identified: bool(payload.decision_maker_identified),
+    timeline_discussed: bool(payload.timeline_discussed),
+    objections: Array.isArray(payload.objections) ? payload.objections : [],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function saveAuditReadout(auth, auditId, payload) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  if (audit.owner_clerk_user_id !== auth.userId) {
+    const err = new Error('You can only update readouts for audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const requestedId = clean(payload.readout_id || payload.id, 80);
+  const id = requestedId || randomUUID();
+  const row = readoutRowFromPayload(auth, audit, payload, id);
+  const rows = await supabaseFetch('audit_readouts?on_conflict=id', {
+    method: 'POST',
+    headers: {
+      Prefer: 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify([row]),
+  });
+
+  const readout = rows?.[0] || row;
+  await patchAuditLifecycle(audit.id, {
+    status: payload.status || (row.readout_transcript_text ? 'readout_transcript_added' : 'readout_guide_ready'),
+    current_stage: payload.status || (row.readout_transcript_text ? 'readout_transcript_added' : 'readout_guide_ready'),
+    readout_status: row.readout_transcript_text ? 'transcript_added' : 'guide_ready',
+    selected_next_step: row.selected_next_step,
+    client_interest_level: row.client_interest_level,
+    client_agreement_level: row.client_agreement_level,
+    proposal_requested: row.proposal_requested,
+    prd_requested: row.prd_requested,
+    pedigree_demo_discussed: row.pedigree_demo_discussed,
+    geo_package_discussed: row.geo_package_discussed,
+    budget_discussed: row.budget_discussed,
+    decision_maker_identified: row.decision_maker_identified,
+    timeline_discussed: row.timeline_discussed,
+  });
+
+  return readout;
+}
+
+export async function getAuditReadout(auth, auditId, readoutId) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  const path = readoutId
+    ? `audit_readouts?select=*&id=eq.${encodeURIComponent(readoutId)}&audit_id=eq.${encodeURIComponent(audit.id)}&limit=1`
+    : `audit_readouts?select=*&audit_id=eq.${encodeURIComponent(audit.id)}&order=updated_at.desc&limit=1`;
+  const rows = await supabaseFetch(path, { method: 'GET' });
+  return rows?.[0] || null;
+}
+
+function proposalRowFromPayload(auth, audit, payload, id) {
+  return {
+    id,
+    audit_id: audit.id,
+    readout_id: clean(payload.readout_id, 80) || null,
+    advisor_id: auth.userId,
+    proposal_type: clean(payload.proposal_type, 120) || 'AI Recommended',
+    proposal_title: clean(payload.proposal_title, 240) || null,
+    proposal_json: payload.proposal_json || null,
+    proposal_text: clean(payload.proposal_text, 60000) || null,
+    proposal_status: clean(payload.proposal_status, 80) || 'draft',
+    selected_recommendations: Array.isArray(payload.selected_recommendations) ? payload.selected_recommendations : [],
+    estimated_value: clean(payload.estimated_value, 120) || null,
+    pricing_notes: clean(payload.pricing_notes, 2000) || null,
+    generated_from_prompt_version: clean(payload.generated_from_prompt_version, 80) || 'proposal_v1',
+    generated_model: clean(payload.generated_model, 120) || process.env.OPENAI_AUDIT_REPORT_MODEL || process.env.OPENAI_AUDIT_MODEL || null,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function saveAuditProposal(auth, auditId, payload) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  if (audit.owner_clerk_user_id !== auth.userId) {
+    const err = new Error('You can only update proposals for audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const requestedId = clean(payload.proposal_id || payload.id, 80);
+  const id = requestedId || randomUUID();
+  const row = proposalRowFromPayload(auth, audit, payload, id);
+  const rows = await supabaseFetch('audit_proposals?on_conflict=id', {
+    method: 'POST',
+    headers: {
+      Prefer: 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify([row]),
+  });
+
+  const proposal = rows?.[0] || row;
+  const stage = proposal.proposal_status === 'sent'
+    ? 'proposal_sent'
+    : proposal.proposal_status === 'accepted'
+      ? 'proposal_accepted'
+      : proposal.proposal_status === 'lost'
+        ? 'proposal_lost'
+        : 'proposal_ready';
+  await patchAuditLifecycle(audit.id, {
+    status: stage,
+    current_stage: stage,
+    proposal_status: proposal.proposal_status,
+  });
+
+  return proposal;
 }

@@ -116,6 +116,31 @@ Rules:
 export const followupPrompt =
   'You are a Tier 4 Intelligence consultant. Write a short, warm post-call follow-up email to the client: thank them, name 1-2 things you heard, and tee up the readout as the next step. Plain text only, no subject line, under 130 words.';
 
+export const readoutGuidePrompt = `You are a Tier 4 Intelligence sales leader preparing an advisor for a second client readout call.
+
+Write for the advisor, not the client. Use the audit report as the agenda. The goal is to pressure-test the report, learn which findings the client agrees with, uncover priority, urgency, budget, ownership, objections, and identify the best next step.
+
+Rules:
+- Use only the supplied audit, transcript, research, and questions.
+- Do not invent facts.
+- Keep the tone consultative, plain-English, and non-pushy.
+- Include fit questions for AI Strategy & Roadmap, focused AI pilot, GEO/SEO package, Pedigree demo, custom build PRD, automation/workflow implementation, and training/enablement.
+- Return only JSON matching the requested schema.
+- Use ASCII characters only.`;
+
+export const proposalPrompt = `You are a Tier 4 Intelligence consultant writing an editable business proposal after a discovery call and readout call.
+
+Use both transcripts and the saved audit report. Prioritize what the client showed interest in during the readout call. Do not propose every recommendation unless the readout transcript clearly supports that. Convert the selected next step into a practical proposal the advisor can review and edit.
+
+Rules:
+- Avoid over-promising.
+- Avoid technical jargon unless the client used it.
+- Clearly mark open questions.
+- Include scope, deliverables, timeline, success metrics, assumptions, risks, guardrails, and recommended next meeting or approval step.
+- Pricing may be "custom quote required" or a simple editable range when the context supports it.
+- Return only JSON matching the requested schema.
+- Use ASCII characters only.`;
+
 export const researchSchema = {
   type: 'object',
   additionalProperties: false,
@@ -302,5 +327,205 @@ export const reportSchema = {
       },
     },
     closing: { type: 'string', maxLength: 420 },
+  },
+};
+
+export const readoutGuideSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'opening_script',
+    'executive_summary_check',
+    'scorecard_discussion',
+    'findings_discussion',
+    'recommendation_prioritization',
+    'offer_fit_questions',
+    'closing_script',
+  ],
+  properties: {
+    opening_script: { type: 'string', maxLength: 1200 },
+    executive_summary_check: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 6,
+      items: { type: 'string', maxLength: 240 },
+    },
+    scorecard_discussion: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['domain', 'score', 'explanation', 'questions'],
+        properties: {
+          domain: { type: 'string', maxLength: 100 },
+          score: { type: 'string', maxLength: 40 },
+          explanation: { type: 'string', maxLength: 500 },
+          questions: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 5,
+            items: { type: 'string', maxLength: 260 },
+          },
+        },
+      },
+    },
+    findings_discussion: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['finding', 'questions'],
+        properties: {
+          finding: { type: 'string', maxLength: 340 },
+          questions: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 6,
+            items: { type: 'string', maxLength: 260 },
+          },
+        },
+      },
+    },
+    recommendation_prioritization: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['recommendation', 'questions'],
+        properties: {
+          recommendation: { type: 'string', maxLength: 220 },
+          questions: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 6,
+            items: { type: 'string', maxLength: 260 },
+          },
+        },
+      },
+    },
+    offer_fit_questions: {
+      type: 'array',
+      minItems: 5,
+      maxItems: 10,
+      items: { type: 'string', maxLength: 280 },
+    },
+    closing_script: { type: 'string', maxLength: 1000 },
+  },
+};
+
+export const proposalSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'proposal_title',
+    'proposal_type',
+    'client_context',
+    'what_we_heard',
+    'confirmed_priorities',
+    'recommended_next_step',
+    'scope_of_work',
+    'deliverables',
+    'timeline',
+    'client_responsibilities',
+    'tier4_responsibilities',
+    'success_metrics',
+    'assumptions',
+    'risks_and_guardrails',
+    'optional_add_ons',
+    'open_questions',
+    'recommended_next_meeting',
+    'pricing_notes',
+  ],
+  properties: {
+    proposal_title: { type: 'string', maxLength: 180 },
+    proposal_type: {
+      type: 'string',
+      enum: [
+        'Strategy & Roadmap Proposal',
+        'Focused AI Pilot Proposal',
+        'GEO/SEO Optimization Package Proposal',
+        'Pedigree Demo / Agent Governance Proposal',
+        'Custom Build Proposal',
+        'Training & Enablement Proposal',
+        'PRD / Technical Scoping Proposal',
+      ],
+    },
+    client_context: { type: 'string', maxLength: 1200 },
+    what_we_heard: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 320 },
+    },
+    confirmed_priorities: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 320 },
+    },
+    recommended_next_step: { type: 'string', maxLength: 900 },
+    scope_of_work: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 10,
+      items: { type: 'string', maxLength: 360 },
+    },
+    deliverables: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 10,
+      items: { type: 'string', maxLength: 300 },
+    },
+    timeline: { type: 'string', maxLength: 700 },
+    client_responsibilities: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    tier4_responsibilities: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    success_metrics: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    assumptions: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    risks_and_guardrails: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 300 },
+    },
+    optional_add_ons: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    open_questions: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 260 },
+    },
+    recommended_next_meeting: { type: 'string', maxLength: 500 },
+    pricing_notes: { type: 'string', maxLength: 700 },
   },
 };

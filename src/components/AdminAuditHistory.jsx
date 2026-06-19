@@ -19,6 +19,13 @@ const SALES_STAGES = [
   { value: 'closed_lost', label: 'Closed lost' },
   { value: 'nurture', label: 'Nurture' },
 ];
+const OUTCOME_FLAGS = [
+  ['proposal_requested', 'Proposal requested'],
+  ['budget_discussed', 'Budget discussed'],
+  ['decision_maker_identified', 'Decision maker identified'],
+  ['pedigree_demo_discussed', 'Pedigree demo discussed'],
+  ['geo_package_discussed', 'GEO package discussed'],
+];
 
 const STYLE = `
 .audit-history{margin-top:28px;background:rgba(26,31,46,.84);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.18)}
@@ -55,6 +62,9 @@ const STYLE = `
 .audit-history-stage-label{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C9A84C;margin-bottom:8px}
 .audit-history-stage-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .audit-history-select{min-height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#0B1426;color:#F0F2F5;font:inherit;font-size:13px;padding:0 10px}
+.audit-history-checks{display:grid;grid-template-columns:1fr;gap:7px;margin-top:12px}
+.audit-history-check{display:flex;align-items:center;gap:8px;color:rgba(240,242,245,.66);font-size:12px}
+.audit-history-check input{accent-color:#5EC08A}
 .audit-history-copied{color:#5EC08A;font-size:12px;font-weight:800}
 .audit-history-empty,.audit-history-error,.audit-history-load{padding:22px;color:rgba(240,242,245,.66);font-size:14px;line-height:1.6}
 .audit-history-error{color:#F0F2F5;background:rgba(214,106,106,.08);border-top:1px solid rgba(214,106,106,.4)}
@@ -88,6 +98,10 @@ function scoreLabel(audit) {
 
 function typeLabel(audit) {
   return audit.audit_type_name || audit.audit_type_key || 'Advisor audit';
+}
+
+function lifecycleStatus(audit) {
+  return audit.current_stage || audit.status || 'draft';
 }
 
 function salesStageValue(audit) {
@@ -232,6 +246,25 @@ function fullAuditExport(audit) {
       exported_at: new Date().toISOString(),
       sales_stage: salesStageValue(audit),
       sales_stage_label: salesStageLabel(salesStageValue(audit)),
+      readout: {
+        guide_json: audit.readout?.readout_guide_json || null,
+        guide_text: audit.readout?.readout_guide_text || null,
+        transcript: audit.readout?.readout_transcript_text || null,
+        advisor_notes: audit.readout?.advisor_notes || null,
+        client_agreement_level: audit.readout?.client_agreement_level || audit.client_agreement_level || null,
+        client_interest_level: audit.readout?.client_interest_level || audit.client_interest_level || null,
+        selected_next_step: audit.readout?.selected_next_step || audit.selected_next_step || null,
+        proposal_requested: Boolean(audit.readout?.proposal_requested || audit.proposal_requested),
+        objections: audit.readout?.objections || [],
+      },
+      proposal: {
+        generated: Boolean(audit.proposal),
+        type: audit.proposal?.proposal_type || null,
+        status: audit.proposal?.proposal_status || audit.proposal_status || null,
+        proposal_json: audit.proposal?.proposal_json || null,
+        proposal_text: audit.proposal?.proposal_text || null,
+        estimated_value: audit.proposal?.estimated_value || null,
+      },
       audit,
     },
     null,
@@ -239,11 +272,35 @@ function fullAuditExport(audit) {
   );
 }
 
+function proposalText(audit) {
+  return audit.proposal?.proposal_text || '';
+}
+
+function readoutGuideText(audit) {
+  return audit.readout?.readout_guide_text || '';
+}
+
 async function getJSON(path, getAuthHeaders) {
   const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
   const res = await fetch(path, {
     headers: authHeaders,
     credentials: 'include',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+async function postJSON(path, payload, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
+    body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Request failed.');
@@ -344,6 +401,78 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
     }
   }
 
+  async function generateReadoutGuide(audit) {
+    setSavingStageId(audit.id);
+    setError('');
+    try {
+      await postJSON('/api/audit-readout-guide', { audit_id: audit.id, readout_id: audit.readout?.id }, getAuthHeaders);
+      await loadAudits();
+    } catch (err) {
+      setError(err.message || 'Could not generate readout guide.');
+    } finally {
+      setSavingStageId('');
+    }
+  }
+
+  async function generateProposal(audit) {
+    setSavingStageId(audit.id);
+    setError('');
+    try {
+      await postJSON(
+        '/api/audit-proposal',
+        {
+          audit_id: audit.id,
+          readout_id: audit.readout?.id,
+          proposal_type: audit.readout?.selected_next_step || 'AI recommend',
+        },
+        getAuthHeaders,
+      );
+      await loadAudits();
+    } catch (err) {
+      setError(err.message || 'Could not generate proposal.');
+    } finally {
+      setSavingStageId('');
+    }
+  }
+
+  async function toggleOutcome(audit, key, value) {
+    setSavingStageId(audit.id);
+    setError('');
+    try {
+      await postJSON(
+        '/api/audit-readout-transcript',
+        {
+          audit_id: audit.id,
+          readout_id: audit.readout?.id,
+          readout_guide_json: audit.readout?.readout_guide_json || null,
+          readout_guide_text: audit.readout?.readout_guide_text || '',
+          readout_transcript_text: audit.readout?.readout_transcript_text || '',
+          advisor_notes: audit.readout?.advisor_notes || '',
+          readout_call_date: audit.readout?.readout_call_date || null,
+          participants: audit.readout?.participants || '',
+          client_agreement_level: audit.readout?.client_agreement_level || null,
+          client_interest_level: audit.readout?.client_interest_level || null,
+          selected_next_step: audit.readout?.selected_next_step || null,
+          proposal_requested: Boolean(audit.readout?.proposal_requested),
+          prd_requested: Boolean(audit.readout?.prd_requested),
+          geo_package_discussed: Boolean(audit.readout?.geo_package_discussed),
+          pedigree_demo_discussed: Boolean(audit.readout?.pedigree_demo_discussed),
+          budget_discussed: Boolean(audit.readout?.budget_discussed),
+          decision_maker_identified: Boolean(audit.readout?.decision_maker_identified),
+          timeline_discussed: Boolean(audit.readout?.timeline_discussed),
+          objections: audit.readout?.objections || [],
+          [key]: value,
+        },
+        getAuthHeaders,
+      );
+      await loadAudits();
+    } catch (err) {
+      setError(err.message || 'Could not update outcome.');
+    } finally {
+      setSavingStageId('');
+    }
+  }
+
   async function deleteAudit(audit) {
     const label = audit.client_name || 'this audit';
     const ok = window.confirm(`Delete ${label}? This removes the saved audit report from Supabase.`);
@@ -373,6 +502,25 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
         ...audit,
         sales_stage: salesStageValue(audit),
         sales_stage_label: salesStageLabel(salesStageValue(audit)),
+        readout: {
+          guide_json: audit.readout?.readout_guide_json || null,
+          guide_text: audit.readout?.readout_guide_text || null,
+          transcript: audit.readout?.readout_transcript_text || null,
+          advisor_notes: audit.readout?.advisor_notes || null,
+          client_agreement_level: audit.readout?.client_agreement_level || null,
+          client_interest_level: audit.readout?.client_interest_level || null,
+          selected_next_step: audit.readout?.selected_next_step || null,
+          proposal_requested: Boolean(audit.readout?.proposal_requested),
+          objections: audit.readout?.objections || [],
+        },
+        proposal: {
+          generated: Boolean(audit.proposal),
+          type: audit.proposal?.proposal_type || null,
+          status: audit.proposal?.proposal_status || null,
+          proposal_json: audit.proposal?.proposal_json || null,
+          proposal_text: audit.proposal?.proposal_text || null,
+          estimated_value: audit.proposal?.estimated_value || null,
+        },
       })),
     };
     downloadText(`tier4-advisor-audits-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
@@ -428,6 +576,8 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
               const isGeo = isGeoAudit(audit);
               const followupEmail = audit.followup_email || audit.followupEmail || '';
               const qText = questionsText(audit);
+              const pText = proposalText(audit);
+              const rText = readoutGuideText(audit);
               const baseName = safeFileName(`${audit.client_name}-${typeLabel(audit)}`);
               return (
                 <React.Fragment key={audit.id}>
@@ -445,7 +595,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                     </td>
                     <td>{typeLabel(audit)}</td>
                     <td>{scoreLabel(audit)}</td>
-                    <td><span className="audit-history-tag">{audit.status || 'draft'}</span></td>
+                    <td><span className="audit-history-tag">{lifecycleStatus(audit)}</span></td>
                     <td><span className="audit-history-sales">{salesStageLabel(salesStageValue(audit))}</span></td>
                     <td>{formatDate(audit.updated_at || audit.created_at)}</td>
                     <td className="audit-history-chevron"><ChevronDown /></td>
@@ -525,6 +675,61 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                               >
                                 <Clipboard /> {isGeo ? 'Copy GEO markdown' : 'Copy report'}
                               </button>
+                              {!isGeo && (
+                                <>
+                                  <button
+                                    className="audit-history-btn"
+                                    type="button"
+                                    disabled={!audit.report || savingStageId === audit.id}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      generateReadoutGuide(audit);
+                                    }}
+                                  >
+                                    <RefreshCw /> {rText ? 'Regenerate Readout Guide' : 'Generate Readout Guide'}
+                                  </button>
+                                  <a
+                                    className="audit-history-btn"
+                                    href={`/admin/audit?auditId=${encodeURIComponent(audit.id)}`}
+                                    onClick={(event) => event.stopPropagation()}
+                                  >
+                                    <ExternalLink /> {audit.readout?.readout_transcript_text ? 'Continue Readout' : 'Paste Readout Transcript'}
+                                  </a>
+                                  <button
+                                    className="audit-history-btn"
+                                    type="button"
+                                    disabled={!audit.readout?.readout_transcript_text || savingStageId === audit.id}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      generateProposal(audit);
+                                    }}
+                                  >
+                                    <RefreshCw /> {pText ? 'Regenerate Proposal' : 'Generate Proposal'}
+                                  </button>
+                                  <button
+                                    className="audit-history-btn"
+                                    type="button"
+                                    disabled={!pText}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      downloadText(`${baseName}-proposal.md`, pText, 'text/markdown');
+                                    }}
+                                  >
+                                    <Download /> Download Proposal
+                                  </button>
+                                  <button
+                                    className="audit-history-btn"
+                                    type="button"
+                                    disabled={!pText}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      copyText(pText, `${audit.id}-proposal`);
+                                    }}
+                                  >
+                                    <Clipboard /> Copy Proposal
+                                  </button>
+                                </>
+                              )}
                               <button
                                 className="audit-history-btn"
                                 type="button"
@@ -570,6 +775,21 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                               </select>
                               {savingStageId === audit.id && <span className="audit-history-muted">Saving...</span>}
                             </div>
+                            {!isGeo && (
+                              <div className="audit-history-checks">
+                                {OUTCOME_FLAGS.map(([key, label]) => (
+                                  <label className="audit-history-check" key={key}>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(audit.readout?.[key] || audit[key])}
+                                      disabled={savingStageId === audit.id}
+                                      onChange={(event) => toggleOutcome(audit, key, event.target.checked)}
+                                    />
+                                    {label}
+                                  </label>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

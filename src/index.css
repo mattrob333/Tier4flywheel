@@ -61,6 +61,25 @@
   color: #F0F2F5 !important;
 }
 
+.cl-userButtonPopoverCard button,
+.cl-userButtonPopoverCard button *,
+.cl-userButtonPopoverCard [role="menuitem"],
+.cl-userButtonPopoverCard [role="menuitem"] *,
+.cl-userButtonPopoverCard [class*="ActionButton"],
+.cl-userButtonPopoverCard [class*="ActionButton"] *,
+.cl-userButtonPopoverCard [class*="actionButton"],
+.cl-userButtonPopoverCard [class*="actionButton"] * {
+  color: #F0F2F5 !important;
+}
+
+.cl-userButtonPopoverCard svg,
+.cl-userButtonPopoverCard button svg,
+.cl-userButtonPopoverCard [role="menuitem"] svg {
+  color: rgba(240, 242, 245, 0.72) !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
 .cl-userButtonPopoverActionButton:hover {
   background: rgba(94, 192, 138, 0.1) !important;
 }

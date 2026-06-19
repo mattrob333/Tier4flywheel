@@ -230,7 +230,7 @@ function ClerkAuditsShell() {
       <div className="audits-auth">
         <h1>Tier 4 advisor sign-in</h1>
         <p>Sign in to view saved advisor audits.</p>
-        <SignIn routing="hash" />
+        <SignIn routing="hash" forceRedirectUrl="/admin/audits" fallbackRedirectUrl="/admin/audits" />
       </div>
     );
   }

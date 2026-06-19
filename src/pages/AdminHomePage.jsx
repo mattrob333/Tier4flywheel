@@ -126,7 +126,7 @@ function ClerkAdminDashboard() {
       <div className="admin-auth">
         <h1>Tier 4 advisor sign-in</h1>
         <p>Sign in to access internal advisor tools.</p>
-        <SignIn routing="hash" />
+        <SignIn routing="hash" forceRedirectUrl="/admin" fallbackRedirectUrl="/admin" />
       </div>
     );
   }

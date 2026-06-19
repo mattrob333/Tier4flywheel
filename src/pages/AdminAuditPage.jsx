@@ -1101,7 +1101,7 @@ function ClerkAuditShell() {
       <div className="t4-auth">
         <h1>Tier 4 advisor sign-in</h1>
         <p>Sign in to run internal AI audit workflows.</p>
-        <SignIn routing="hash" />
+        <SignIn routing="hash" forceRedirectUrl="/admin/audit" fallbackRedirectUrl="/admin/audit" />
       </div>
     );
   }

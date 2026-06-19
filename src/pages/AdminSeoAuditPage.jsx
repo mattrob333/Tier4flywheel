@@ -223,7 +223,7 @@ function ClerkSeoAuditShell() {
       <div className="seo-auth">
         <h1>Tier 4 advisor sign-in</h1>
         <p>Sign in to access the internal GEO audit launcher.</p>
-        <SignIn routing="hash" />
+        <SignIn routing="hash" forceRedirectUrl="/admin/seo-audit" fallbackRedirectUrl="/admin/seo-audit" />
       </div>
     );
   }

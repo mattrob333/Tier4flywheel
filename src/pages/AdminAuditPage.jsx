@@ -155,7 +155,97 @@ function auditRowToResearch(row) {
   };
 }
 
-function CopyBtn({ text, label, icon: Icon = Clipboard }) {
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildClientReadyEmailHtml(questions) {
+  const items = questions
+    .map((q) => `<li style="margin:0 0 10px;padding-left:4px;">${escapeHtml(q)}</li>`)
+    .join('');
+
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#202124;">
+  <p style="margin:0 0 14px;">Hi there,</p>
+  <p style="margin:0 0 14px;">Ahead of our conversation, here are the areas we'll cover. No prep required; we'll walk through them together.</p>
+  <ol style="margin:0 0 18px 22px;padding:0;">
+    ${items}
+  </ol>
+  <p style="margin:0;">Looking forward to it.</p>
+</div>`;
+}
+
+function copyPlainWithSelection(value) {
+  const el = document.createElement('textarea');
+  el.value = value;
+  el.setAttribute('readonly', '');
+  el.style.position = 'fixed';
+  el.style.left = '-9999px';
+  el.style.top = '0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  el.setSelectionRange(0, el.value.length);
+  const copied = document.execCommand('copy');
+  document.body.removeChild(el);
+  if (!copied) throw new Error('Clipboard command was blocked.');
+}
+
+function copyHtmlWithSelection(html, plainText) {
+  const el = document.createElement('div');
+  el.setAttribute('contenteditable', 'true');
+  el.style.position = 'fixed';
+  el.style.left = '-9999px';
+  el.style.top = '0';
+  el.style.whiteSpace = 'normal';
+  el.innerHTML = html;
+  document.body.appendChild(el);
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  const copied = document.execCommand('copy');
+  selection.removeAllRanges();
+  document.body.removeChild(el);
+
+  if (!copied) {
+    copyPlainWithSelection(plainText);
+  }
+}
+
+async function writeClipboard({ text, html }) {
+  const plainText = text || '';
+
+  if (html && navigator.clipboard?.write && window.ClipboardItem) {
+    const item = new ClipboardItem({
+      'text/html': new Blob([html], { type: 'text/html' }),
+      'text/plain': new Blob([plainText], { type: 'text/plain' }),
+    });
+    await navigator.clipboard.write([item]);
+    return;
+  }
+
+  if (navigator.clipboard?.writeText && !html) {
+    await navigator.clipboard.writeText(plainText);
+    return;
+  }
+
+  if (html) {
+    copyHtmlWithSelection(html, plainText);
+    return;
+  }
+
+  copyPlainWithSelection(plainText);
+}
+
+function CopyBtn({ text, html, label, icon: Icon = Clipboard }) {
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
   const [manualCopy, setManualCopy] = useState(false);
@@ -171,22 +261,7 @@ function CopyBtn({ text, label, icon: Icon = Clipboard }) {
     const value = text || '';
 
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value);
-      } else {
-        const el = document.createElement('textarea');
-        el.value = value;
-        el.setAttribute('readonly', '');
-        el.style.position = 'absolute';
-        el.style.left = '-9999px';
-        document.body.appendChild(el);
-        el.focus();
-        el.select();
-        el.setSelectionRange(0, el.value.length);
-        const copied = document.execCommand('copy');
-        document.body.removeChild(el);
-        if (!copied) throw new Error('Clipboard command was blocked.');
-      }
+      await writeClipboard({ text: value, html });
 
       setManualCopy(false);
       setFailed(false);
@@ -526,6 +601,7 @@ ${research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 Looking forward to it.`
     : '';
+  const clientNoteHtml = research ? buildClientReadyEmailHtml(research.questions) : '';
 
   return (
     <div className="t4-root">
@@ -692,7 +768,7 @@ Looking forward to it.`
 
             <div className="t4-btnrow">
               <CopyBtn text={research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')} label="Copy questions" />
-              <CopyBtn text={clientNote} label="Copy client-ready version" />
+              <CopyBtn text={clientNote} html={clientNoteHtml} label="Copy client-ready version" />
               <button className="t4-ghost" type="button" onClick={doResearch}>
                 <RefreshCw /> Regenerate
               </button>

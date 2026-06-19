@@ -98,6 +98,10 @@ function salesStageLabel(value) {
   return SALES_STAGES.find((stage) => stage.value === value)?.label || 'Not started';
 }
 
+function isGeoAudit(audit) {
+  return audit.report?.geo_audit || audit.audit_type_key === 'geo';
+}
+
 function listText(items) {
   return Array.isArray(items) ? items.filter(Boolean).map((item) => `- ${item}`).join('\n') : '';
 }
@@ -359,10 +363,13 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
   }
 
   function exportAll() {
+    const advisorAudits = sortedAudits.filter((audit) => !isGeoAudit(audit));
     const payload = {
       exported_at: new Date().toISOString(),
-      count: sortedAudits.length,
-      audits: sortedAudits.map((audit) => ({
+      purpose: 'Advisor audit prompt and report improvement. GEO audits are intentionally excluded.',
+      count: advisorAudits.length,
+      excluded_geo_count: sortedAudits.length - advisorAudits.length,
+      audits: advisorAudits.map((audit) => ({
         ...audit,
         sales_stage: salesStageValue(audit),
         sales_stage_label: salesStageLabel(salesStageValue(audit)),
@@ -383,8 +390,13 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
           </p>
         </div>
         <div className="audit-history-head-actions">
-          <button className="audit-history-btn" type="button" onClick={exportAll} disabled={!sortedAudits.length}>
-            <FileJson /> Export all data
+          <button
+            className="audit-history-btn"
+            type="button"
+            onClick={exportAll}
+            disabled={!sortedAudits.some((audit) => !isGeoAudit(audit))}
+          >
+            <FileJson /> Export advisor audits
           </button>
           <button className="audit-history-btn" type="button" onClick={loadAudits}>
             <RefreshCw /> Refresh
@@ -413,7 +425,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
             {sortedAudits.map((audit) => {
               const isExpanded = expandedId === audit.id;
               const reportText = buildReportText(audit);
-              const isGeoAudit = audit.report?.geo_audit || audit.audit_type_key === 'geo';
+              const isGeo = isGeoAudit(audit);
               const followupEmail = audit.followup_email || audit.followupEmail || '';
               const qText = questionsText(audit);
               const baseName = safeFileName(`${audit.client_name}-${typeLabel(audit)}`);
@@ -484,13 +496,13 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   downloadText(
-                                    `${baseName}-${isGeoAudit ? 'geo-optimization-brief' : 'report'}.md`,
+                                    `${baseName}-${isGeo ? 'geo-optimization-brief' : 'report'}.md`,
                                     reportText,
                                     'text/markdown',
                                   );
                                 }}
                               >
-                                <Download /> {isGeoAudit ? 'Download GEO markdown' : 'Download report'}
+                                <Download /> {isGeo ? 'Download GEO markdown' : 'Download report'}
                               </button>
                               <button
                                 className="audit-history-btn"

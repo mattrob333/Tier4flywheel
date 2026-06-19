@@ -1,5 +1,6 @@
 import {
   getAuditType,
+  reportRepairPrompt,
   reportPrompt,
   reportSchema,
 } from './_advisorAuditPrompts.js';
@@ -10,6 +11,7 @@ import {
   requireAdvisorAuth,
   requirePost,
 } from './_advisorAuditServer.js';
+import { validateAdvisorReport } from './_advisorAuditValidation.js';
 
 function clean(value, max = 80000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
@@ -46,8 +48,10 @@ export default async function handler(req, res) {
       input,
       schema: reportSchema,
       schemaName: 'advisor_audit_report',
-      maxOutputTokens: 4000,
+      maxOutputTokens: 6500,
       reportModel: true,
+      validate: validateAdvisorReport,
+      repairInstructions: reportRepairPrompt(t),
     });
 
     return res.status(200).json(result);

@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 
 const OPENAI_MODEL = process.env.OPENAI_AUDIT_MODEL || 'gpt-5.5';
 const OPENAI_REPORT_MODEL = process.env.OPENAI_AUDIT_REPORT_MODEL || OPENAI_MODEL;
+const MANY_SPACES = /[ \t]{2,}/g;
 
 let openaiClient;
 let clerkClient;
@@ -150,16 +151,38 @@ export async function requireAdvisorAuth(req) {
   return { ...profile, isSuperuser: isAuditSuperuserEmail(profile.email) };
 }
 
-export async function createStructuredResponse({
+function sanitizeText(value) {
+  return Array.from(value)
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126);
+    })
+    .join('')
+    .replace(MANY_SPACES, ' ')
+    .trim();
+}
+
+function sanitizeStructuredOutput(value) {
+  if (typeof value === 'string') return sanitizeText(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeStructuredOutput(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, sanitizeStructuredOutput(item)]),
+    );
+  }
+  return value;
+}
+
+async function requestStructuredOutput({
   instructions,
   input,
   schema,
   schemaName,
-  webSearch = false,
-  maxOutputTokens = 2500,
-  reportModel = false,
+  webSearch,
+  maxOutputTokens,
+  reportModel,
 }) {
-  const response = await getOpenAI().responses.create({
+  return getOpenAI().responses.create({
     model: reportModel ? OPENAI_REPORT_MODEL : OPENAI_MODEL,
     instructions,
     input,
@@ -190,14 +213,84 @@ export async function createStructuredResponse({
       },
     },
   });
+}
 
+function parseStructuredOutput(response) {
   try {
-    return JSON.parse(response.output_text);
+    return sanitizeStructuredOutput(JSON.parse(response.output_text));
   } catch (error) {
     error.message = `OpenAI returned non-JSON output: ${error.message}`;
     error.rawOutput = response.output_text;
     throw error;
   }
+}
+
+function validationError(errors) {
+  const error = new Error(`OpenAI returned report JSON that failed validation: ${errors.join(' ')}`);
+  error.statusCode = 502;
+  return error;
+}
+
+export async function createStructuredResponse({
+  instructions,
+  input,
+  schema,
+  schemaName,
+  webSearch = false,
+  maxOutputTokens = 2500,
+  reportModel = false,
+  validate,
+  repairInstructions,
+}) {
+  const response = await requestStructuredOutput({
+    instructions,
+    input,
+    schema,
+    schemaName,
+    webSearch,
+    maxOutputTokens,
+    reportModel,
+  });
+
+  let parsed;
+  let errors = [];
+  try {
+    parsed = parseStructuredOutput(response);
+  } catch (error) {
+    if (!repairInstructions) throw error;
+    errors = [error.message];
+  }
+
+  if (parsed && validate) {
+    errors = validate(parsed);
+  }
+
+  if (!errors.length) return parsed;
+  if (!repairInstructions) throw validationError(errors);
+
+  const repairInput = [
+    'Validation errors:',
+    ...errors.map((error) => `- ${error}`),
+    '',
+    'Original JSON or raw output:',
+    parsed ? JSON.stringify(parsed, null, 2) : String(response.output_text || ''),
+  ].join('\n');
+
+  const repaired = await requestStructuredOutput({
+    instructions: repairInstructions,
+    input: repairInput,
+    schema,
+    schemaName: `${schemaName}_repair`,
+    webSearch: false,
+    maxOutputTokens,
+    reportModel,
+  });
+
+  const repairedParsed = parseStructuredOutput(repaired);
+  const repairedErrors = validate ? validate(repairedParsed) : [];
+  if (repairedErrors.length) throw validationError(repairedErrors);
+
+  return repairedParsed;
 }
 
 export async function createTextResponse({ instructions, input, maxOutputTokens = 800 }) {

@@ -83,7 +83,10 @@ const STYLE = `
 .t4-tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
 .tag-High{background:rgba(95,179,126,.16);color:var(--t4-good)}
 .tag-Med{background:rgba(217,139,84,.16);color:var(--t4-warn)}
+.tag-Medium{background:rgba(217,139,84,.16);color:var(--t4-warn)}
 .tag-Low{background:rgba(139,151,168,.16);color:var(--t4-mut)}
+.t4-rec-title{font-weight:700;color:#fff;margin-bottom:4px}
+.t4-rec-copy{color:var(--t4-mut);font-size:12.5px;margin-top:4px}
 .t4-phase{border-left:2px solid var(--t4-good);padding-left:16px;margin-bottom:16px}
 .t4-phase .pt{font-weight:700;font-size:14px;margin-bottom:6px;color:#fff}
 .t4-phase ul{margin:0;padding-left:18px;font-size:13px}
@@ -311,12 +314,94 @@ function Gauge({ name, score }) {
   );
 }
 
+function tagClass(value) {
+  return String(value || 'Medium').replace(/\s+/g, '');
+}
+
+function domainWhy(domain) {
+  return domain?.why_it_matters || domain?.rationale || '';
+}
+
+function recommendationTitle(recommendation) {
+  return recommendation?.title || recommendation?.text || '';
+}
+
+function recommendationAction(recommendation) {
+  return recommendation?.client_action || recommendation?.text || '';
+}
+
+function recommendationReason(recommendation) {
+  return recommendation?.business_reason || '';
+}
+
+function recommendationMapping(recommendation) {
+  return recommendation?.internal_solution_mapping || '';
+}
+
+function cleanList(items) {
+  return Array.isArray(items) ? items.filter(Boolean) : [];
+}
+
+function roadmapTitle(report) {
+  if (report?.roadmap && !Array.isArray(report.roadmap) && report.roadmap.title) return report.roadmap.title;
+  return '90-Day Roadmap';
+}
+
+function roadmapPhases(report) {
+  if (Array.isArray(report?.roadmap)) {
+    return report.roadmap.map((phase) => ({
+      period: phase.phase || '',
+      theme: phase.title || '',
+      actions: Array.isArray(phase.items) ? phase.items : [],
+    }));
+  }
+
+  if (Array.isArray(report?.roadmap?.phases)) {
+    return report.roadmap.phases.map((phase) => ({
+      period: phase.period || '',
+      theme: phase.theme || '',
+      actions: Array.isArray(phase.actions) ? phase.actions : [],
+    }));
+  }
+
+  return [];
+}
+
 function buildMarkdown(rep, client, type) {
   return `# ${type.name} - ${client.name}
 Overall: ${Number(rep.overall).toFixed(1)}/5 - ${rep.band}
 
 ## Executive Summary
 ${rep.execSummary}
+
+${rep.business_risk ? `## Business Risk\n${rep.business_risk}\n` : ''}
+
+${rep.primary_opportunity ? `## Primary Opportunity\n${rep.primary_opportunity}\n` : ''}
+
+${rep.recommended_first_pilot ? `## Recommended First Pilot
+${rep.recommended_first_pilot.title}
+${rep.recommended_first_pilot.why_this_first}
+
+Target users:
+${cleanList(rep.recommended_first_pilot.target_users).map((item) => `- ${item}`).join('\n')}
+
+Required data sources:
+${cleanList(rep.recommended_first_pilot.required_data_sources).map((item) => `- ${item}`).join('\n')}
+
+Success metrics:
+${cleanList(rep.recommended_first_pilot.success_metrics).map((item) => `- ${item}`).join('\n')}
+
+Risk controls:
+${cleanList(rep.recommended_first_pilot.risk_controls).map((item) => `- ${item}`).join('\n')}
+` : ''}
+
+${rep.ai_use_case_governance_signal ? `## AI Use Case Governance Signal\n${rep.ai_use_case_governance_signal}\n` : ''}
+
+${rep.pedigree_fit ? `## Pedigree Fit
+Fit level: ${rep.pedigree_fit.fit_level}
+Reason: ${rep.pedigree_fit.reason}
+Suggested next step: ${rep.pedigree_fit.suggested_next_step}
+` : ''}
 
 Top findings:
 ${(rep.topFindings || []).map((f) => `- ${f}`).join('\n')}
@@ -329,18 +414,23 @@ ${(rep.domains || [])
   .map((d) => `### ${d.name} - ${d.score}/5
 ${d.finding}
 Means: ${d.meaning}
-Why: ${d.rationale}`)
+Why it matters: ${domainWhy(d)}
+Evidence: ${d.evidence || 'Not included in this saved report.'}`)
   .join('\n\n')}
 
 ## Recommendations
 ${(rep.recommendations || [])
-  .map((x, i) => `${i + 1}. ${x.text} [${x.effort}/${x.impact}] - ${x.owner}`)
+  .map((x, i) => {
+    const reason = recommendationReason(x) ? ` Reason: ${recommendationReason(x)}` : '';
+    const mapping = recommendationMapping(x) ? ` Internal mapping: ${recommendationMapping(x)}.` : '';
+    return `${i + 1}. ${recommendationTitle(x)} - ${recommendationAction(x)}${reason}${mapping} Effort: ${x.effort} | Impact: ${x.impact} | Owner: ${x.owner}`;
+  })
   .join('\n')}
 
-## 90-Day Roadmap
-${(rep.roadmap || [])
-  .map((p) => `${p.phase} - ${p.title}
-${(p.items || []).map((it) => `  - ${it}`).join('\n')}`)
+## ${roadmapTitle(rep)}
+${roadmapPhases(rep)
+  .map((p) => `${p.period} - ${p.theme}
+${(p.actions || []).map((it) => `  - ${it}`).join('\n')}`)
   .join('\n')}
 
 ${rep.closing}`;
@@ -379,6 +469,90 @@ function Report({ rep, client, type }) {
         </ol>
       </div>
 
+      {rep.business_risk && (
+        <div className="t4-sec">
+          <h3>Business Risk</h3>
+          <p style={{ fontSize: 14 }}>{rep.business_risk}</p>
+        </div>
+      )}
+
+      {rep.primary_opportunity && (
+        <div className="t4-sec">
+          <h3>Primary Opportunity</h3>
+          <p style={{ fontSize: 14 }}>{rep.primary_opportunity}</p>
+        </div>
+      )}
+
+      {rep.recommended_first_pilot && (
+        <div className="t4-sec">
+          <h3>Recommended First Pilot</h3>
+          <div className="t4-finding">
+            <div className="ft">
+              <h4>{rep.recommended_first_pilot.title}</h4>
+            </div>
+            <p>{rep.recommended_first_pilot.why_this_first}</p>
+            <div className="t4-row" style={{ marginTop: 12 }}>
+              <div>
+                <p className="lab">Target users</p>
+                <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
+                  {cleanList(rep.recommended_first_pilot.target_users).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="lab">Data sources</p>
+                <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
+                  {cleanList(rep.recommended_first_pilot.required_data_sources).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="lab">Success metrics</p>
+                <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
+                  {cleanList(rep.recommended_first_pilot.success_metrics).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="lab">Risk controls</p>
+                <ul style={{ fontSize: 13, paddingLeft: 18, marginTop: 6 }}>
+                  {cleanList(rep.recommended_first_pilot.risk_controls).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rep.ai_use_case_governance_signal && (
+        <div className="t4-sec">
+          <h3>AI Use Case Governance Signal</h3>
+          <p style={{ fontSize: 14 }}>{rep.ai_use_case_governance_signal}</p>
+        </div>
+      )}
+
+      {rep.pedigree_fit && (
+        <div className="t4-sec">
+          <h3>Pedigree Fit</h3>
+          <div className="t4-finding">
+            <div className="ft">
+              <h4>{rep.pedigree_fit.fit_level} fit</h4>
+              <span className="t4-tag tag-Medium">Internal</span>
+            </div>
+            <p>{rep.pedigree_fit.reason}</p>
+            <p style={{ color: 'var(--t4-mut)' }}>
+              <span className="lab">Next step | </span>
+              {rep.pedigree_fit.suggested_next_step}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="t4-sec">
         <h3>Scorecard</h3>
         {(rep.domains || []).map((d, k) => (
@@ -400,9 +574,15 @@ function Report({ rep, client, type }) {
               {d.meaning}
             </p>
             <p style={{ color: 'var(--t4-mut)' }}>
-              <span className="lab">Why | </span>
-              {d.rationale}
+              <span className="lab">Why it matters | </span>
+              {domainWhy(d)}
             </p>
+            {d.evidence && (
+              <p style={{ color: 'var(--t4-mut)' }}>
+                <span className="lab">Evidence | </span>
+                {d.evidence}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -414,8 +594,9 @@ function Report({ rep, client, type }) {
             <tr>
               <th>#</th>
               <th>Action</th>
-              <th>Effort</th>
+              <th>Internal</th>
               <th>Impact</th>
+              <th>Effort</th>
               <th>Owner</th>
             </tr>
           </thead>
@@ -423,12 +604,17 @@ function Report({ rep, client, type }) {
             {(rep.recommendations || []).map((r, k) => (
               <tr key={k}>
                 <td className="t4-mono">{k + 1}</td>
-                <td>{r.text}</td>
                 <td>
-                  <span className={`t4-tag tag-${r.effort}`}>{r.effort}</span>
+                  <div className="t4-rec-title">{recommendationTitle(r)}</div>
+                  <div>{recommendationAction(r)}</div>
+                  {recommendationReason(r) && <div className="t4-rec-copy">{recommendationReason(r)}</div>}
+                </td>
+                <td style={{ color: 'var(--t4-mut)' }}>{recommendationMapping(r) || 'Not mapped'}</td>
+                <td>
+                  <span className={`t4-tag tag-${tagClass(r.impact)}`}>{r.impact}</span>
                 </td>
                 <td>
-                  <span className={`t4-tag tag-${r.impact}`}>{r.impact}</span>
+                  <span className={`t4-tag tag-${tagClass(r.effort)}`}>{r.effort}</span>
                 </td>
                 <td style={{ color: 'var(--t4-mut)' }}>{r.owner}</td>
               </tr>
@@ -438,14 +624,14 @@ function Report({ rep, client, type }) {
       </div>
 
       <div className="t4-sec">
-        <h3>90-Day Roadmap</h3>
-        {(rep.roadmap || []).map((p, k) => (
+        <h3>{roadmapTitle(rep)}</h3>
+        {roadmapPhases(rep).map((p, k) => (
           <div className="t4-phase" key={k}>
             <div className="pt">
-              {p.phase} - {p.title}
+              {p.period} - {p.theme}
             </div>
             <ul>
-              {(p.items || []).map((it, j) => (
+              {(p.actions || []).map((it, j) => (
                 <li key={j}>{it}</li>
               ))}
             </ul>

@@ -1,6 +1,6 @@
 // api/report.js — GEO-SEO Audit Report Generator
 // GET /api/report?domain=example.com
-// Returns a full HTML audit report page, cached in-memory for 7 days
+// Returns a deterministic technical crawl report. This is not an OpenAI-generated report.
 
 import https from 'https';
 import http from 'http';
@@ -8,7 +8,28 @@ import { URL } from 'url';
 
 // Simple in-memory cache (persists for function warm lifetime)
 const cache = new Map();
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CRAWL_CHECKS = ['homepage', 'robots.txt', 'llms.txt', 'llms-full.txt', 'sitemap.xml'];
+
+function formatDuration(ms = 0) {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatAge(ms = 0) {
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return 'less than a minute old';
+  if (minutes === 1) return '1 minute old';
+  return `${minutes} minutes old`;
+}
+
+function finishAudit(results, startedAt) {
+  results.meta.auditGeneratedAt = new Date().toISOString();
+  results.meta.crawlDurationMs = Date.now() - startedAt;
+  results.meta.checksRun = CRAWL_CHECKS.length;
+  results.meta.workflow = 'Automated technical crawl: homepage HTML, robots.txt, llms.txt, llms-full.txt, and sitemap.xml. No OpenAI or external search model is used in this report.';
+  return results;
+}
 
 function fetchUrl(url, options = {}, redirectCount = 0) {
   return new Promise((resolve, reject) => {
@@ -39,6 +60,7 @@ function fetchUrl(url, options = {}, redirectCount = 0) {
 }
 
 async function runAudit(domain) {
+  const startedAt = Date.now();
   const url = `https://${domain}`;
   const results = { domain, url, scores: {}, issues: [], wins: [], meta: {} };
 
@@ -139,7 +161,7 @@ async function runAudit(domain) {
       severity: 'critical',
       text: `The audit could not crawl the homepage (${m.fetchError}). Confirm the domain is live and publicly reachable before trusting this score.`,
     });
-    return results;
+    return finishAudit(results, startedAt);
   }
 
   // 1. AI Citability (25)
@@ -203,13 +225,16 @@ async function runAudit(domain) {
   if (m.hasHSTS) results.wins.push('HTTPS with HSTS configured');
   if (m.allowsGPTBot && m.allowsClaudeBot) results.wins.push('Major AI crawlers explicitly allowed in robots.txt');
 
-  return results;
+  return finishAudit(results, startedAt);
 }
 
 function renderHTML(audit, source = '') {
   const total = audit.total;
-  const ratingColor = total >= 75 ? '#38a169' : total >= 50 ? '#dd6b20' : '#e53e3e';
+  const ratingColor = total >= 75 ? '#5EC08A' : total >= 50 ? '#C9A84C' : '#d66a6a';
+  const ratingTone = total >= 75 ? 'Strong' : total >= 50 ? 'Average' : 'Weak';
   const ratingLabel = total >= 75 ? '🟢 Strong' : total >= 50 ? '🟡 Average' : '🔴 Weak';
+
+  void ratingLabel;
 
   const scoreRows = [
     ['AI Citability & Visibility', 'citability'],
@@ -221,7 +246,7 @@ function renderHTML(audit, source = '') {
   ].map(([label, key]) => {
     const { score, max } = audit.scores[key];
     const pct = Math.round((score / max) * 100);
-    const color = pct < 40 ? '#e53e3e' : pct < 65 ? '#dd6b20' : '#38a169';
+    const color = pct < 40 ? '#d66a6a' : pct < 65 ? '#C9A84C' : '#5EC08A';
     return `<div class="bar-row">
       <div class="bar-label">${label}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,2)}%;background:${color}"></div></div>
@@ -230,7 +255,7 @@ function renderHTML(audit, source = '') {
   }).join('');
 
   const issueRows = audit.issues.map(i => {
-    const dot = i.severity === 'critical' ? '#e53e3e' : i.severity === 'high' ? '#e53e3e' : '#dd6b20';
+    const dot = i.severity === 'critical' ? '#d66a6a' : i.severity === 'high' ? '#d66a6a' : '#C9A84C';
     return `<div class="issue-item"><div class="issue-dot" style="background:${dot}"></div><div class="issue-text">${i.text}</div></div>`;
   }).join('');
 
@@ -247,7 +272,41 @@ function renderHTML(audit, source = '') {
     `<div class="plat-row"><div class="plat-name">${name}</div><div class="pill ${good ? 'pill-partial' : 'pill-poor'}">${good ? '🟡 Partial' : '🔴 Poor'}</div></div>`
   ).join('');
 
-  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  void platforms;
+  const platformRows = [
+    ['Google AI Overviews', audit.meta.hasFAQ],
+    ['ChatGPT Search', audit.meta.allowsGPTBot && audit.meta.wordCount > 100],
+    ['Perplexity', audit.meta.hasLlmsTxt],
+    ['Claude (Anthropic)', audit.meta.allowsClaudeBot && audit.meta.wordCount > 100],
+  ].map(([name, good]) =>
+    `<div class="plat-row"><div class="plat-name">${name}</div><div class="pill ${good ? 'pill-partial' : 'pill-poor'}"><span class="pill-dot"></span>${good ? 'Partial' : 'Poor'}</div></div>`
+  ).join('');
+
+  const generatedAt = audit.meta.auditGeneratedAt ? new Date(audit.meta.auditGeneratedAt) : new Date();
+  const dateStr = generatedAt.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  const cacheStatus = audit.meta.cacheStatus === 'HIT' ? 'Cached snapshot' : 'Fresh crawl';
+  const cacheDetail = audit.meta.cacheStatus === 'HIT'
+    ? `${formatAge(audit.meta.cacheAgeMs || 0)}`
+    : 'Live crawl completed for this request';
+  const reportModeLabel = source === 'outbound'
+    ? 'Tier 4 Intelligence | internal report'
+    : 'Tier 4 Intelligence | AI search report';
+  const crawlEvidence = `<div class="card">
+    <div class="card-title">Crawl Evidence</div>
+    <div class="meta-row"><span>Workflow</span><strong>Technical crawl, not AI-generated</strong></div>
+    <div class="meta-row"><span>Status</span><strong>${cacheStatus} - ${cacheDetail}</strong></div>
+    <div class="meta-row"><span>Final URL</span><strong>${audit.url}</strong></div>
+    <div class="meta-row"><span>Checks run</span><strong>${audit.meta.checksRun || CRAWL_CHECKS.length}</strong></div>
+    <div class="meta-row"><span>Crawl time</span><strong>${formatDuration(audit.meta.crawlDurationMs || 0)}</strong></div>
+    <div class="meta-row"><span>Visible words</span><strong>${audit.meta.wordCount || 0}</strong></div>
+    <div class="meta-note">${audit.meta.workflow}</div>
+  </div>`;
   const issuesMarkup = issueRows || '<div style="color:#71717a;font-size:14px">No critical issues detected.</div>';
   const remediationContent = `<div class="card">
     <div class="card-title">Issues Found</div>
@@ -260,25 +319,40 @@ function renderHTML(audit, source = '') {
       <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call →</a>
     </div>
   </div>`;
+  void remediationContent;
+  const styledRemediationContent = `<div class="card">
+    <div class="card-title">Issues Found</div>
+    ${issuesMarkup}
+  </div>
+  <div class="cta-card">
+    <h3>Get Your Full Remediation Plan</h3>
+    <p>We can take ${audit.domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live - no commitment required.</p>
+    <div class="btn-row">
+      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call -></a>
+    </div>
+  </div>`;
   const remediationSection = source === 'outbound'
-    ? remediationContent
-    : `<div id="remediation-gate" style="background:#1a1a2e;border:1px solid #30305a;border-radius:12px;padding:32px;margin:32px 0;text-align:center;">
+    ? styledRemediationContent
+    : `<div id="remediation-gate" class="capture-card">
   <h2 style="color:#fff;margin-bottom:8px;">Your AI Remediation Roadmap</h2>
-  <p style="color:#aaa;margin-bottom:24px;">You scored ${total}/100. Here is the prioritized fix list to move your site from invisible to citable in AI search -- free.</p>
-  <input type="email" id="captureEmail" placeholder="your@email.com" style="width:100%;padding:12px;margin-bottom:12px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
-  <input type="text" id="captureName" placeholder="Your name" style="width:100%;padding:12px;margin-bottom:12px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
-  <input type="text" id="captureCompany" placeholder="Company name" style="width:100%;padding:12px;margin-bottom:24px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box;" />
-  <button onclick="submitCapture()" style="background:#6c63ff;color:#fff;border:none;padding:14px 32px;border-radius:8px;font-size:16px;cursor:pointer;width:100%;">
+  <p style="color:rgba(240,242,245,.62);margin-bottom:24px;">You scored ${total}/100. Here is the prioritized fix list to move your site from invisible to citable in AI search - free.</p>
+  <input type="email" id="captureEmail" placeholder="your@email.com" />
+  <input type="text" id="captureName" placeholder="Your name" />
+  <input type="text" id="captureCompany" placeholder="Company name" />
+  <button onclick="submitCapture()">
     Get My Remediation Roadmap
   </button>
-  <p style="color:#666;font-size:12px;margin-top:12px;">
+  <p style="color:rgba(240,242,245,.42);font-size:12px;margin-top:12px;">
     No spam. One email with your roadmap. That is it.
   </p>
 </div>
 
 <div id="remediation-content" style="display:none;">
-  ${remediationContent}
+  ${styledRemediationContent}
 </div>`;
+  const advisorBackLink = source === 'outbound'
+    ? '<div class="advisor-nav"><a class="advisor-back" href="/admin">Back to Advisor Dashboard</a><a class="advisor-back secondary" href="/admin/seo-audit">Run Another GEO Audit</a></div>'
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -288,54 +362,85 @@ function renderHTML(audit, source = '') {
 <title>AI Search Audit — ${audit.domain}</title>
 <meta name="robots" content="noindex">
 <style>
+:root{--t4-ink:#0B1426;--t4-panel:#1A1F2E;--t4-panel2:#0F172A;--t4-line:rgba(255,255,255,.1);--t4-txt:#F0F2F5;--t4-mut:rgba(240,242,245,.62);--t4-amber:#C9A84C;--t4-steel:#5EC08A;--t4-good:#5EC08A;--t4-bad:#d66a6a;--t4-r:8px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-serif;padding:0;min-height:100vh}
-.hero{background:linear-gradient(135deg,#0f0f14 0%,#141428 60%,#0a1628 100%);padding:40px 24px 32px;border-bottom:1px solid #1f1f23}
-.hero-inner{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-.badge{display:inline-block;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#a8c0d6;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px;margin-bottom:10px}
-.hero-title{font-size:26px;font-weight:800;line-height:1.2;margin-bottom:4px}
-.hero-domain{color:#63b3ed}
-.hero-sub{color:#71717a;font-size:13px}
-.score-wrap{text-align:center;flex-shrink:0}
-.score-circle{width:96px;height:96px;border-radius:50%;border:4px solid ${ratingColor};background:rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 6px}
-.score-num{font-size:34px;font-weight:900;line-height:1;color:#fafafa}
-.score-sub{font-size:11px;color:#71717a}
-.score-rating{font-size:11px;font-weight:700;color:${ratingColor};text-transform:uppercase;letter-spacing:0.5px}
-.wrap{max-width:680px;margin:0 auto;padding:28px 24px}
-.card{background:#111113;border:1px solid #27272a;border-radius:10px;padding:22px;margin-bottom:20px}
-.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#52525b;margin-bottom:18px}
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
-.bar-label{font-size:13px;color:#a1a1aa;width:170px;flex-shrink:0}
-.bar-track{flex:1;background:#27272a;border-radius:6px;height:7px}
-.bar-fill{height:7px;border-radius:6px}
-.bar-score{font-size:12px;font-weight:700;width:34px;text-align:right;flex-shrink:0}
-.issue-item,.win-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #1c1c1f}
+body{background:var(--t4-ink);color:var(--t4-txt);font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.5;padding:0;min-height:100vh}
+.advisor-nav{max-width:920px;margin:0 auto;padding:28px 20px 0;display:flex;gap:10px;flex-wrap:wrap}
+.advisor-back{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border-radius:var(--t4-r);border:1px solid rgba(94,192,138,.34);background:rgba(94,192,138,.1);color:var(--t4-txt);text-decoration:none;font-size:13px;font-weight:800;padding:8px 13px;box-shadow:0 0 24px rgba(94,192,138,.08)}
+.advisor-back:hover{background:rgba(94,192,138,.16);border-color:var(--t4-steel)}
+.advisor-back.secondary{background:transparent;border-color:var(--t4-line);color:var(--t4-mut);box-shadow:none}
+.advisor-back.secondary:hover{color:var(--t4-txt);border-color:var(--t4-steel)}
+.hero{padding:22px 20px 24px;border-bottom:1px solid var(--t4-line)}
+.hero-inner{max-width:920px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.hero-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.brand-icon{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(94,192,138,.3))}
+.brand-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.brand-sub{font-size:12px;color:var(--t4-mut)}
+.badge{display:inline-flex;width:fit-content;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.1);color:var(--t4-amber);font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:6px 10px;border-radius:var(--t4-r);margin-bottom:12px}
+.hero-title{font-size:28px;font-weight:900;line-height:1.08;margin-bottom:6px;letter-spacing:-.03em;color:#fff}
+.hero-domain{color:var(--t4-steel)}
+.hero-sub{color:var(--t4-mut);font-size:13px}
+.score-wrap{text-align:center;flex-shrink:0;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 22px;min-width:146px}
+.score-circle{width:auto;height:auto;border:none;background:transparent;display:block;margin:0}
+.score-num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:42px;font-weight:800;line-height:1;color:${ratingColor}}
+.score-sub{font-size:11px;color:var(--t4-mut);margin-top:2px}
+.score-rating{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:${ratingColor};text-transform:uppercase;letter-spacing:.08em;margin-top:6px}
+.score-rating::before{content:"";width:7px;height:7px;border-radius:50%;background:${ratingColor};box-shadow:0 0 14px ${ratingColor}}
+.wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px}
+.card{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:22px;margin-bottom:20px}
+.card-title{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:rgba(201,168,76,.76);margin-bottom:18px}
+.meta-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--t4-line);font-size:13px}
+.meta-row span{color:var(--t4-mut)}
+.meta-row strong{color:var(--t4-txt);text-align:right;font-weight:600;max-width:560px;overflow-wrap:anywhere}
+.meta-note{font-size:12px;line-height:1.55;color:var(--t4-mut);margin-top:14px}
+.bar-row{display:grid;grid-template-columns:minmax(160px,220px) 1fr 48px;align-items:center;gap:12px;margin-bottom:12px}
+.bar-label{font-size:13px;color:var(--t4-mut)}
+.bar-track{background:rgba(255,255,255,.1);border-radius:6px;height:8px}
+.bar-fill{height:8px;border-radius:6px}
+.bar-score{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;font-weight:700;text-align:right;flex-shrink:0}
+.issue-item,.win-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--t4-line)}
 .issue-item:last-child,.win-item:last-child{border-bottom:none}
-.issue-dot,.win-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
-.win-dot{background:#38a169}
-.issue-text,.win-text{font-size:14px;color:#a1a1aa;line-height:1.55}
-.plat-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1c1c1f}
+.issue-dot,.win-dot{width:7px;height:7px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.win-dot{background:var(--t4-good)}
+.issue-text,.win-text{font-size:14px;color:var(--t4-mut);line-height:1.55}
+.plat-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--t4-line)}
 .plat-row:last-child{border-bottom:none}
-.plat-name{font-size:14px;color:#a1a1aa}
-.pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
-.pill-poor{background:rgba(229,62,62,0.15);color:#fc8181}
-.pill-partial{background:rgba(221,107,32,0.15);color:#f6ad55}
-.cta-card{background:linear-gradient(135deg,#0f1a2e,#0a2444);border:1px solid #1e3a5f;border-radius:10px;padding:28px;text-align:center;margin-bottom:20px}
-.cta-card h3{font-size:19px;font-weight:700;margin-bottom:8px}
-.cta-card p{color:#a1a1aa;font-size:14px;line-height:1.6;margin-bottom:22px;max-width:420px;margin-left:auto;margin-right:auto}
+.plat-name{font-size:14px;color:var(--t4-mut)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+.pill-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill-poor{background:rgba(214,106,106,.14);color:var(--t4-bad)}
+.pill-partial{background:rgba(201,168,76,.16);color:var(--t4-amber)}
+.cta-card{background:rgba(94,192,138,.08);border:1px solid rgba(94,192,138,.34);border-radius:var(--t4-r);padding:28px;text-align:center;margin-bottom:20px;box-shadow:0 0 32px rgba(94,192,138,.08)}
+.cta-card h3{font-size:20px;font-weight:800;margin-bottom:8px;color:#fff;letter-spacing:-.01em}
+.cta-card p{color:var(--t4-mut);font-size:14px;line-height:1.65;margin-bottom:22px;max-width:520px;margin-left:auto;margin-right:auto}
+.capture-card{background:var(--t4-panel);border:1px solid rgba(94,192,138,.34);border-radius:var(--t4-r);padding:28px;margin:24px 0;text-align:center}
+.capture-card input{width:100%;min-height:42px;background:var(--t4-panel2);border:1px solid var(--t4-line);color:var(--t4-txt);border-radius:var(--t4-r);padding:10px 12px;font-size:14px;margin-bottom:12px}
+.capture-card input:focus{outline:none;border-color:var(--t4-good)}
+.capture-card button{width:100%;min-height:42px;background:var(--t4-good);color:#fff;border:none;border-radius:var(--t4-r);font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 0 24px rgba(94,192,138,.2)}
+.capture-card button:hover{background:#6dcc98}
 .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{display:inline-block;background:#3182ce;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:7px}
-.btn-share{display:inline-block;background:#27272a;color:#a1a1aa;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:7px;cursor:pointer;border:none}
-.btn-share:hover{background:#3f3f46;color:#fafafa}
-.share-confirm{font-size:12px;color:#38a169;margin-top:10px;display:none}
-.footer{text-align:center;padding:20px;color:#3f3f46;font-size:12px}
-@media(max-width:540px){.bar-label{width:130px}.hero-inner{flex-direction:column;align-items:flex-start}}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:40px;background:var(--t4-good);color:#fff;font-size:14px;font-weight:800;text-decoration:none;padding:11px 18px;border-radius:var(--t4-r);box-shadow:0 0 24px rgba(94,192,138,.2)}
+.btn-primary:hover{background:#6dcc98}
+.btn-share{display:inline-flex;align-items:center;justify-content:center;min-height:40px;background:transparent;color:var(--t4-mut);font-size:0;font-weight:700;text-decoration:none;padding:9px 14px;border-radius:var(--t4-r);cursor:pointer;border:1px solid var(--t4-line)}
+.btn-share::after{content:"Share This Report";font-size:13px}
+.btn-share:hover{color:var(--t4-txt);border-color:var(--t4-steel)}
+.share-confirm{font-size:12px;color:var(--t4-good);margin-top:10px;display:none}
+.footer{text-align:center;padding:20px;color:rgba(240,242,245,.42);font-size:12px;border-top:1px solid var(--t4-line);margin-top:26px}
+@media(max-width:640px){.hero-inner{align-items:flex-start}.score-wrap{width:100%;text-align:left}.bar-row{grid-template-columns:1fr;gap:6px}.bar-score{text-align:left}.meta-row{display:block}.meta-row strong{display:block;text-align:left;margin-top:3px}.hero-title{font-size:24px}}
 </style>
 </head>
 <body>
+${advisorBackLink}
 <div class="hero">
   <div class="hero-inner">
     <div>
+      <div class="hero-brand">
+        <img class="brand-icon" src="/brand/tier4-icon-color.png" alt="Tier 4">
+        <div>
+          <div class="brand-title">AI Search / GEO Audit</div>
+          <div class="brand-sub">${reportModeLabel}</div>
+        </div>
+      </div>
       <div class="badge">Tier 4 Intelligence — AI Search Audit</div>
       <div class="hero-title">AI Search Visibility Report<br><span class="hero-domain">${audit.domain}</span></div>
       <div class="hero-sub">Generated ${dateStr} &bull; Powered by Tier 4 Intelligence</div>
@@ -343,7 +448,7 @@ body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-s
     <div class="score-wrap">
       <div class="score-circle"><div class="score-num">${total}</div></div>
       <div class="score-sub">out of 100</div>
-      <div class="score-rating">${ratingLabel}</div>
+      <div class="score-rating">${ratingTone}</div>
     </div>
   </div>
 </div>
@@ -355,6 +460,8 @@ body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-s
     ${scoreRows}
   </div>
 
+  ${crawlEvidence}
+
   ${audit.wins.length ? `<div class="card">
     <div class="card-title">What Is Working</div>
     ${winRows}
@@ -364,7 +471,7 @@ body{background:#09090b;color:#fafafa;font-family:system-ui,-apple-system,sans-s
 
   <div class="card">
     <div class="card-title">AI Platform Readiness</div>
-    ${platforms}
+    ${platformRows}
   </div>
 
   <div class="card" style="text-align:center;">
@@ -428,9 +535,27 @@ async function submitCapture() {
 </html>`;
 }
 
+function queryFlag(value) {
+  return ['1', 'true', 'yes', 'fresh', 'refresh'].includes(String(value || '').toLowerCase());
+}
+
+function setReportHeaders(res, { cacheStatus, noStore = false }) {
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('X-Cache', cacheStatus);
+  res.setHeader('X-Audit-Workflow', 'technical-crawl');
+
+  if (noStore) {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    return;
+  }
+
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=60');
+}
+
 export default async function handler(req, res) {
   const domain = (req.query?.domain || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
   const source = req.query?.source === 'outbound' ? 'outbound' : '';
+  const forceFresh = source === 'outbound' || queryFlag(req.query?.refresh) || queryFlag(req.query?.fresh);
 
   if (!domain || domain.length < 4 || !domain.includes('.')) {
     return res.status(400).send('<h1>Missing domain parameter</h1><p>Usage: /api/report?domain=example.com</p>');
@@ -438,22 +563,30 @@ export default async function handler(req, res) {
 
   // Check cache
   const cached = cache.get(domain);
-  if (cached && cached.audit && Date.now() - cached.ts < CACHE_TTL_MS) {
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
-    res.setHeader('X-Cache', 'HIT');
-    return res.status(200).send(renderHTML(cached.audit, source));
+  if (!forceFresh && cached && cached.audit && Date.now() - cached.ts < CACHE_TTL_MS) {
+    const audit = {
+      ...cached.audit,
+      meta: {
+        ...cached.audit.meta,
+        cacheStatus: 'HIT',
+        cacheAgeMs: Date.now() - cached.ts,
+      },
+    };
+    setReportHeaders(res, { cacheStatus: 'HIT' });
+    return res.status(200).send(renderHTML(audit, source));
   }
 
   try {
     const audit = await runAudit(domain);
+    audit.meta.cacheStatus = forceFresh ? 'BYPASS' : 'MISS';
+    audit.meta.cacheAgeMs = 0;
     const html = renderHTML(audit, source);
 
-    cache.set(domain, { audit, ts: Date.now() });
+    if (!forceFresh) {
+      cache.set(domain, { audit, ts: Date.now() });
+    }
 
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
-    res.setHeader('X-Cache', 'MISS');
+    setReportHeaders(res, { cacheStatus: audit.meta.cacheStatus, noStore: forceFresh });
     return res.status(200).send(html);
   } catch (err) {
     return res.status(500).send(`<h1>Audit failed</h1><p>${err.message}</p>`);

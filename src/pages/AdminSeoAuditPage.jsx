@@ -55,7 +55,7 @@ function SeoAuditTool({ devMode = false }) {
     }
 
     setError('');
-    window.location.assign(`/api/report?domain=${encodeURIComponent(cleaned)}&source=outbound`);
+    window.location.assign(`/api/report?domain=${encodeURIComponent(cleaned)}&source=outbound&fresh=${Date.now()}`);
   }
 
   return (
@@ -75,10 +75,10 @@ function SeoAuditTool({ devMode = false }) {
 
         <section className="seo-panel">
           <span className="seo-eyebrow">Advisor Tool</span>
-          <h2 className="seo-title">Generate the existing AI search visibility report.</h2>
+          <h2 className="seo-title">Run a fresh AI search visibility crawl.</h2>
           <p className="seo-sub">
-            Enter a prospect or client domain. This launches the existing report generator with the internal outbound
-            view, so advisors can use the audit without making it a prominent public website CTA.
+            Enter a prospect or client domain. This launches a fresh technical crawl of the homepage, robots.txt,
+            llms.txt, llms-full.txt, and sitemap.xml, then opens the internal advisor report view.
           </p>
 
           <form className="seo-form" onSubmit={submit}>
@@ -90,14 +90,14 @@ function SeoAuditTool({ devMode = false }) {
               autoComplete="url"
             />
             <button className="seo-btn" type="submit">
-              <Search /> Run audit <ExternalLink />
+              <Search /> Run fresh crawl <ExternalLink />
             </button>
           </form>
           {error && <div className="seo-error">{error}</div>}
 
           <p className="seo-note">
-            This does not replace the new advisor AI audit. It is the current technical visibility report at
-            `/api/report`, presented as an internal launcher.
+            This is a deterministic technical crawl, not an OpenAI-generated report. The report page shows whether it
+            came from cache or from a fresh crawl.
           </p>
         </section>
       </div>

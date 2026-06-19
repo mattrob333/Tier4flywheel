@@ -111,7 +111,10 @@ export async function requireAdvisorAuth(req) {
     process.env.VERCEL_ENV === 'preview' &&
     process.env.VERCEL_GIT_COMMIT_REF === 'test/advisor-audit-no-texture';
 
-  if (process.env.AUDIT_AUTH_BYPASS === 'true' || isTestPreviewBypass) {
+  if (
+    (process.env.NODE_ENV !== 'production' && process.env.AUDIT_AUTH_BYPASS === 'true') ||
+    isTestPreviewBypass
+  ) {
     return {
       userId: 'local-dev',
       email: 'local-dev@tier4intelligence.com',

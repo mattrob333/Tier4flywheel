@@ -539,8 +539,8 @@ function queryFlag(value) {
   return ['1', 'true', 'yes', 'fresh', 'refresh'].includes(String(value || '').toLowerCase());
 }
 
-function setReportHeaders(res, { cacheStatus, noStore = false }) {
-  res.setHeader('Content-Type', 'text/html');
+function setReportHeaders(res, { cacheStatus, noStore = false, contentType = 'text/html' }) {
+  res.setHeader('Content-Type', contentType);
   res.setHeader('X-Cache', cacheStatus);
   res.setHeader('X-Audit-Workflow', 'technical-crawl');
 
@@ -555,6 +555,7 @@ function setReportHeaders(res, { cacheStatus, noStore = false }) {
 export default async function handler(req, res) {
   const domain = (req.query?.domain || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
   const source = req.query?.source === 'outbound' ? 'outbound' : '';
+  const wantsJson = req.query?.format === 'json';
   const forceFresh = source === 'outbound' || queryFlag(req.query?.refresh) || queryFlag(req.query?.fresh);
 
   if (!domain || domain.length < 4 || !domain.includes('.')) {
@@ -572,7 +573,8 @@ export default async function handler(req, res) {
         cacheAgeMs: Date.now() - cached.ts,
       },
     };
-    setReportHeaders(res, { cacheStatus: 'HIT' });
+    setReportHeaders(res, { cacheStatus: 'HIT', contentType: wantsJson ? 'application/json' : 'text/html' });
+    if (wantsJson) return res.status(200).json(audit);
     return res.status(200).send(renderHTML(audit, source));
   }
 
@@ -580,13 +582,18 @@ export default async function handler(req, res) {
     const audit = await runAudit(domain);
     audit.meta.cacheStatus = forceFresh ? 'BYPASS' : 'MISS';
     audit.meta.cacheAgeMs = 0;
-    const html = renderHTML(audit, source);
+    const html = wantsJson ? '' : renderHTML(audit, source);
 
     if (!forceFresh) {
       cache.set(domain, { audit, ts: Date.now() });
     }
 
-    setReportHeaders(res, { cacheStatus: audit.meta.cacheStatus, noStore: forceFresh });
+    setReportHeaders(res, {
+      cacheStatus: audit.meta.cacheStatus,
+      noStore: forceFresh,
+      contentType: wantsJson ? 'application/json' : 'text/html',
+    });
+    if (wantsJson) return res.status(200).json(audit);
     return res.status(200).send(html);
   } catch (err) {
     return res.status(500).send(`<h1>Audit failed</h1><p>${err.message}</p>`);

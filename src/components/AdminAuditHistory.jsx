@@ -80,7 +80,10 @@ function safeFileName(value) {
 
 function scoreLabel(audit) {
   const score = Number(audit.overall_score ?? audit.report?.overall);
-  return Number.isFinite(score) ? `${score.toFixed(1)}/5` : '-';
+  const scale = Number(audit.report?.score_scale || (audit.audit_type_key === 'geo' ? 100 : 5));
+  if (!Number.isFinite(score)) return '-';
+  if (scale === 100) return `${Math.round(score)}/100`;
+  return `${score.toFixed(1)}/5`;
 }
 
 function typeLabel(audit) {
@@ -108,6 +111,26 @@ function questionsText(audit) {
 function buildReportText(audit) {
   const report = audit.report || {};
   if (!report || !Object.keys(report).length) return '';
+
+  if (report.geo_audit) {
+    const geo = report.geo || {};
+    return [
+      `# ${audit.client_name || geo.domain || 'AI Search / GEO Audit'} - AI Search / GEO Audit`,
+      '',
+      `Advisor: ${audit.owner_name || audit.owner_email || '-'}`,
+      `Sales stage: ${salesStageLabel(salesStageValue(audit))}`,
+      `Score: ${scoreLabel(audit)}${report.band ? ` (${report.band})` : ''}`,
+      report.executive_summary ? `\n## Summary\n${report.executive_summary}` : '',
+      Array.isArray(geo.wins) && geo.wins.length ? `\n## What Is Working\n${listText(geo.wins)}` : '',
+      Array.isArray(geo.issues) && geo.issues.length
+        ? `\n## Issues Found\n${listText(geo.issues.map((item) => item.text || item))}`
+        : '',
+      geo.meta ? `\n## Crawl Evidence\n${JSON.stringify(geo.meta, null, 2)}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
 
   const sections = [
     `# ${audit.client_name || 'Advisor Audit'} - ${typeLabel(audit)}`,

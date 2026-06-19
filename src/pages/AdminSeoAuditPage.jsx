@@ -42,11 +42,61 @@ function normalizeDomainInput(value) {
   return domain.trim().replace(/\/$/, '');
 }
 
-function SeoAuditTool({ devMode = false }) {
+async function postJSON(path, payload, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+function geoReportSummary(audit) {
+  const issues = Array.isArray(audit.issues) ? audit.issues.slice(0, 3).map((item) => item.text).join(' ') : '';
+  const wins = Array.isArray(audit.wins) ? audit.wins.slice(0, 3).join(' ') : '';
+  return [
+    `AI Search / GEO technical crawl for ${audit.domain}.`,
+    `Score: ${audit.total}/100.`,
+    wins ? `Working: ${wins}` : '',
+    issues ? `Issues: ${issues}` : '',
+  ].filter(Boolean).join(' ');
+}
+
+function geoReportForStorage(audit) {
+  const total = Number(audit.total || 0);
+  const band = total >= 75 ? 'Strong' : total >= 50 ? 'Average' : 'Weak';
+  return {
+    geo_audit: true,
+    overall: total,
+    score_scale: 100,
+    band,
+    executive_summary: geoReportSummary(audit),
+    business_risk:
+      'Weak AI-search visibility can keep a company from being cited, summarized, or recommended by AI-assisted discovery tools.',
+    topFindings: Array.isArray(audit.issues) ? audit.issues.map((item) => item.text) : [],
+    recommendations: [],
+    roadmap: {
+      title: 'AI Search Visibility Remediation',
+      phases: [],
+    },
+    closing: `This GEO audit is a point-in-time technical crawl of ${audit.domain}.`,
+    geo: audit,
+  };
+}
+
+function SeoAuditTool({ devMode = false, getAuthHeaders }) {
   const [domain, setDomain] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const cleaned = normalizeDomainInput(domain);
 
@@ -56,7 +106,41 @@ function SeoAuditTool({ devMode = false }) {
     }
 
     setError('');
-    window.location.assign(`/api/report?domain=${encodeURIComponent(cleaned)}&source=outbound&fresh=${Date.now()}`);
+    setBusy(true);
+
+    const fresh = Date.now();
+    const reportPath = `/api/report?domain=${encodeURIComponent(cleaned)}&source=outbound&fresh=${fresh}`;
+    try {
+      const res = await fetch(`${reportPath}&format=json`, { credentials: 'include' });
+      const audit = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(audit.error || 'GEO crawl failed.');
+
+      if (!devMode) {
+        await postJSON('/api/advisor-audits', {
+          client: {
+            name: cleaned,
+            url: cleaned,
+            desc: geoReportSummary(audit),
+            typeKey: 'geo',
+            typeName: 'AI Search / GEO Audit',
+            author: '',
+          },
+          research: {
+            research: geoReportSummary(audit),
+            questions: [],
+          },
+          transcript: '',
+          report: geoReportForStorage(audit),
+          followup: '',
+          status: 'geo_ready',
+        }, getAuthHeaders);
+      }
+
+      window.location.assign(reportPath);
+    } catch (err) {
+      setError(err.message || 'Could not run and save the GEO audit.');
+      setBusy(false);
+    }
   }
 
   return (
@@ -90,8 +174,8 @@ function SeoAuditTool({ devMode = false }) {
               placeholder="example.com"
               autoComplete="url"
             />
-            <button className="seo-btn" type="submit">
-              <Search /> Run fresh crawl <ExternalLink />
+            <button className="seo-btn" type="submit" disabled={busy}>
+              <Search /> {busy ? 'Running crawl...' : 'Run fresh crawl'} <ExternalLink />
             </button>
           </form>
           {error && <div className="seo-error">{error}</div>}
@@ -119,7 +203,11 @@ function MissingAuthConfig() {
 }
 
 function ClerkSeoAuditShell() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const getAuthHeaders = React.useCallback(async () => {
+    const token = await getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [getToken]);
 
   if (!isLoaded) {
     return (
@@ -140,7 +228,7 @@ function ClerkSeoAuditShell() {
     );
   }
 
-  return <SeoAuditTool />;
+  return <SeoAuditTool getAuthHeaders={getAuthHeaders} />;
 }
 
 export default function AdminSeoAuditPage() {

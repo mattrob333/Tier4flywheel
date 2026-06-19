@@ -156,6 +156,11 @@ const OUTCOME_FLAGS = [
   ['timeline_discussed', 'Timeline discussed'],
 ];
 
+const DIRECT_REPORT_CHAR_LIMIT = 24000;
+const REPORT_CHUNK_TARGET = 9000;
+const FINAL_EVIDENCE_CHAR_LIMIT = 52000;
+const EVIDENCE_MERGE_GROUP_SIZE = 4;
+
 const getEmptyAuthHeaders = async () => ({});
 
 function parseMaybeJSON(raw) {
@@ -184,11 +189,89 @@ async function postJSON(path, payload, getAuthHeaders) {
   if (!res.ok) {
     const fallback =
       res.status === 504
-        ? 'The report generator hit a server timeout. Please click Generate audit report again; long transcripts are automatically condensed before analysis.'
+        ? 'The report generator hit a server timeout while processing the transcript. Please try again so the app can process the transcript in smaller parts.'
         : raw.slice(0, 180) || 'Request failed.';
-    throw new Error(data.error || fallback);
+    const error = new Error(data.error || fallback);
+    error.status = res.status;
+    throw error;
   }
   return data;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isRetryablePostError(error) {
+  const status = Number(error?.status);
+  if ([408, 429, 500, 502, 503, 504].includes(status)) return true;
+  return /failed to fetch|network|timeout|did not parse cleanly|non-json/i.test(error?.message || '');
+}
+
+async function postJSONWithRetry(path, payload, getAuthHeaders, attempts = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await postJSON(path, payload, getAuthHeaders);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts || !isRetryablePostError(error)) break;
+      await wait(700 * attempt);
+    }
+  }
+  throw lastError;
+}
+
+function splitTranscriptIntoChunks(value, target = REPORT_CHUNK_TARGET) {
+  const transcript = String(value || '');
+  const chunks = [];
+  let start = 0;
+
+  while (start < transcript.length) {
+    let end = Math.min(start + target, transcript.length);
+
+    if (end < transcript.length) {
+      const windowStart = Math.max(start + Math.floor(target * 0.55), end - 1800);
+      const windowText = transcript.slice(windowStart, end);
+      const markers = ['\n\n', '\n', '. ', '? ', '! ', '; ', ', ', ' '];
+      let best = -1;
+
+      markers.forEach((marker) => {
+        const index = windowText.lastIndexOf(marker);
+        if (index > best) best = index + marker.length;
+      });
+
+      if (best > 0) end = windowStart + best;
+    }
+
+    if (end <= start) end = Math.min(start + target, transcript.length);
+
+    chunks.push({
+      index: chunks.length + 1,
+      start,
+      end,
+      text: transcript.slice(start, end),
+    });
+    start = end;
+  }
+
+  return chunks;
+}
+
+function groupItems(items, groupSize) {
+  const groups = [];
+  for (let index = 0; index < items.length; index += groupSize) {
+    groups.push(items.slice(index, index + groupSize));
+  }
+  return groups;
+}
+
+function jsonLength(value) {
+  return JSON.stringify(value || []).length;
+}
+
+function shouldMergeEvidencePackets(packets) {
+  return packets.length > 8 || jsonLength(packets) > FINAL_EVIDENCE_CHAR_LIMIT;
 }
 
 async function patchJSON(path, payload, getAuthHeaders) {
@@ -1048,6 +1131,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
   const [loadingSaved, setLoadingSaved] = useState(Boolean(initialAuditId));
   const [err, setErr] = useState('');
   const [saveNote, setSaveNote] = useState('');
+  const [reportProgress, setReportProgress] = useState('');
   const [auditId, setAuditId] = useState(initialAuditId);
   const [client, setClient] = useState({
     name: '',
@@ -1136,6 +1220,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     setProposalStatus('draft');
     setErr('');
     setSaveNote('');
+    setReportProgress('');
     if (window.location.search.includes('auditId=')) {
       window.history.replaceState(null, '', '/admin/audit');
     }
@@ -1198,20 +1283,102 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
 
   const doReport = () =>
     runStep(async () => {
-      const result = await postJSON('/api/audit-report', { client, transcript }, getAuthHeaders);
-      setReport(result);
-      setFollowup('');
-      setReadoutId('');
-      setReadoutGuide(null);
-      setReadoutGuideText('');
-      setReadoutTranscript('');
-      setReadoutFields(defaultReadoutFields());
-      setProposalId('');
-      setProposalText('');
-      setProposalJson(null);
-      setProposalStatus('draft');
-      await saveAuditMilestone('report_ready', { report: result, followup: '' });
-      setStep(4);
+      setReportProgress('');
+      try {
+        const cleanTranscript = transcript.trim();
+        let result;
+
+        if (cleanTranscript.length > DIRECT_REPORT_CHAR_LIMIT) {
+          const chunks = splitTranscriptIntoChunks(cleanTranscript);
+          const evidencePackets = [];
+
+          for (const chunk of chunks) {
+            const percent = Math.round((chunk.end / cleanTranscript.length) * 100);
+            setReportProgress(`Parsing transcript part ${chunk.index} of ${chunks.length} (${percent}%)...`);
+            const packet = await postJSONWithRetry(
+              '/api/audit-report-chunk',
+              {
+                client,
+                chunk: chunk.text,
+                chunkIndex: chunk.index,
+                totalChunks: chunks.length,
+                charStart: chunk.start,
+                charEnd: chunk.end,
+              },
+              getAuthHeaders,
+              3,
+            );
+            evidencePackets.push(packet);
+          }
+
+          let finalEvidencePackets = evidencePackets;
+          let passIndex = 1;
+
+          while (shouldMergeEvidencePackets(finalEvidencePackets)) {
+            const groups = groupItems(finalEvidencePackets, EVIDENCE_MERGE_GROUP_SIZE);
+            if (groups.length <= 1) break;
+
+            const mergedPackets = [];
+            for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+              setReportProgress(
+                `Organizing transcript evidence pass ${passIndex}, group ${groupIndex + 1} of ${groups.length}...`,
+              );
+              const merged = await postJSONWithRetry(
+                '/api/audit-report-evidence',
+                {
+                  client,
+                  evidencePackets: groups[groupIndex],
+                  passIndex,
+                  groupIndex,
+                  totalGroups: groups.length,
+                },
+                getAuthHeaders,
+                3,
+              );
+              mergedPackets.push(merged);
+            }
+
+            finalEvidencePackets = mergedPackets;
+            passIndex += 1;
+          }
+
+          setReportProgress('Writing the final report from the full transcript evidence...');
+          result = await postJSONWithRetry(
+            '/api/audit-report',
+            {
+              client,
+              chunkAnalyses: finalEvidencePackets,
+              transcriptMeta: {
+                original_chars: cleanTranscript.length,
+                chunk_count: chunks.length,
+                evidence_packets: finalEvidencePackets.length,
+                processing_mode: 'full_chunked',
+              },
+            },
+            getAuthHeaders,
+            3,
+          );
+        } else {
+          setReportProgress('Reading the call and scoring the report...');
+          result = await postJSONWithRetry('/api/audit-report', { client, transcript: cleanTranscript }, getAuthHeaders, 3);
+        }
+
+        setReport(result);
+        setFollowup('');
+        setReadoutId('');
+        setReadoutGuide(null);
+        setReadoutGuideText('');
+        setReadoutTranscript('');
+        setReadoutFields(defaultReadoutFields());
+        setProposalId('');
+        setProposalText('');
+        setProposalJson(null);
+        setProposalStatus('draft');
+        await saveAuditMilestone('report_ready', { report: result, followup: '' });
+        setStep(4);
+      } finally {
+        setReportProgress('');
+      }
     });
 
   const doFollowup = () =>
@@ -1376,11 +1543,12 @@ Looking forward to it.`
           <div className="t4-load">
             <div className="t4-spin" />
             <p>
-              {step === 1
+              {reportProgress ||
+                (step === 1
                 ? 'Researching the company and writing tailored questions...'
                 : step === 3
                   ? 'Reading the call and scoring the report...'
-                  : 'Working...'}
+                  : 'Working...')}
             </p>
           </div>
         )}
@@ -1522,6 +1690,9 @@ Looking forward to it.`
                 onChange={(e) => setTranscript(e.target.value)}
                 placeholder="Paste the full call transcript here..."
               />
+              <p className="t4-save-note">
+                Long transcripts are processed in parts so every section can be included in the audit evidence.
+              </p>
             </div>
             <div className="t4-btnrow">
               <button className="t4-ghost" type="button" onClick={() => setStep(2)}>

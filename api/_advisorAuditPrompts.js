@@ -99,6 +99,47 @@ Output hygiene:
 - Domains must stay in this order: ${t.domains.join(', ')}.`;
 }
 
+export function chunkAnalysisPrompt(t) {
+  return `You are parsing one chunk of a longer "${t.name}" discovery transcript for Tier 4 Intelligence.
+
+This is not the final report. Extract structured evidence from this chunk only. The full transcript is being processed chunk by chunk, and every chunk will be included in the final evidence set.
+
+Focus areas: ${t.domains.join(', ')}.
+
+Rules:
+- Use only this chunk.
+- Do not invent facts.
+- Capture every concrete detail that could matter later: evidence, systems, workflows, pain points, objections, buying signals, recommended opportunities, and useful short quotes.
+- If this chunk contains no evidence for a category, return an empty array for that category.
+- Do not treat this as a summary. Treat it as an evidence extraction pass for this exact chunk.
+- Use ASCII characters only.
+- Return only JSON matching the requested schema.`;
+}
+
+export function evidenceMergePrompt(t) {
+  return `You are merging structured evidence packets from consecutive chunks of a longer "${t.name}" discovery transcript.
+
+This is not the final report. Preserve evidence coverage from every supplied packet while removing true duplicates only. Do not drop unique findings, systems, workflow details, objections, buying signals, risks, opportunities, or useful evidence.
+
+Focus areas: ${t.domains.join(', ')}.
+
+Rules:
+- Use only the supplied evidence packets.
+- Preserve chunk references when they are useful.
+- Do not invent facts.
+- Consolidate repeated evidence, but never omit unique transcript evidence.
+- Use ASCII characters only.
+- Return only JSON matching the requested schema.`;
+}
+
+export function reportFromEvidencePrompt(t) {
+  return `${reportPrompt(t)}
+
+The input is a complete, chunk-by-chunk evidence packet created from the full transcript. Treat it as the transcript evidence source. The transcript was not sampled for final reporting; every chunk was parsed before this final report step.
+
+When writing evidence fields, cite the specific evidence from the packet naturally. If the packet has thin evidence for a domain, score conservatively and say the evidence is thin.`;
+}
+
 export function reportRepairPrompt(t) {
   return `Repair the provided "${t.name}" report JSON so it matches the requested schema and validation rules.
 
@@ -327,6 +368,86 @@ export const reportSchema = {
       },
     },
     closing: { type: 'string', maxLength: 420 },
+  },
+};
+
+export const chunkEvidenceSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'chunk_index',
+    'total_chunks',
+    'chunk_summary',
+    'domain_evidence',
+    'pain_points',
+    'workflows',
+    'systems_and_data',
+    'buying_signals',
+    'objections_or_risks',
+    'potential_recommendations',
+    'direct_quotes',
+  ],
+  properties: {
+    chunk_index: { type: 'number' },
+    total_chunks: { type: 'number' },
+    chunk_summary: { type: 'string', maxLength: 1100 },
+    domain_evidence: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 15,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['domain', 'evidence', 'score_signal'],
+        properties: {
+          domain: { type: 'string', maxLength: 100 },
+          evidence: { type: 'string', maxLength: 820 },
+          score_signal: { type: 'string', enum: ['weak', 'mixed', 'strong', 'not_covered'] },
+        },
+      },
+    },
+    pain_points: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 320 },
+    },
+    workflows: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 340 },
+    },
+    systems_and_data: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 320 },
+    },
+    buying_signals: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 300 },
+    },
+    objections_or_risks: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 300 },
+    },
+    potential_recommendations: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 12,
+      items: { type: 'string', maxLength: 340 },
+    },
+    direct_quotes: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 280 },
+    },
   },
 };
 

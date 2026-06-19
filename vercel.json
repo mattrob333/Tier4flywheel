@@ -82,6 +82,14 @@
       "maxDuration": 60,
       "memory": 1024
     },
+    "api/audit-report-chunk.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/audit-report-evidence.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
     "api/audit-readout-guide.js": {
       "maxDuration": 60,
       "memory": 1024

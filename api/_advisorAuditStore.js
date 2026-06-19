@@ -46,6 +46,10 @@ function clean(value, max = 2000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
 }
 
+function cleanLongText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function bool(value) {
   return value === true;
 }
@@ -73,7 +77,7 @@ function tableAuditFromPayload(auth, payload, id) {
     author_name: clean(client.author, 160),
     research: research?.research || null,
     questions: Array.isArray(research?.questions) ? research.questions : null,
-    transcript: clean(payload.transcript, 120000) || null,
+    transcript: cleanLongText(payload.transcript) || null,
     report,
     followup_email: clean(payload.followup, 12000) || null,
     overall_score: reportScore(report),
@@ -267,7 +271,7 @@ function readoutRowFromPayload(auth, audit, payload, id) {
     client_name: audit.client_name || '',
     readout_guide_json: payload.readout_guide_json || null,
     readout_guide_text: clean(payload.readout_guide_text, 30000) || null,
-    readout_transcript_text: clean(payload.readout_transcript_text, 120000) || null,
+    readout_transcript_text: cleanLongText(payload.readout_transcript_text) || null,
     advisor_notes: clean(payload.advisor_notes, 30000) || null,
     readout_call_date: clean(payload.readout_call_date, 40) || null,
     participants: clean(payload.participants, 4000) || null,

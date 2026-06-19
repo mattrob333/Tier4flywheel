@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
-import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clipboard, Download, Mail, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
@@ -68,6 +68,12 @@ const STYLE = `
 .t4-score-big .b{font-size:12px;color:var(--t4-mut);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
 .t4-sec{margin:24px 0}
 .t4-sec h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4-amber-dim);border-bottom:1px solid var(--t4-line);padding-bottom:8px;margin:0 0 14px;font-weight:700}
+.t4-geo-grid{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:720px){.t4-geo-grid{grid-template-columns:1fr 1fr}}
+.t4-geo-metric{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px 14px}
+.t4-geo-metric .gm-label{font-size:12px;color:var(--t4-mut);margin-bottom:5px}
+.t4-geo-metric .gm-value{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:18px;color:#fff}
+.t4-codeblock{background:var(--t4-panel2);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px;max-height:300px;overflow:auto;font-size:12px;color:var(--t4-mut);white-space:pre-wrap}
 .t4-gauge{display:flex;align-items:center;gap:10px;margin:6px 0}
 .t4-gauge .gn{font-size:13px;flex:1}
 .t4-bars{display:flex;gap:3px}
@@ -314,6 +320,26 @@ function CopyBtn({ text, html, label, icon: Icon = Clipboard }) {
   );
 }
 
+function safeFileName(value) {
+  return String(value || 'tier4-audit')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 80) || 'tier4-audit';
+}
+
+function downloadText(filename, text, type = 'text/markdown') {
+  const blob = new Blob([text || ''], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function Gauge({ name, score }) {
   const value = Number(score) || 0;
   return (
@@ -357,6 +383,90 @@ function cleanList(items) {
   return Array.isArray(items) ? items.filter(Boolean) : [];
 }
 
+function listText(items) {
+  return cleanList(items).map((item) => `- ${item}`).join('\n');
+}
+
+function scoreBreakdownText(scores = {}) {
+  return Object.entries(scores)
+    .map(([key, value]) => {
+      const label = key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+      return `- ${label}: ${value?.score ?? 0}/${value?.max ?? 0}`;
+    })
+    .join('\n');
+}
+
+function geoIssues(rep) {
+  const issues = rep?.geo?.issues;
+  return Array.isArray(issues) ? issues.map((item) => item?.text || item).filter(Boolean) : [];
+}
+
+function geoWins(rep) {
+  const wins = rep?.geo?.wins;
+  return Array.isArray(wins) ? wins.filter(Boolean) : [];
+}
+
+function buildGeoMarkdown(rep, client) {
+  const geo = rep?.geo || {};
+  const metadata = geo.meta || {};
+  const domain = client.name || geo.domain || 'the audited website';
+  const finalUrl = geo.url || metadata.finalUrl || client.url || domain;
+  const issues = geoIssues(rep);
+  const wins = geoWins(rep);
+
+  return [
+    `# GEO Website Optimization Brief: ${domain}`,
+    '',
+    'Use this markdown as source material for a coding agent improving the website for AI search visibility, citability, and technical crawl readiness.',
+    '',
+    '## Audit Context',
+    '',
+    '- Audit type: AI Search / GEO Audit',
+    `- Domain: ${domain}`,
+    `- Final URL: ${finalUrl}`,
+    `- Generated: ${metadata.auditGeneratedAt || new Date().toISOString()}`,
+    `- Overall score: ${Math.round(Number(rep?.overall) || 0)}/100${rep?.band ? ` (${rep.band})` : ''}`,
+    '',
+    '## AI Agent Objective',
+    '',
+    `Improve ${domain} so AI search systems can clearly crawl, understand, cite, and recommend the company. Prioritize changes that increase machine-readable context, structured data, content clarity, technical crawl access, and authority signals.`,
+    '',
+    '## Score Breakdown',
+    '',
+    scoreBreakdownText(geo.scores),
+    '',
+    rep?.executive_summary ? `## Summary\n\n${rep.executive_summary}\n` : '',
+    rep?.business_risk ? `## Business Risk\n\n${rep.business_risk}\n` : '',
+    wins.length ? `## What Is Working\n\n${listText(wins)}\n` : '',
+    issues.length ? `## Issues To Fix\n\n${listText(issues)}\n` : '',
+    '## Recommended Optimization Plan',
+    '',
+    '1. Confirm crawler accessibility for GPTBot, ClaudeBot, PerplexityBot, Google-Extended, and major search crawlers.',
+    '2. Add or improve `llms.txt` and `llms-full.txt` so AI systems have concise and expanded machine-readable summaries.',
+    '3. Strengthen homepage title, meta description, H1, service copy, location/service-area copy, and proof points.',
+    '4. Add schema markup for Organization, LocalBusiness or ProfessionalService, services, FAQs, and sameAs profiles where appropriate.',
+    '5. Expand sitemap coverage and make sure important service pages are crawlable and internally linked.',
+    '6. Create citation-ready content blocks that answer who the company serves, what it does, where it operates, and why it is credible.',
+    '',
+    '## Crawl Evidence',
+    '',
+    '```json',
+    JSON.stringify(metadata, null, 2),
+    '```',
+    '',
+    '## Raw GEO Audit JSON',
+    '',
+    '```json',
+    JSON.stringify(geo, null, 2),
+    '```',
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
 function roadmapTitle(report) {
   if (report?.roadmap && !Array.isArray(report.roadmap) && report.roadmap.title) return report.roadmap.title;
   return '90-Day Roadmap';
@@ -383,6 +493,8 @@ function roadmapPhases(report) {
 }
 
 function buildMarkdown(rep, client, type) {
+  if (rep?.geo_audit) return buildGeoMarkdown(rep, client);
+
   return `# ${type.name} - ${client.name}
 Overall: ${Number(rep.overall).toFixed(1)}/5 - ${rep.band}
 
@@ -451,8 +563,157 @@ ${(p.actions || []).map((it) => `  - ${it}`).join('\n')}`)
 ${rep.closing}`;
 }
 
+function GeoReport({ rep, client }) {
+  const markdown = useMemo(() => buildGeoMarkdown(rep, client), [rep, client]);
+  const geo = rep.geo || {};
+  const metadata = geo.meta || {};
+  const issues = geoIssues(rep);
+  const wins = geoWins(rep);
+  const domain = client.name || geo.domain || 'the audited website';
+  const finalUrl = geo.url || metadata.finalUrl || client.url || domain;
+
+  return (
+    <div>
+      <div className="t4-rep-head">
+        <div>
+          <div className="t4-eyebrow">
+            GEO Audit | {new Date().toLocaleDateString()}
+          </div>
+          <h2 className="t4-h2">AI Search / GEO Audit</h2>
+          <p className="t4-sub" style={{ marginBottom: 0 }}>
+            Optimization brief for {domain}
+          </p>
+        </div>
+        <div className="t4-score-big">
+          <div className="n">{Math.round(Number(rep.overall) || 0)}</div>
+          <div className="b">{rep.band || 'Score'} / 100</div>
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Summary</h3>
+        <p style={{ fontSize: 14 }}>{rep.executive_summary || 'No summary was stored with this GEO audit.'}</p>
+      </div>
+
+      {rep.business_risk && (
+        <div className="t4-sec">
+          <h3>Business Risk</h3>
+          <p style={{ fontSize: 14 }}>{rep.business_risk}</p>
+        </div>
+      )}
+
+      <div className="t4-sec">
+        <h3>Score Breakdown</h3>
+        {(Object.entries(geo.scores || {}).length ? Object.entries(geo.scores || {}) : []).map(([key, value]) => (
+          <Gauge
+            key={key}
+            name={key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
+            score={((Number(value?.score) || 0) / Math.max(Number(value?.max) || 1, 1)) * 5}
+          />
+        ))}
+      </div>
+
+      {wins.length > 0 && (
+        <div className="t4-sec">
+          <h3>What Is Working</h3>
+          <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+            {wins.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {issues.length > 0 && (
+        <div className="t4-sec">
+          <h3>Issues To Fix</h3>
+          <ul style={{ fontSize: 13, paddingLeft: 18 }}>
+            {issues.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="t4-sec">
+        <h3>AI Agent Optimization Brief</h3>
+        <div className="t4-finding">
+          <h4>Primary objective</h4>
+          <p>
+            Improve {domain} so AI search systems can clearly crawl, understand, cite, and recommend the company.
+          </p>
+          <p style={{ color: 'var(--t4-mut)' }}>
+            <span className="lab">Use this for | </span>
+            Claude Code, Codex, or another website optimization agent.
+          </p>
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Recommended Optimization Plan</h3>
+        <div className="t4-phase">
+          <div className="pt">Technical crawl readiness</div>
+          <ul>
+            <li>Confirm crawler access for major AI and search crawlers.</li>
+            <li>Add or improve llms.txt and llms-full.txt.</li>
+            <li>Make important pages crawlable, indexed, and internally linked.</li>
+          </ul>
+        </div>
+        <div className="t4-phase">
+          <div className="pt">Machine-readable context</div>
+          <ul>
+            <li>Add Organization, service, FAQ, sameAs, and location schema where appropriate.</li>
+            <li>Strengthen title, meta description, H1, service copy, and proof points.</li>
+            <li>Create citation-ready copy blocks that explain who the company serves and why it is credible.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Crawl Evidence</h3>
+        <div className="t4-geo-grid">
+          <div className="t4-geo-metric">
+            <div className="gm-label">Final URL</div>
+            <div className="gm-value" style={{ fontSize: 13 }}>{finalUrl}</div>
+          </div>
+          <div className="t4-geo-metric">
+            <div className="gm-label">Visible words</div>
+            <div className="gm-value">{metadata.visibleWords ?? '-'}</div>
+          </div>
+          <div className="t4-geo-metric">
+            <div className="gm-label">Title</div>
+            <div className="gm-value" style={{ fontSize: 13 }}>{metadata.title || '-'}</div>
+          </div>
+          <div className="t4-geo-metric">
+            <div className="gm-label">H1</div>
+            <div className="gm-value" style={{ fontSize: 13 }}>{metadata.h1 || '-'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Raw GEO Audit JSON</h3>
+        <pre className="t4-codeblock">{JSON.stringify(geo, null, 2)}</pre>
+      </div>
+
+      <div className="t4-btnrow">
+        <CopyBtn text={markdown} label="Copy GEO markdown" />
+        <button
+          className="t4-ghost"
+          type="button"
+          onClick={() => downloadText(`${safeFileName(domain)}-geo-optimization-brief.md`, markdown)}
+        >
+          <Download /> Download GEO markdown
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Report({ rep, client, type }) {
   const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
+
+  if (rep?.geo_audit) return <GeoReport rep={rep} client={client} />;
 
   return (
     <div>
@@ -817,6 +1078,7 @@ ${research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 Looking forward to it.`
     : '';
   const clientNoteHtml = research ? buildClientReadyEmailHtml(research.questions) : '';
+  const isGeoReport = Boolean(report?.geo_audit);
 
   return (
     <div className="t4-root">
@@ -825,8 +1087,8 @@ Looking forward to it.`
         <div className="t4-top">
           <img className="t4-brand-icon" src="/brand/tier4-icon-color.png" alt="Tier 4" />
           <div style={{ flex: 1 }}>
-            <h1>Advisor Audit Pipeline</h1>
-            <p>Tier 4 Intelligence | internal</p>
+            <h1>{isGeoReport ? 'AI Search / GEO Audit' : 'Advisor Audit Pipeline'}</h1>
+            <p>{isGeoReport ? 'Tier 4 Intelligence | website optimization' : 'Tier 4 Intelligence | internal'}</p>
           </div>
           {devMode && <span className="t4-tag tag-Med">Dev bypass</span>}
           {step > 1 && (
@@ -1033,26 +1295,28 @@ Looking forward to it.`
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
             <Report rep={report} client={client} type={type} />
-            <div className="t4-sec">
-              <h3>Post-Call Email</h3>
-              {followup ? (
-                <>
-                  <div className="t4-emailbox">{followup}</div>
+            {!report.geo_audit && (
+              <div className="t4-sec">
+                <h3>Post-Call Email</h3>
+                {followup ? (
+                  <>
+                    <div className="t4-emailbox">{followup}</div>
+                    <div className="t4-btnrow">
+                      <CopyBtn text={followup} label="Copy email" icon={Mail} />
+                      <button className="t4-ghost" type="button" onClick={doFollowup}>
+                        <RefreshCw /> Redraft
+                      </button>
+                    </div>
+                  </>
+                ) : (
                   <div className="t4-btnrow">
-                    <CopyBtn text={followup} label="Copy email" icon={Mail} />
                     <button className="t4-ghost" type="button" onClick={doFollowup}>
-                      <RefreshCw /> Redraft
+                      <Mail /> Draft a follow-up email
                     </button>
                   </div>
-                </>
-              ) : (
-                <div className="t4-btnrow">
-                  <button className="t4-ghost" type="button" onClick={doFollowup}>
-                    <Mail /> Draft a follow-up email
-                  </button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

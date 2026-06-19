@@ -523,7 +523,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                   copyText(reportText, `${audit.id}-report`);
                                 }}
                               >
-                                <Clipboard /> Copy report
+                                <Clipboard /> {isGeo ? 'Copy GEO markdown' : 'Copy report'}
                               </button>
                               <button
                                 className="audit-history-btn"

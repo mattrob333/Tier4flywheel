@@ -102,6 +102,17 @@ function listText(items) {
   return Array.isArray(items) ? items.filter(Boolean).map((item) => `- ${item}`).join('\n') : '';
 }
 
+function scoreBreakdownText(scores = {}) {
+  return Object.entries(scores)
+    .map(([key, value]) => {
+      const label = key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+      return `- ${label}: ${value?.score ?? 0}/${value?.max ?? 0}`;
+    })
+    .join('\n');
+}
+
 function questionsText(audit) {
   return Array.isArray(audit.questions)
     ? audit.questions.map((question, index) => `${index + 1}. ${question}`).join('\n')
@@ -114,18 +125,56 @@ function buildReportText(audit) {
 
   if (report.geo_audit) {
     const geo = report.geo || {};
+    const domain = audit.client_name || geo.domain || 'the audited website';
+    const issues = Array.isArray(geo.issues) ? geo.issues.map((item) => item.text || item) : [];
+    const wins = Array.isArray(geo.wins) ? geo.wins : [];
+    const metadata = geo.meta || {};
     return [
-      `# ${audit.client_name || geo.domain || 'AI Search / GEO Audit'} - AI Search / GEO Audit`,
+      `# GEO Website Optimization Brief: ${domain}`,
       '',
+      'Use this markdown as source material for an AI agent improving the website for AI search visibility, citability, and technical crawl readiness.',
+      '',
+      '## Audit Context',
+      '',
+      `- Audit type: AI Search / GEO Audit`,
       `Advisor: ${audit.owner_name || audit.owner_email || '-'}`,
-      `Sales stage: ${salesStageLabel(salesStageValue(audit))}`,
-      `Score: ${scoreLabel(audit)}${report.band ? ` (${report.band})` : ''}`,
-      report.executive_summary ? `\n## Summary\n${report.executive_summary}` : '',
-      Array.isArray(geo.wins) && geo.wins.length ? `\n## What Is Working\n${listText(geo.wins)}` : '',
-      Array.isArray(geo.issues) && geo.issues.length
-        ? `\n## Issues Found\n${listText(geo.issues.map((item) => item.text || item))}`
-        : '',
-      geo.meta ? `\n## Crawl Evidence\n${JSON.stringify(geo.meta, null, 2)}` : '',
+      `- Domain: ${domain}`,
+      `- Final URL: ${geo.url || metadata.finalUrl || audit.client_url || domain}`,
+      `- Generated: ${metadata.auditGeneratedAt || audit.updated_at || ''}`,
+      `- Sales stage: ${salesStageLabel(salesStageValue(audit))}`,
+      `- Overall score: ${scoreLabel(audit)}${report.band ? ` (${report.band})` : ''}`,
+      '',
+      '## AI Agent Objective',
+      '',
+      `Improve ${domain} so AI search systems can clearly crawl, understand, cite, and recommend the company. Prioritize changes that increase machine-readable context, structured data, content clarity, technical crawl access, and authority signals.`,
+      '',
+      '## Score Breakdown',
+      '',
+      scoreBreakdownText(geo.scores),
+      '',
+      report.executive_summary ? `## Summary\n\n${report.executive_summary}\n` : '',
+      wins.length ? `## What Is Working\n\n${listText(wins)}\n` : '',
+      issues.length ? `## Issues To Fix\n\n${listText(issues)}\n` : '',
+      '## Recommended Optimization Plan',
+      '',
+      '1. Confirm crawler accessibility for GPTBot, ClaudeBot, PerplexityBot, Google-Extended, and major search crawlers.',
+      '2. Add or improve `llms.txt` and `llms-full.txt` so AI systems have a concise and expanded machine-readable summary.',
+      '3. Strengthen homepage title, meta description, H1, service copy, location/service-area copy, and proof points.',
+      '4. Add schema markup for Organization, LocalBusiness or ProfessionalService, services, FAQs, and sameAs profiles where appropriate.',
+      '5. Expand sitemap coverage and make sure important service pages are crawlable and internally linked.',
+      '6. Create citation-ready content blocks that answer who the company serves, what it does, where it operates, and why it is credible.',
+      '',
+      '## Crawl Evidence',
+      '',
+      '```json',
+      JSON.stringify(metadata, null, 2),
+      '```',
+      '',
+      '## Raw GEO Audit JSON',
+      '',
+      '```json',
+      JSON.stringify(geo, null, 2),
+      '```',
     ]
       .filter(Boolean)
       .join('\n')
@@ -364,6 +413,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
             {sortedAudits.map((audit) => {
               const isExpanded = expandedId === audit.id;
               const reportText = buildReportText(audit);
+              const isGeoAudit = audit.report?.geo_audit || audit.audit_type_key === 'geo';
               const followupEmail = audit.followup_email || audit.followupEmail || '';
               const qText = questionsText(audit);
               const baseName = safeFileName(`${audit.client_name}-${typeLabel(audit)}`);
@@ -433,10 +483,14 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                 disabled={!reportText}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  downloadText(`${baseName}-report.md`, reportText, 'text/markdown');
+                                  downloadText(
+                                    `${baseName}-${isGeoAudit ? 'geo-optimization-brief' : 'report'}.md`,
+                                    reportText,
+                                    'text/markdown',
+                                  );
                                 }}
                               >
-                                <Download /> Download report
+                                <Download /> {isGeoAudit ? 'Download GEO markdown' : 'Download report'}
                               </button>
                               <button
                                 className="audit-history-btn"

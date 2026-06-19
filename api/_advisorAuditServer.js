@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 
 const OPENAI_MODEL = process.env.OPENAI_AUDIT_MODEL || 'gpt-5.5';
 const OPENAI_REPORT_MODEL = process.env.OPENAI_AUDIT_REPORT_MODEL || OPENAI_MODEL;
-const OPENAI_PARSE_MODEL = process.env.OPENAI_AUDIT_PARSE_MODEL || process.env.OPENAI_AUDIT_CHUNK_MODEL || 'gpt-5.4-mini';
+const OPENAI_PARSE_MODEL = process.env.OPENAI_AUDIT_PARSE_MODEL || process.env.OPENAI_AUDIT_CHUNK_MODEL || OPENAI_MODEL;
 const MANY_SPACES = /[ \t]{2,}/g;
 
 let openaiClient;

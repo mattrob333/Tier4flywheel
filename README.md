@@ -146,6 +146,9 @@ Required for the advisor AI audit:
 OPENAI_API_KEY=
 OPENAI_AUDIT_MODEL=gpt-5.5
 OPENAI_AUDIT_REPORT_MODEL=gpt-5.5
+# Optional. Parses long transcripts in chunks; defaults to OPENAI_AUDIT_MODEL.
+# Only set to a different model if your account has access to it.
+OPENAI_AUDIT_PARSE_MODEL=gpt-5.5
 ```
 
 Required for Clerk:

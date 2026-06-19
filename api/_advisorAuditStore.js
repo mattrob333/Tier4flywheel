@@ -155,3 +155,22 @@ export async function getAdvisorAudit(auth, id, options = {}) {
 
   return row;
 }
+
+export async function deleteAdvisorAudit(auth, id) {
+  const row = await getAdvisorAudit(auth, id);
+
+  if (!auth.isSuperuser && row.owner_clerk_user_id !== auth.userId) {
+    const err = new Error('You can only delete audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  await supabaseFetch(`advisor_audits?id=eq.${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: {
+      Prefer: 'return=minimal',
+    },
+  });
+
+  return row;
+}

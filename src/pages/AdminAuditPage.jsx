@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
-import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 import { AUDIT_TYPES, getAuditType } from '../lib/advisorAuditTypes';
@@ -44,6 +44,8 @@ const STYLE = `
 .t4-btn:disabled{opacity:.5;cursor:not-allowed}
 .t4-ghost{background:none;border:1px solid var(--t4-line);color:var(--t4-mut);font-size:13px;padding:9px 14px}
 .t4-ghost:hover{color:var(--t4-txt);border-color:var(--t4-steel)}
+.t4-ghost.danger{color:#FF8A8A;border-color:rgba(255,122,122,.34)}
+.t4-ghost.danger:hover{color:#FFB0B0;border-color:rgba(255,122,122,.72);background:rgba(255,122,122,.08)}
 .t4-btn svg,.t4-ghost svg{width:16px;height:16px}
 .t4-btnrow{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
 .t4-load{text-align:center;padding:70px 0}
@@ -131,6 +133,19 @@ async function postJSON(path, payload, getAuthHeaders) {
 async function getJSON(path, getAuthHeaders) {
   const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
   const res = await fetch(path, {
+    headers: authHeaders,
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+async function deleteJSON(path, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: 'DELETE',
     headers: authHeaders,
     credentials: 'include',
   });
@@ -755,6 +770,19 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     }
   }
 
+  async function deleteCurrentAudit() {
+    if (!auditId) return;
+
+    const label = client.name || 'this audit';
+    const ok = window.confirm(`Delete ${label}? This removes the saved audit report from Supabase.`);
+    if (!ok) return;
+
+    await runStep(async () => {
+      await deleteJSON(`/api/advisor-audits?id=${encodeURIComponent(auditId)}`, getAuthHeaders);
+      window.location.href = '/admin';
+    });
+  }
+
   const doResearch = () =>
     runStep(async () => {
       const result = await postJSON('/api/audit-research', { client }, getAuthHeaders);
@@ -804,6 +832,11 @@ Looking forward to it.`
           {step > 1 && (
             <button className="t4-ghost" type="button" onClick={reset}>
               <RotateCcw /> Start over
+            </button>
+          )}
+          {auditId && (
+            <button className="t4-ghost danger" type="button" onClick={deleteCurrentAudit}>
+              <Trash2 /> Delete audit
             </button>
           )}
           {userSlot}

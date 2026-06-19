@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clipboard, ExternalLink, Mail, MoreVertical, RefreshCw } from 'lucide-react';
+import { Clipboard, ExternalLink, Mail, MoreVertical, RefreshCw, Trash2 } from 'lucide-react';
 
 const STYLE = `
 .audit-history{margin-top:28px;background:rgba(26,31,46,.84);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.18)}
@@ -27,6 +27,8 @@ const STYLE = `
 .audit-history-action{display:flex;align-items:center;gap:9px;width:100%;min-height:34px;border:0;border-radius:7px;background:transparent;color:#F0F2F5;text-decoration:none;font:inherit;font-size:12px;font-weight:800;padding:0 9px;cursor:pointer;text-align:left}
 .audit-history-action:hover{background:rgba(94,192,138,.1);color:#5EC08A}
 .audit-history-action:disabled{opacity:.42;cursor:not-allowed}
+.audit-history-action.danger{color:#FF7A7A}
+.audit-history-action.danger:hover{background:rgba(255,122,122,.1);color:#FF9B9B}
 .audit-history-action svg{width:14px;height:14px;flex:0 0 auto}
 .audit-history-copied{padding:5px 9px;color:#5EC08A;font-size:11px;font-weight:800}
 .audit-history-empty,.audit-history-error,.audit-history-load{padding:22px;color:rgba(240,242,245,.66);font-size:14px;line-height:1.6}
@@ -110,6 +112,18 @@ async function getJSON(path, getAuthHeaders) {
   return data;
 }
 
+async function deleteJSON(path, getAuthHeaders) {
+  const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: 'DELETE',
+    headers: authHeaders,
+    credentials: 'include',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
 export default function AdminAuditHistory({ getAuthHeaders }) {
   const [audits, setAudits] = useState([]);
   const [isSuperuser, setIsSuperuser] = useState(false);
@@ -117,6 +131,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
   const [error, setError] = useState('');
   const [openMenuId, setOpenMenuId] = useState('');
   const [copiedId, setCopiedId] = useState('');
+  const [deletingId, setDeletingId] = useState('');
 
   const sortedAudits = useMemo(() => audits, [audits]);
 
@@ -143,6 +158,24 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     window.setTimeout(() => setCopiedId(''), 1600);
+  }
+
+  async function deleteAudit(audit) {
+    const label = audit.client_name || 'this audit';
+    const ok = window.confirm(`Delete ${label}? This removes the saved audit report from Supabase.`);
+    if (!ok) return;
+
+    setDeletingId(audit.id);
+    setError('');
+    try {
+      await deleteJSON(`/api/advisor-audits?id=${encodeURIComponent(audit.id)}`, getAuthHeaders);
+      setAudits((current) => current.filter((item) => item.id !== audit.id));
+      setOpenMenuId('');
+    } catch (err) {
+      setError(err.message || 'Could not delete audit.');
+    } finally {
+      setDeletingId('');
+    }
   }
 
   return (
@@ -230,6 +263,14 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                             onClick={() => copyText(followupEmail, `${audit.id}-email`)}
                           >
                             <Mail /> Copy follow-up
+                          </button>
+                          <button
+                            className="audit-history-action danger"
+                            type="button"
+                            disabled={deletingId === audit.id}
+                            onClick={() => deleteAudit(audit)}
+                          >
+                            <Trash2 /> {deletingId === audit.id ? 'Deleting...' : 'Delete audit'}
                           </button>
                           {copiedId.startsWith(audit.id) && <div className="audit-history-copied">Copied</div>}
                         </div>

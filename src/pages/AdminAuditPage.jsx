@@ -184,7 +184,7 @@ async function postJSON(path, payload, getAuthHeaders) {
   if (!res.ok) {
     const fallback =
       res.status === 504
-        ? 'The report took too long to generate. Try again with a shorter transcript or remove unrelated sections.'
+        ? 'The report generator hit a server timeout. Please click Generate audit report again; long transcripts are automatically condensed before analysis.'
         : raw.slice(0, 180) || 'Request failed.';
     throw new Error(data.error || fallback);
   }

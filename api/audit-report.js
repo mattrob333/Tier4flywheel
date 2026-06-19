@@ -13,23 +13,66 @@ import {
 } from './_advisorAuditServer.js';
 import { validateAdvisorReport } from './_advisorAuditValidation.js';
 
-function clean(value, max = 80000) {
+function clean(value, max = 200000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
 }
 
-function fitTranscriptForReport(value) {
-  const transcript = clean(value, 100000);
-  const maxChars = 52000;
+function clipAroundWords(value, maxChars) {
+  if (value.length <= maxChars) return value;
+  const clipped = value.slice(0, maxChars);
+  const lastBreak = Math.max(clipped.lastIndexOf('\n'), clipped.lastIndexOf('. '), clipped.lastIndexOf(' '));
+  return clipped.slice(0, lastBreak > 1200 ? lastBreak : maxChars).trim();
+}
+
+function transcriptStats(transcript) {
+  const speakers = new Set();
+  for (const line of transcript.split('\n')) {
+    const match = line.trim().match(/^([A-Z][A-Za-z .'-]{1,60})(?:\\s*[-:]|\\s+\\d{1,2}:\\d{2})/);
+    if (match) speakers.add(match[1].trim());
+    if (speakers.size >= 12) break;
+  }
+
+  return [
+    `Original transcript characters: ${transcript.length}`,
+    speakers.size ? `Detected speakers: ${Array.from(speakers).join(', ')}` : 'Detected speakers: not clearly labeled',
+  ].join('\n');
+}
+
+function middleSamples(transcript, sampleCount = 4, sampleSize = 2400) {
+  if (transcript.length < 18000) return '';
+  const usableStart = Math.floor(transcript.length * 0.2);
+  const usableEnd = Math.floor(transcript.length * 0.78);
+  const span = Math.max(usableEnd - usableStart, sampleSize);
+  const samples = [];
+  for (let index = 0; index < sampleCount; index += 1) {
+    const anchor = usableStart + Math.floor((span * (index + 1)) / (sampleCount + 1));
+    const start = Math.max(0, anchor - Math.floor(sampleSize / 2));
+    samples.push(`MIDDLE SAMPLE ${index + 1}:\n${clipAroundWords(transcript.slice(start, start + sampleSize), sampleSize)}`);
+  }
+  return samples.join('\n\n');
+}
+
+function evidenceDigestForReport(value) {
+  const transcript = clean(value, 220000);
+  const maxChars = 26000;
   if (transcript.length <= maxChars) return transcript;
 
-  const head = transcript.slice(0, 34000);
-  const tail = transcript.slice(-16000);
+  const opening = clipAroundWords(transcript.slice(0, 9000), 9000);
+  const samples = middleSamples(transcript);
+  const closing = transcript.slice(-9000);
   return [
-    head,
+    'TRANSCRIPT EVIDENCE DIGEST FOR LONG CALL',
+    transcriptStats(transcript),
     '',
-    '[Middle of transcript omitted to keep the report generation inside the production function timeout. Preserve all claims to evidence in the included transcript excerpts.]',
+    'Use this digest as the evidence source. If a topic is not represented here, say evidence is thin rather than inventing detail.',
     '',
-    tail,
+    'OPENING / CONTEXT:',
+    opening,
+    '',
+    samples,
+    '',
+    'CLOSING / PRIORITIES / NEXT STEPS:',
+    closing,
   ].join('\n');
 }
 
@@ -40,7 +83,7 @@ export default async function handler(req, res) {
     await requireAdvisorAuth(req);
     const body = await readJson(req);
     const client = body.client || {};
-    const transcript = fitTranscriptForReport(body.transcript);
+    const transcript = evidenceDigestForReport(body.transcript);
 
     if (!clean(client.name, 200)) {
       return res.status(400).json({ error: 'Client name is required.' });
@@ -64,7 +107,7 @@ export default async function handler(req, res) {
       input,
       schema: reportSchema,
       schemaName: 'advisor_audit_report',
-      maxOutputTokens: 5000,
+      maxOutputTokens: 3600,
       reportModel: true,
       validate: validateAdvisorReport,
       repairInstructions: reportRepairPrompt(t),

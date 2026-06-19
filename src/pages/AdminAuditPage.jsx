@@ -158,6 +158,15 @@ const OUTCOME_FLAGS = [
 
 const getEmptyAuthHeaders = async () => ({});
 
+function parseMaybeJSON(raw) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 async function postJSON(path, payload, getAuthHeaders) {
   const authHeaders = getAuthHeaders ? await getAuthHeaders() : {};
   const res = await fetch(path, {
@@ -170,8 +179,15 @@ async function postJSON(path, payload, getAuthHeaders) {
     body: JSON.stringify(payload),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  const raw = await res.text();
+  const data = parseMaybeJSON(raw);
+  if (!res.ok) {
+    const fallback =
+      res.status === 504
+        ? 'The report took too long to generate. Try again with a shorter transcript or remove unrelated sections.'
+        : raw.slice(0, 180) || 'Request failed.';
+    throw new Error(data.error || fallback);
+  }
   return data;
 }
 
@@ -187,8 +203,9 @@ async function patchJSON(path, payload, getAuthHeaders) {
     body: JSON.stringify(payload),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  const raw = await res.text();
+  const data = parseMaybeJSON(raw);
+  if (!res.ok) throw new Error(data.error || raw.slice(0, 180) || 'Request failed.');
   return data;
 }
 
@@ -199,7 +216,8 @@ async function getJSON(path, getAuthHeaders) {
     credentials: 'include',
   });
 
-  const data = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  const data = parseMaybeJSON(raw);
   if (!res.ok) throw new Error(data.error || 'Request failed.');
   return data;
 }
@@ -212,7 +230,8 @@ async function deleteJSON(path, getAuthHeaders) {
     credentials: 'include',
   });
 
-  const data = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  const data = parseMaybeJSON(raw);
   if (!res.ok) throw new Error(data.error || 'Request failed.');
   return data;
 }

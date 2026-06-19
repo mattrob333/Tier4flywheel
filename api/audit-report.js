@@ -17,6 +17,22 @@ function clean(value, max = 80000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
 }
 
+function fitTranscriptForReport(value) {
+  const transcript = clean(value, 100000);
+  const maxChars = 52000;
+  if (transcript.length <= maxChars) return transcript;
+
+  const head = transcript.slice(0, 34000);
+  const tail = transcript.slice(-16000);
+  return [
+    head,
+    '',
+    '[Middle of transcript omitted to keep the report generation inside the production function timeout. Preserve all claims to evidence in the included transcript excerpts.]',
+    '',
+    tail,
+  ].join('\n');
+}
+
 export default async function handler(req, res) {
   if (!requirePost(req, res)) return;
 
@@ -24,7 +40,7 @@ export default async function handler(req, res) {
     await requireAdvisorAuth(req);
     const body = await readJson(req);
     const client = body.client || {};
-    const transcript = clean(body.transcript);
+    const transcript = fitTranscriptForReport(body.transcript);
 
     if (!clean(client.name, 200)) {
       return res.status(400).json({ error: 'Client name is required.' });
@@ -48,7 +64,7 @@ export default async function handler(req, res) {
       input,
       schema: reportSchema,
       schemaName: 'advisor_audit_report',
-      maxOutputTokens: 6500,
+      maxOutputTokens: 5000,
       reportModel: true,
       validate: validateAdvisorReport,
       repairInstructions: reportRepairPrompt(t),

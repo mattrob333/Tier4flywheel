@@ -82,6 +82,18 @@
       "maxDuration": 60,
       "memory": 1024
     },
+    "api/audit-readout-guide.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/audit-readout-transcript.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/audit-proposal.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
     "api/audit-followup.js": {
       "maxDuration": 30,
       "memory": 1024

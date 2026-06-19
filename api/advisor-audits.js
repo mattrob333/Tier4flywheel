@@ -1,4 +1,10 @@
-import { deleteAdvisorAudit, getAdvisorAudit, listAdvisorAudits, saveAdvisorAudit } from './_advisorAuditStore.js';
+import {
+  deleteAdvisorAudit,
+  getAdvisorAudit,
+  listAdvisorAudits,
+  saveAdvisorAudit,
+  updateAdvisorAuditSalesStage,
+} from './_advisorAuditStore.js';
 import {
   handleApiError,
   readJson,
@@ -40,6 +46,18 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = await readJson(req);
       const audit = await saveAdvisorAudit(auth, body);
+      return res.status(200).json({
+        audit: withOwnership(auth, audit),
+        isSuperuser: auth.isSuperuser,
+      });
+    }
+
+    if (req.method === 'PATCH') {
+      const id = getUrl(req).searchParams.get('id');
+      if (!id) return res.status(400).json({ error: 'Audit id is required.' });
+
+      const body = await readJson(req);
+      const audit = await updateAdvisorAuditSalesStage(auth, id, body.salesStage);
       return res.status(200).json({
         audit: withOwnership(auth, audit),
         isSuperuser: auth.isSuperuser,

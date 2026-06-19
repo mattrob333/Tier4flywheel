@@ -174,3 +174,24 @@ export async function deleteAdvisorAudit(auth, id) {
 
   return row;
 }
+
+export async function updateAdvisorAuditSalesStage(auth, id, salesStage) {
+  const row = await getAdvisorAudit(auth, id);
+  const nextReport = {
+    ...(row.report && typeof row.report === 'object' ? row.report : {}),
+    sales_stage: clean(salesStage, 80) || 'not_started',
+  };
+
+  const rows = await supabaseFetch(`advisor_audits?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      report: nextReport,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+
+  return rows?.[0] || { ...row, report: nextReport };
+}

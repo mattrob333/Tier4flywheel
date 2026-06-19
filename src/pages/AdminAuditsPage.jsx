@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
+import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ExternalLink, FolderOpen, RefreshCw } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
@@ -210,11 +210,30 @@ function SavedAuditsList({ devMode = false, getAuthHeaders }) {
 }
 
 function ClerkAuditsShell() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const getAuthHeaders = useCallback(async () => {
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [getToken]);
+
+  if (!isLoaded) {
+    return (
+      <div className="audits-auth">
+        <h1>Loading advisor sign-in</h1>
+        <p>Checking your advisor session.</p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="audits-auth">
+        <h1>Tier 4 advisor sign-in</h1>
+        <p>Sign in to view saved advisor audits.</p>
+        <SignIn routing="hash" />
+      </div>
+    );
+  }
 
   return <SavedAuditsList getAuthHeaders={getAuthHeaders} />;
 }
@@ -242,18 +261,7 @@ export default function AdminAuditsPage() {
     <AdvisorGate>
       <div className="audits-root">
         <style>{STYLE}</style>
-        <ClerkLoaded>
-          <Show when="signed-out">
-            <div className="audits-auth">
-              <h1>Tier 4 advisor sign-in</h1>
-              <p>Sign in to view saved advisor audits.</p>
-              <SignIn routing="hash" />
-            </div>
-          </Show>
-          <Show when="signed-in">
-            <ClerkAuditsShell />
-          </Show>
-        </ClerkLoaded>
+        <ClerkAuditsShell />
       </div>
     </AdvisorGate>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
+import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ArrowRight, Clipboard, Mail, RefreshCw, RotateCcw } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
@@ -1047,12 +1047,31 @@ function MissingAuthConfig() {
 }
 
 function ClerkAuditShell() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
   const getAuthHeaders = useCallback(async () => {
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [getToken]);
+
+  if (!isLoaded) {
+    return (
+      <div className="t4-auth">
+        <h1>Loading advisor sign-in</h1>
+        <p>Checking your advisor session.</p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="t4-auth">
+        <h1>Tier 4 advisor sign-in</h1>
+        <p>Sign in to run internal AI audit workflows.</p>
+        <SignIn routing="hash" />
+      </div>
+    );
+  }
 
   return (
     <AuditPipeline
@@ -1082,18 +1101,7 @@ export default function AdminAuditPage() {
     <AdvisorGate>
       <div className="t4-root">
         <style>{STYLE}</style>
-        <ClerkLoaded>
-          <Show when="signed-out">
-            <div className="t4-auth">
-              <h1>Tier 4 advisor sign-in</h1>
-              <p>Sign in to run internal AI audit workflows.</p>
-              <SignIn routing="hash" />
-            </div>
-          </Show>
-          <Show when="signed-in">
-            <ClerkAuditShell />
-          </Show>
-        </ClerkLoaded>
+        <ClerkAuditShell />
       </div>
     </AdvisorGate>
   );

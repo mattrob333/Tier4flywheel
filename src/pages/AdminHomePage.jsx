@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ClerkLoaded, Show, SignIn, UserButton, useAuth } from '@clerk/react';
+import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ClipboardList, Search } from 'lucide-react';
 import AdminAuditHistory from '../components/AdminAuditHistory';
 import AdvisorGate from '../components/AdvisorGate';
@@ -106,11 +106,30 @@ function MissingAuthConfig() {
 }
 
 function ClerkAdminDashboard() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const getAuthHeaders = useCallback(async () => {
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [getToken]);
+
+  if (!isLoaded) {
+    return (
+      <div className="admin-auth">
+        <h1>Loading advisor sign-in</h1>
+        <p>Checking your advisor session.</p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="admin-auth">
+        <h1>Tier 4 advisor sign-in</h1>
+        <p>Sign in to access internal advisor tools.</p>
+        <SignIn routing="hash" />
+      </div>
+    );
+  }
 
   return <AdminDashboard getAuthHeaders={getAuthHeaders} />;
 }
@@ -126,18 +145,7 @@ export default function AdminHomePage() {
     <AdvisorGate>
       <div className="admin-root">
         <style>{STYLE}</style>
-        <ClerkLoaded>
-          <Show when="signed-out">
-            <div className="admin-auth">
-              <h1>Tier 4 advisor sign-in</h1>
-              <p>Sign in to access internal advisor tools.</p>
-              <SignIn routing="hash" />
-            </div>
-          </Show>
-          <Show when="signed-in">
-            <ClerkAdminDashboard />
-          </Show>
-        </ClerkLoaded>
+        <ClerkAdminDashboard />
       </div>
     </AdvisorGate>
   );

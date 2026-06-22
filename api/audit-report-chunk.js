@@ -1,3 +1,15 @@
+/**
+ * @deprecated Synchronous chunk analysis — kept for reference only.
+ *
+ * The live audit pipeline uses the asynchronous background-job flow:
+ *   POST /api/audit-report-start   → kicks off background generation
+ *   GET  /api/audit-report-status  → polled by the client until completion
+ *
+ * This synchronous endpoint is NOT called by the client (AdminAuditPage.jsx
+ * only references audit-report-start / audit-report-status). Do not extend
+ * this file; new chunk-analysis logic belongs on the async path. Safe to
+ * remove once Phases 3-5 are verified on the live path.
+ */
 import {
   chunkAnalysisPrompt,
   chunkEvidenceSchema,

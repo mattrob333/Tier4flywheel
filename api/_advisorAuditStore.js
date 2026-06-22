@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import {
   auditEconomicFields,
   economicRowFromExtraction,
+  isValidValidationStatus,
   toNumber,
+  validationOutcomeFields,
 } from './_economicImpact.js';
 
 function getSupabaseConfig() {
@@ -463,6 +465,147 @@ export async function getEconomicImpact(auth, auditId) {
     { method: 'GET' },
   );
   return rows?.[0] || null;
+}
+
+// Persist the outcome of the readout "Validate Economics" (Card 3) conversation
+// across audit_economic_impacts, audit_readouts, and advisor_audits.
+//
+// validation_status: 'validated' | 'revised' | 'rejected'
+// On 'revised', callers may pass revised_annual_cost + revised savings + confidence.
+// On 'validated', validated_annual_cost confirms the existing estimate.
+export async function validateEconomicImpact(auth, auditId, payload = {}) {
+  const audit = await getAdvisorAudit(auth, auditId);
+  if (audit.owner_clerk_user_id !== auth.userId && !auth.isSuperuser) {
+    const err = new Error('You can only validate economics for audits you own.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const validationStatus = clean(payload.validation_status, 40);
+  if (!isValidValidationStatus(validationStatus)) {
+    const err = new Error('validation_status must be one of: validated, revised, rejected.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Resolve the economic impact row.
+  const impactId = clean(payload.impact_id, 80);
+  let impact;
+  if (impactId) {
+    const rows = await supabaseFetch(
+      `audit_economic_impacts?select=*&id=eq.${encodeURIComponent(impactId)}&limit=1`,
+      { method: 'GET' },
+    );
+    impact = rows?.[0];
+  } else {
+    const rows = await supabaseFetch(
+      `audit_economic_impacts?select=*&audit_id=eq.${encodeURIComponent(audit.id)}&order=updated_at.desc&limit=1`,
+      { method: 'GET' },
+    );
+    impact = rows?.[0];
+  }
+  if (!impact || impact.audit_id !== audit.id) {
+    const err = new Error('Economic impact not found for this audit. Extract economics first.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Build the economic_impacts patch.
+  const impactFields = {
+    status: validationStatus,
+    updated_at: new Date().toISOString(),
+  };
+  if (typeof payload.client_economic_feedback === 'string') {
+    impactFields.client_validation_notes = clean(payload.client_economic_feedback, 10000);
+  }
+  // Revised numbers apply on 'revised' (and may also be sent on 'validated' to confirm).
+  if (validationStatus === 'revised') {
+    if (payload.annual_cost_estimate !== undefined) impactFields.annual_cost_estimate = toNumber(payload.annual_cost_estimate);
+    if (payload.annual_savings_low !== undefined) impactFields.annual_savings_low = toNumber(payload.annual_savings_low);
+    if (payload.annual_savings_high !== undefined) impactFields.annual_savings_high = toNumber(payload.annual_savings_high);
+    if (typeof payload.confidence === 'string') impactFields.confidence = payload.confidence;
+  }
+
+  const updatedImpactRows = await supabaseFetch(
+    `audit_economic_impacts?id=eq.${encodeURIComponent(impact.id)}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(impactFields),
+    },
+  );
+  const updatedImpact = updatedImpactRows?.[0] || { ...impact, ...impactFields };
+
+  // Resolve the readout row (latest for audit, or the one provided).
+  const readoutId = clean(payload.readout_id, 80);
+  let readout = null;
+  if (readoutId) {
+    const rows = await supabaseFetch(
+      `audit_readouts?select=*&id=eq.${encodeURIComponent(readoutId)}&audit_id=eq.${encodeURIComponent(audit.id)}&limit=1`,
+      { method: 'GET' },
+    );
+    readout = rows?.[0];
+  } else {
+    const rows = await supabaseFetch(
+      `audit_readouts?select=*&audit_id=eq.${encodeURIComponent(audit.id)}&order=updated_at.desc&limit=1`,
+      { method: 'GET' },
+    );
+    readout = rows?.[0];
+  }
+
+  const revisedCost = toNumber(payload.revised_annual_cost);
+  const validatedCost = toNumber(payload.validated_annual_cost);
+  const outcome = validationOutcomeFields(validationStatus);
+  // readoutFields carries only the audit_readouts columns (economics_*).
+  const readoutFields = {
+    economics_discussed: outcome.economics_discussed,
+    economics_validated: outcome.economics_validated,
+    economics_revised: outcome.economics_revised,
+    client_economic_feedback: clean(payload.client_economic_feedback, 10000) || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (validatedCost !== null) readoutFields.validated_annual_cost = validatedCost;
+  if (revisedCost !== null) readoutFields.revised_annual_cost = revisedCost;
+
+  let updatedReadout = null;
+  if (readout) {
+    const rows = await supabaseFetch(
+      `audit_readouts?id=eq.${encodeURIComponent(readout.id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(readoutFields),
+      },
+    );
+    updatedReadout = rows?.[0] || { ...readout, ...readoutFields };
+  } else {
+    // No readout yet — create a minimal one carrying the validation outcome.
+    const newId = randomUUID();
+    const newRow = {
+      id: newId,
+      audit_id: audit.id,
+      advisor_id: auth.userId,
+      client_name: audit.client_name || '',
+      ...readoutFields,
+    };
+    const rows = await supabaseFetch('audit_readouts?on_conflict=id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify([newRow]),
+    });
+    updatedReadout = rows?.[0] || newRow;
+  }
+
+  // Lifecycle: mark advisor_audits.economic_validated + refresh economic summary.
+  const lifecycleFields = auditEconomicFields(updatedImpact);
+  lifecycleFields.economic_validated = outcome.economic_validated;
+  await patchAuditLifecycle(audit.id, lifecycleFields);
+
+  return {
+    impact: updatedImpact,
+    readout: updatedReadout,
+    validation_status: validationStatus,
+  };
 }
 
 export async function updateEconomicImpact(auth, id, patch = {}) {

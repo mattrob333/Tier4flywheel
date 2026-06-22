@@ -7,6 +7,8 @@ import {
   clientEconomicFromRow,
   economicSummaryText,
   auditEconomicFields,
+  isValidValidationStatus,
+  validationOutcomeFields,
 } from '../api/_economicImpact.js';
 
 test('toNumber parses numbers and rejects junk', () => {
@@ -85,4 +87,35 @@ test('auditEconomicFields denormalizes a summary', () => {
   assert.equal(fields.economic_annual_cost_estimate, 312000);
   assert.equal(fields.economic_confidence, 'Medium');
   assert.equal(fields.economic_summary, '$312,000 / year estimated (Medium confidence)');
+});
+
+test('isValidValidationStatus accepts only the three allowed statuses', () => {
+  assert.equal(isValidValidationStatus('validated'), true);
+  assert.equal(isValidValidationStatus('revised'), true);
+  assert.equal(isValidValidationStatus('rejected'), true);
+  assert.equal(isValidValidationStatus('confirmed'), false);
+  assert.equal(isValidValidationStatus(''), false);
+  assert.equal(isValidValidationStatus(null), false);
+});
+
+test('validationOutcomeFields maps each status to the right booleans', () => {
+  assert.deepEqual(validationOutcomeFields('validated'), {
+    economics_discussed: true,
+    economics_validated: true,
+    economics_revised: false,
+    economic_validated: true,
+  });
+  assert.deepEqual(validationOutcomeFields('revised'), {
+    economics_discussed: true,
+    economics_validated: true,
+    economics_revised: true,
+    economic_validated: true,
+  });
+  assert.deepEqual(validationOutcomeFields('rejected'), {
+    economics_discussed: true,
+    economics_validated: false,
+    economics_revised: false,
+    economic_validated: false,
+  });
+  assert.equal(validationOutcomeFields('bogus'), null);
 });

@@ -101,3 +101,24 @@ export function auditEconomicFields(row) {
     economic_summary: economicSummaryText(row),
   };
 }
+
+// Maps a readout Card 3 validation_status to the boolean + status fields written
+// onto audit_readouts and advisor_audits. Pure helper so it can be unit-tested.
+//   'validated' -> economics_validated=true, economics_revised=false
+//   'revised'   -> economics_validated=true, economics_revised=true
+//   'rejected'  -> economics_validated=false, economics_revised=false
+const VALIDATION_STATUSES = new Set(['validated', 'revised', 'rejected']);
+
+export function isValidValidationStatus(status) {
+  return VALIDATION_STATUSES.has(status);
+}
+
+export function validationOutcomeFields(validationStatus) {
+  if (!VALIDATION_STATUSES.has(validationStatus)) return null;
+  return {
+    economics_discussed: true,
+    economics_validated: validationStatus !== 'rejected',
+    economics_revised: validationStatus === 'revised',
+    economic_validated: validationStatus !== 'rejected',
+  };
+}

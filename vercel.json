@@ -106,6 +106,10 @@
       "maxDuration": 30,
       "memory": 1024
     },
+    "api/audit-economic-validate.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
     "api/audit-readout-guide.js": {
       "maxDuration": 60,
       "memory": 1024

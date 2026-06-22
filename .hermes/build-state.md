@@ -71,7 +71,7 @@
 - ⬜ A few `audit-report.js` legacy synchronous path files still exist (cleanup)
 
 ## Quality Gate
-- `npm test` — 19 tests (node --test runner)
+- `npm test` — 18 tests (node --test runner)
 - `npm run lint` — ESLint
 - `npm run build` — Vite build (must produce dist/)
 - All currently passing based on last push
@@ -84,10 +84,10 @@
 - **No Pedigree/SKU names in client-facing output** — that's what the three-layer split is for.
 
 ## Open Issues / Blockers
-- None — master is green (16/16 tests, build ✓). Ready for Phase 3 implementation.
+- None — master is green (18/18 tests, build ✓). Phase 3.7/3.8/3.9 shipped; 3.6 (readout Card 3 UI) next.
 
 ## Next Action
-- **Phase 3.4: Build the Economic Opportunity card component** for expanded audit rows in AdminAuditHistory.jsx — show annual cost, confidence, validation status, savings range, with View/Edit + Add-to-Readout + Include-in-Proposal buttons. This is the first real Phase 3 vertical slice.
+- **Phase 3.6: Wire `economic_validation` into readout assistant Card 3** — the validation endpoint (3.7) and persistence (3.8) are now live. Next: update the readout assistant UI in AdminAuditPage.jsx so Card 3 (Validate Economics) captures the client conversation and POSTs to `/api/audit-economic-validate` with `validation_status` (validated/revised/rejected), revised numbers, and client feedback. This closes Phase 3.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care
@@ -97,4 +97,4 @@
 - The old synchronous audit-report.js path is dead code, now annotated @deprecated — don't delete until Phases 3-5 verified live
 - All three Phase-0 course corrections are RESOLVED (commit d0ae3cb): master builds clean, parse-model fallback chain is correct, legacy files annotated
 
-**Last Updated:** 2026-06-22 — Phase 0 corrections resolved; master green; Phase 3 implementation starting
+**Last Updated:** 2026-06-22 — Phase 3.7/3.8/3.9 shipped (economic validation endpoint + cross-table persistence); master green (18/18 tests); 3.6 readout Card 3 UI next

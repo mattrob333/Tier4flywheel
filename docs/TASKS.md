@@ -5,12 +5,12 @@
 - [x] **3.1** Verify master builds and tests pass (gate for all work) — 16/16 tests, build ✓
 - [x] **3.2** Fix parse-model bug in `_advisorAuditServer.js` (gpt-5.4-mini → model fallback) — already fixed on master; no gpt-5.4-mini anywhere
 - [x] **3.3** Annotate deprecated legacy files (audit-report.js, chunk, evidence) — @deprecated headers added (d0ae3cb)
-- [ ] **3.4** Economic Opportunity card component for AdminAuditHistory rows
-- [ ] **3.5** View/Edit Economics modal with editable variables + recalculated totals
+- [x] **3.4** Economic Opportunity card component for AdminAuditHistory rows — shipped 771a503
+- [x] **3.5** View/Edit Economics modal with editable variables + recalculated totals — shipped ce7d347
 - [ ] **3.6** Wire economic_validation into readout assistant Card 3
-- [ ] **3.7** `POST /api/audit-economic-validate` endpoint
-- [ ] **3.8** Persist validation status to `audit_readouts` + `audit_economic_impacts`
-- [ ] **3.9** Update vercel.json with new function entries
+- [x] **3.7** `POST /api/audit-economic-validate` endpoint — shipped (audit-economic-validate.js + validateEconomicImpact store fn + vercel.json entry)
+- [x] **3.8** Persist validation status to `audit_readouts` + `audit_economic_impacts` — shipped with 3.7 (validateEconomicImpact writes both tables + advisor_audits lifecycle)
+- [x] **3.9** Update vercel.json with new function entries — audit-economic-validate.js added
 
 ## Phase 4: Proposal Integration
 

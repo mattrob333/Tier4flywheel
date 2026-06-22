@@ -84,18 +84,17 @@
 - **No Pedigree/SKU names in client-facing output** — that's what the three-layer split is for.
 
 ## Open Issues / Blockers
-- Need to verify `npm test` and `npm run build` both pass on current master
-- The verification needs Supabase and OpenAI env vars to run full integration tests
+- None — master is green (16/16 tests, build ✓). Ready for Phase 3 implementation.
 
 ## Next Action
-- **Verify current master builds and tests pass** (npm test && npm run build)
-- Then start Phase 3: Economic UI in AdminAuditHistory (view/edit modal, validation wire-up)
+- **Phase 3.4: Build the Economic Opportunity card component** for expanded audit rows in AdminAuditHistory.jsx — show annual cost, confidence, validation status, savings range, with View/Edit + Add-to-Readout + Include-in-Proposal buttons. This is the first real Phase 3 vertical slice.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care
 - Phases 1-2 (clean report, three-layer schema, economic extraction, markdown rendering) are complete per the amendment plan
 - react-markdown IS in package.json (the amendment plan doc was written before it was added)
 - Economic impact migration IS applied
-- The old synchronous audit-report.js path is dead code but still exists — don't delete without testing
+- The old synchronous audit-report.js path is dead code, now annotated @deprecated — don't delete until Phases 3-5 verified live
+- All three Phase-0 course corrections are RESOLVED (commit d0ae3cb): master builds clean, parse-model fallback chain is correct, legacy files annotated
 
-**Last Updated:** 2026-06-22 — Phase 0 reconnaissance complete
+**Last Updated:** 2026-06-22 — Phase 0 corrections resolved; master green; Phase 3 implementation starting

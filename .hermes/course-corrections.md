@@ -11,22 +11,17 @@ The OUTER loop appends prioritized directives here when it detects drift, guardr
 
 ## Open Corrections
 
-### [HIGH] Verify master builds before any work — OPEN (Phase 0 audit)
-**Problem:** No guarantee the current master branch is in a buildable/testable state. A broken build would break the live site on deploy.
-**Required fix:** Run `npm install && npm test && npm run build` on current master. If it fails, fix it BEFORE any other work. This is the gate to all subsequent phases.
-**Acceptance:** `npm run build` exits 0 and produces `dist/`.
-
-### [MEDIUM] Legacy synchronous audit-report.js files — OPEN (Phase 0 audit)
-**Problem:** The old synchronous path (`audit-report.js`, `audit-report-chunk.js`, `audit-report-evidence.js`) still exists as dead code. The live path uses the background job flow (`audit-report-start.js` → polling `audit-report-status.js`). Dead code is confusing.
-**Required fix:** Assess each file. If truly unused, annotate as `@deprecated` with a comment pointing to the live path. Do NOT delete until Phases 3-5 work is verified on the live path.
-**Acceptance:** Each file has a `@deprecated` header comment explaining the live replacement path.
-
-### [MEDIUM] Parse-model bug — OPEN (Phase 0 audit)
-**Problem:** `api/_advisorAuditServer.js:6` still defaults parse model to `gpt-5.4-mini` instead of falling back to `OPENAI_MODEL`.
-**Required fix:** Change line to `const OPENAI_PARSE_MODEL = process.env.OPENAI_AUDIT_PARSE_MODEL || process.env.OPENAI_AUDIT_MODEL || 'gpt-5.5';`
-**Acceptance:** The hardcoded `gpt-5.4-mini` fallback is removed.
+_(none — all cleared as of 2026-06-22)_
 
 ---
 
 ## Resolved Corrections
-_(none yet)_
+
+### [HIGH] Verify master builds before any work — RESOLVED (d0ae3cb)
+**Outcome:** On current master, `npm install` completes, `npm test` passes 16/16, and `npm run build` produces `dist/` (exit 0, built in ~3.2s). Gate satisfied.
+
+### [MEDIUM] Legacy synchronous audit-report.js files — RESOLVED (d0ae3cb)
+**Outcome:** Added `@deprecated` JSDoc header comments to `api/audit-report.js`, `api/audit-report-chunk.js`, and `api/audit-report-evidence.js`. Each comment names the live replacement path (`audit-report-start.js` → `audit-report-status.js`) and notes the client only references the async endpoints. Files retained (not deleted) until Phases 3-5 are verified on the live path, per the correction's instructions.
+
+### [MEDIUM] Parse-model bug — RESOLVED (d0ae3cb)
+**Outcome:** Verified `api/_advisorAuditServer.js:6` already reads `const OPENAI_PARSE_MODEL = process.env.OPENAI_AUDIT_PARSE_MODEL || process.env.OPENAI_AUDIT_CHUNK_MODEL || OPENAI_MODEL;` where `OPENAI_MODEL = process.env.OPENAI_AUDIT_MODEL || 'gpt-5.5'`. A repo-wide search for `gpt-5.4-mini` returns zero matches. The hardcoded fallback was already removed on master; the correction's intent (no hardcoded `gpt-5.4-mini`) is satisfied.

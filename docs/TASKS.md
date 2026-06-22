@@ -2,9 +2,9 @@
 
 ## Phase 3: Economic UI + Readout Validation
 
-- [ ] **3.1** Verify master builds and tests pass (gate for all work)
-- [ ] **3.2** Fix parse-model bug in `_advisorAuditServer.js` (gpt-5.4-mini → model fallback)
-- [ ] **3.3** Annotate deprecated legacy files (audit-report.js, chunk, evidence)
+- [x] **3.1** Verify master builds and tests pass (gate for all work) — 16/16 tests, build ✓
+- [x] **3.2** Fix parse-model bug in `_advisorAuditServer.js` (gpt-5.4-mini → model fallback) — already fixed on master; no gpt-5.4-mini anywhere
+- [x] **3.3** Annotate deprecated legacy files (audit-report.js, chunk, evidence) — @deprecated headers added (d0ae3cb)
 - [ ] **3.4** Economic Opportunity card component for AdminAuditHistory rows
 - [ ] **3.5** View/Edit Economics modal with editable variables + recalculated totals
 - [ ] **3.6** Wire economic_validation into readout assistant Card 3

@@ -90,6 +90,31 @@ const STYLE = `
 .audit-history-econ-stat-value.muted{color:rgba(240,242,245,.4);font-size:13px;font-weight:700}
 .audit-history-econ-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .audit-history-econ-empty{color:rgba(240,242,245,.5);font-size:13px;line-height:1.5}
+.econ-modal-overlay{position:fixed;inset:0;background:rgba(6,10,20,.74);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+.econ-modal{width:100%;max-width:680px;background:rgba(20,25,38,.98);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 30px 90px rgba(0,0,0,.4);overflow:hidden}
+.econ-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
+.econ-modal-title{font-size:16px;font-weight:900;color:#fff;display:flex;align-items:center;gap:9px}
+.econ-modal-title svg{width:18px;height:18px;color:#C9A84C}
+.econ-modal-close{background:transparent;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:rgba(240,242,245,.7);font:inherit;font-weight:800;font-size:13px;padding:6px 11px;cursor:pointer}
+.econ-modal-close:hover{color:#F0F2F5;border-color:rgba(255,255,255,.3)}
+.econ-modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.econ-modal-field{display:flex;flex-direction:column;gap:5px}
+.econ-modal-label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:rgba(240,242,245,.54);font-weight:800}
+.econ-modal-input{min-height:38px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#0B1426;color:#F0F2F5;font:inherit;font-size:14px;padding:0 11px}
+.econ-modal-input:focus{outline:none;border-color:rgba(94,192,138,.5)}
+.econ-modal-textarea{min-height:70px;padding:9px 11px;resize:vertical;line-height:1.5;font-size:13px}
+.econ-modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.econ-modal-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:560px){.econ-modal-row,.econ-modal-row-3{grid-template-columns:1fr}}
+.econ-modal-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;background:rgba(11,20,38,.5);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px}
+.econ-modal-total-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(240,242,245,.5);font-weight:800;margin-bottom:2px}
+.econ-modal-total-value{font-size:16px;font-weight:900;color:#5EC08A}
+.econ-modal-total-value.muted{color:rgba(240,242,245,.4)}
+.econ-modal-actions{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid rgba(255,255,255,.1)}
+.econ-modal-save{display:inline-flex;align-items:center;gap:8px;min-height:38px;border-radius:8px;background:#5EC08A;color:#061A0E;border:none;font:inherit;font-size:14px;font-weight:900;padding:0 18px;cursor:pointer}
+.econ-modal-save:disabled{opacity:.5;cursor:not-allowed}
+.econ-modal-save:hover{background:#6FD49A}
+.econ-modal-error{color:#FF8A8A;font-size:13px;padding:0 18px}
 `;
 
 function formatDate(value) {
@@ -438,6 +463,10 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
   const [copiedId, setCopiedId] = useState('');
   const [deletingId, setDeletingId] = useState('');
   const [savingStageId, setSavingStageId] = useState('');
+  const [editingEcon, setEditingEcon] = useState(null);
+  const [econDraft, setEconDraft] = useState(null);
+  const [savingEcon, setSavingEcon] = useState(false);
+  const [econError, setEconError] = useState('');
 
   const sortedAudits = useMemo(() => audits, [audits]);
 
@@ -514,6 +543,79 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
       setError(err.message || 'Could not generate proposal.');
     } finally {
       setSavingStageId('');
+    }
+  }
+
+  function openEconModal(audit) {
+    const row = audit.economic_impact;
+    if (!row) return;
+    const variables = row.variables || {};
+    setEconError('');
+    setEconDraft({
+      id: row.id,
+      auditId: audit.id,
+      status: row.status || 'estimated',
+      currency: row.currency || 'USD',
+      annual_cost_estimate: row.annual_cost_estimate ?? '',
+      annual_savings_low: row.annual_savings_low ?? '',
+      annual_savings_high: row.annual_savings_high ?? '',
+      confidence: row.confidence || '',
+      improvement_target: variables.improvement_target || '',
+      assumptions: Array.isArray(row.assumptions) ? row.assumptions.join('\n') : '',
+      missing_inputs: Array.isArray(row.missing_inputs) ? row.missing_inputs.join('\n') : '',
+      client_validation_notes: row.client_validation_notes || '',
+      formula: (row.formulas && row.formulas.formula) || '',
+      calculation_basis: (row.formulas && row.formulas.calculation_basis) || '',
+    });
+    setEditingEcon(audit);
+  }
+
+  function closeEconModal() {
+    setEditingEcon(null);
+    setEconDraft(null);
+    setEconError('');
+  }
+
+  function updateEconField(key, value) {
+    setEconDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }
+
+  async function saveEcon() {
+    if (!econDraft) return;
+    setSavingEcon(true);
+    setEconError('');
+    const payload = {
+      status: econDraft.status,
+      confidence: econDraft.confidence,
+      annual_cost_estimate: econDraft.annual_cost_estimate,
+      annual_savings_low: econDraft.annual_savings_low,
+      annual_savings_high: econDraft.annual_savings_high,
+      client_validation_notes: econDraft.client_validation_notes,
+      assumptions: econDraft.assumptions
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      missing_inputs: econDraft.missing_inputs
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      variables: {
+        ...((editingEcon?.economic_impact && editingEcon.economic_impact.variables) || {}),
+        improvement_target: econDraft.improvement_target,
+      },
+    };
+    try {
+      await patchJSON(
+        `/api/audit-economic-impact?id=${encodeURIComponent(econDraft.id)}`,
+        payload,
+        getAuthHeaders,
+      );
+      await loadAudits();
+      closeEconModal();
+    } catch (err) {
+      setEconError(err.message || 'Could not save economic revisions.');
+    } finally {
+      setSavingEcon(false);
     }
   }
 
@@ -878,7 +980,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                       disabled={!econ.row}
                                       onClick={(event) => {
                                         event.stopPropagation();
-                                        // Wired in Phase 3.5 — opens the View/Edit Economics modal.
+                                        openEconModal(audit);
                                       }}
                                     >
                                       <Pencil /> View / Edit
@@ -960,6 +1062,175 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
             })}
           </tbody>
         </table>
+      )}
+
+      {editingEcon && econDraft && (
+        <div
+          className="econ-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeEconModal();
+          }}
+        >
+          <div className="econ-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="econ-modal-head">
+              <div className="econ-modal-title">
+                <TrendingUp /> Edit Economic Opportunity
+              </div>
+              <button className="econ-modal-close" type="button" onClick={closeEconModal}>
+                Close
+              </button>
+            </div>
+            <div className="econ-modal-body">
+              <div className="econ-modal-row-3">
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Annual cost (USD)</label>
+                  <input
+                    className="econ-modal-input"
+                    type="number"
+                    value={econDraft.annual_cost_estimate}
+                    onChange={(event) => updateEconField('annual_cost_estimate', event.target.value)}
+                  />
+                </div>
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Savings low (USD)</label>
+                  <input
+                    className="econ-modal-input"
+                    type="number"
+                    value={econDraft.annual_savings_low}
+                    onChange={(event) => updateEconField('annual_savings_low', event.target.value)}
+                  />
+                </div>
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Savings high (USD)</label>
+                  <input
+                    className="econ-modal-input"
+                    type="number"
+                    value={econDraft.annual_savings_high}
+                    onChange={(event) => updateEconField('annual_savings_high', event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="econ-modal-row">
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Confidence</label>
+                  <select
+                    className="econ-modal-input"
+                    value={econDraft.confidence}
+                    onChange={(event) => updateEconField('confidence', event.target.value)}
+                  >
+                    <option value="">Not set</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Status</label>
+                  <select
+                    className="econ-modal-input"
+                    value={econDraft.status}
+                    onChange={(event) => updateEconField('status', event.target.value)}
+                  >
+                    <option value="estimated">Estimated</option>
+                    <option value="insufficient_data">Insufficient data</option>
+                    <option value="validated">Validated</option>
+                    <option value="revised">Revised</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="econ-modal-totals">
+                <div>
+                  <div className="econ-modal-total-label">Annual cost</div>
+                  <div className={`econ-modal-total-value${econDraft.annual_cost_estimate === '' ? ' muted' : ''}`}>
+                    {econDraft.annual_cost_estimate !== '' ? formatEconMoney(econDraft.annual_cost_estimate) : '—'}
+                  </div>
+                </div>
+                <div>
+                  <div className="econ-modal-total-label">Savings range / yr</div>
+                  <div className={`econ-modal-total-value${!econDraft.annual_savings_low && !econDraft.annual_savings_high ? ' muted' : ''}`}>
+                    {formatEconRange(econDraft.annual_savings_low, econDraft.annual_savings_high) || '—'}
+                  </div>
+                </div>
+                <div>
+                  <div className="econ-modal-total-label">Net (high − cost)</div>
+                  <div
+                    className={`econ-modal-total-value${
+                      econDraft.annual_cost_estimate === '' || econDraft.annual_savings_high === '' ? ' muted' : ''
+                    }`}
+                  >
+                    {econDraft.annual_cost_estimate !== '' && econDraft.annual_savings_high !== ''
+                      ? formatEconMoney(Number(econDraft.annual_savings_high) - Number(econDraft.annual_cost_estimate))
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="econ-modal-field">
+                <label className="econ-modal-label">Improvement target</label>
+                <input
+                  className="econ-modal-input"
+                  type="text"
+                  value={econDraft.improvement_target}
+                  onChange={(event) => updateEconField('improvement_target', event.target.value)}
+                />
+              </div>
+
+              <div className="econ-modal-field">
+                <label className="econ-modal-label">Formula</label>
+                <input
+                  className="econ-modal-input"
+                  type="text"
+                  value={econDraft.formula}
+                  disabled
+                  title="Formula is extracted by the LLM and shown read-only"
+                />
+              </div>
+
+              <div className="econ-modal-row">
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Assumptions (one per line)</label>
+                  <textarea
+                    className="econ-modal-input econ-modal-textarea"
+                    value={econDraft.assumptions}
+                    onChange={(event) => updateEconField('assumptions', event.target.value)}
+                  />
+                </div>
+                <div className="econ-modal-field">
+                  <label className="econ-modal-label">Missing inputs (one per line)</label>
+                  <textarea
+                    className="econ-modal-input econ-modal-textarea"
+                    value={econDraft.missing_inputs}
+                    onChange={(event) => updateEconField('missing_inputs', event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="econ-modal-field">
+                <label className="econ-modal-label">Client validation notes</label>
+                <textarea
+                  className="econ-modal-input econ-modal-textarea"
+                  value={econDraft.client_validation_notes}
+                  onChange={(event) => updateEconField('client_validation_notes', event.target.value)}
+                  placeholder="Notes from the readout conversation about whether the client confirmed or revised these numbers…"
+                />
+              </div>
+            </div>
+
+            {econError && <div className="econ-modal-error">{econError}</div>}
+
+            <div className="econ-modal-actions">
+              <button className="econ-modal-close" type="button" onClick={closeEconModal} disabled={savingEcon}>
+                Cancel
+              </button>
+              <button className="econ-modal-save" type="button" onClick={saveEcon} disabled={savingEcon}>
+                {savingEcon ? 'Saving…' : 'Save revisions'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

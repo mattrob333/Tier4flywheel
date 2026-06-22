@@ -166,10 +166,12 @@ async function attachLatestArtifacts(audits) {
   const inList = ids.map((id) => encodeURIComponent(id)).join(',');
   let readouts = [];
   let proposals = [];
+  let economicImpacts = [];
   try {
-    [readouts, proposals] = await Promise.all([
+    [readouts, proposals, economicImpacts] = await Promise.all([
       supabaseFetch(`audit_readouts?select=*&audit_id=in.(${inList})&order=updated_at.desc`, { method: 'GET' }),
       supabaseFetch(`audit_proposals?select=*&audit_id=in.(${inList})&order=updated_at.desc`, { method: 'GET' }),
+      supabaseFetch(`audit_economic_impacts?select=*&audit_id=in.(${inList})&order=updated_at.desc`, { method: 'GET' }),
     ]);
   } catch (error) {
     const message = String(error.message || '');
@@ -177,6 +179,7 @@ async function attachLatestArtifacts(audits) {
       error.statusCode === 404 ||
       message.includes('audit_readouts') ||
       message.includes('audit_proposals') ||
+      message.includes('audit_economic_impacts') ||
       message.includes('relation')
     ) {
       return audits;
@@ -185,11 +188,13 @@ async function attachLatestArtifacts(audits) {
   }
   const readoutByAudit = latestByAuditId(readouts);
   const proposalByAudit = latestByAuditId(proposals);
+  const economicByAudit = latestByAuditId(economicImpacts);
 
   return audits.map((audit) => ({
     ...audit,
     readout: readoutByAudit.get(audit.id) || null,
     proposal: proposalByAudit.get(audit.id) || null,
+    economic_impact: economicByAudit.get(audit.id) || null,
   }));
 }
 

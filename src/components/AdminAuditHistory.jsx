@@ -8,6 +8,10 @@ import {
   Mail,
   RefreshCw,
   Trash2,
+  TrendingUp,
+  Pencil,
+  FilePlus,
+  CheckCircle2,
 } from 'lucide-react';
 
 const SALES_STAGES = [
@@ -69,6 +73,23 @@ const STYLE = `
 .audit-history-empty,.audit-history-error,.audit-history-load{padding:22px;color:rgba(240,242,245,.66);font-size:14px;line-height:1.6}
 .audit-history-error{color:#F0F2F5;background:rgba(214,106,106,.08);border-top:1px solid rgba(214,106,106,.4)}
 @media(max-width:760px){.audit-history-table,.audit-history-table thead,.audit-history-table tbody,.audit-history-table tr,.audit-history-table th,.audit-history-table td{display:block}.audit-history-table thead{display:none}.audit-history-row{border-bottom:1px solid rgba(255,255,255,.1)}.audit-history-table td{border-bottom:0;padding:7px 14px}.audit-history-table td:first-child{padding-top:14px}.audit-history-table td:last-child{padding-bottom:14px}.audit-history-chevron{text-align:left}.audit-history-detail-cell{display:block!important}}
+.audit-history-econ{margin-top:16px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(26,31,46,.58);padding:14px}
+.audit-history-econ-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.audit-history-econ-title{font-size:14px;font-weight:850;color:#fff;display:flex;align-items:center;gap:8px}
+.audit-history-econ-title svg{width:16px;height:16px;color:#C9A84C}
+.audit-history-econ-badge{display:inline-flex;border-radius:999px;font-size:11px;font-weight:850;padding:4px 8px;white-space:nowrap}
+.audit-history-econ-badge.estimated{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.28);color:#D7BC68}
+.audit-history-econ-badge.insufficient_data{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:rgba(240,242,245,.58)}
+.audit-history-econ-badge.validated{background:rgba(94,192,138,.14);border:1px solid rgba(94,192,138,.3);color:#5EC08A}
+.audit-history-econ-badge.revised{background:rgba(99,168,224,.14);border:1px solid rgba(99,168,224,.3);color:#6FA8E0}
+.audit-history-econ-badge.rejected{background:rgba(214,106,106,.12);border:1px solid rgba(214,106,106,.3);color:#FF8A8A}
+.audit-history-econ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.audit-history-econ-stat{background:rgba(11,20,38,.5);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px}
+.audit-history-econ-stat-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(240,242,245,.5);font-weight:800;margin-bottom:3px}
+.audit-history-econ-stat-value{font-size:16px;font-weight:900;color:#F0F2F5}
+.audit-history-econ-stat-value.muted{color:rgba(240,242,245,.4);font-size:13px;font-weight:700}
+.audit-history-econ-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.audit-history-econ-empty{color:rgba(240,242,245,.5);font-size:13px;line-height:1.5}
 `;
 
 function formatDate(value) {
@@ -286,6 +307,59 @@ function proposalText(audit) {
 
 function readoutGuideText(audit) {
   return audit.readout?.readout_guide_text || '';
+}
+
+function formatEconMoney(value, currency = 'USD') {
+  if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '';
+  const symbol = currency === 'USD' ? '$' : '';
+  return `${symbol}${Number(value).toLocaleString('en-US')}`;
+}
+
+function formatEconRange(low, high, currency = 'USD') {
+  const lo = formatEconMoney(low, currency);
+  const hi = formatEconMoney(high, currency);
+  if (!lo && !hi) return '';
+  if (lo && hi && lo === hi) return lo;
+  if (!lo) return `up to ${hi}`;
+  if (!hi) return `${lo}+`;
+  return `${lo} – ${hi}`;
+}
+
+const ECON_STATUS_LABELS = {
+  estimated: 'Estimated',
+  insufficient_data: 'Insufficient data',
+  validated: 'Validated',
+  revised: 'Revised',
+  rejected: 'Rejected',
+};
+
+function economicCardData(audit) {
+  const row = audit.economic_impact || null;
+  // Fall back to denormalized fields on advisor_audits when no full row is attached.
+  const status = row?.status || audit.economic_impact_status || '';
+  const currency = row?.currency || 'USD';
+  const annualCost = row?.annual_cost_estimate ?? audit.economic_annual_cost_estimate ?? null;
+  const savingsLow = row?.annual_savings_low ?? null;
+  const savingsHigh = row?.annual_savings_high ?? null;
+  const confidence = row?.confidence || audit.economic_confidence || '';
+  const validated = Boolean(audit.economic_validated);
+  const hasAny =
+    annualCost !== null ||
+    savingsLow !== null ||
+    savingsHigh !== null ||
+    Boolean(row) ||
+    Boolean(audit.economic_impact_status);
+  return {
+    hasAny,
+    row,
+    status: status || 'estimated',
+    statusLabel: ECON_STATUS_LABELS[status] || (status || 'Estimated'),
+    currency,
+    annualCost,
+    savingsRange: formatEconRange(savingsLow, savingsHigh, currency),
+    confidence,
+    validated,
+  };
 }
 
 async function getJSON(path, getAuthHeaders) {
@@ -587,6 +661,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
               const pText = proposalText(audit);
               const rText = readoutGuideText(audit);
               const baseName = safeFileName(`${audit.client_name}-${typeLabel(audit)}`);
+              const econ = economicCardData(audit);
               return (
                 <React.Fragment key={audit.id}>
                   <tr
@@ -762,6 +837,83 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                               </button>
                             </div>
                             {copiedId.startsWith(audit.id) && <div className="audit-history-copied">Copied</div>}
+
+                            <div className="audit-history-econ" onClick={(event) => event.stopPropagation()}>
+                              <div className="audit-history-econ-head">
+                                <div className="audit-history-econ-title">
+                                  <TrendingUp /> Economic Opportunity
+                                </div>
+                                <span className={`audit-history-econ-badge ${econ.status}`}>
+                                  {econ.validated && econ.status === 'estimated' ? 'Validated' : econ.statusLabel}
+                                </span>
+                              </div>
+                              {econ.hasAny ? (
+                                <>
+                                  <div className="audit-history-econ-grid">
+                                    <div className="audit-history-econ-stat">
+                                      <div className="audit-history-econ-stat-label">Annual cost</div>
+                                      <div className="audit-history-econ-stat-value">
+                                        {econ.annualCost !== null
+                                          ? formatEconMoney(econ.annualCost, econ.currency)
+                                          : '—'}
+                                      </div>
+                                    </div>
+                                    <div className="audit-history-econ-stat">
+                                      <div className="audit-history-econ-stat-label">Savings range / yr</div>
+                                      <div className="audit-history-econ-stat-value">
+                                        {econ.savingsRange || '—'}
+                                      </div>
+                                    </div>
+                                    <div className="audit-history-econ-stat">
+                                      <div className="audit-history-econ-stat-label">Confidence</div>
+                                      <div className={`audit-history-econ-stat-value${econ.confidence ? '' : ' muted'}`}>
+                                        {econ.confidence ? econ.confidence.charAt(0).toUpperCase() + econ.confidence.slice(1) : 'Not set'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="audit-history-econ-actions">
+                                    <button
+                                      className="audit-history-btn"
+                                      type="button"
+                                      disabled={!econ.row}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        // Wired in Phase 3.5 — opens the View/Edit Economics modal.
+                                      }}
+                                    >
+                                      <Pencil /> View / Edit
+                                    </button>
+                                    <button
+                                      className="audit-history-btn"
+                                      type="button"
+                                      disabled={!econ.row}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        // Wired in Phase 3.6 — adds economics to the readout assistant Card 3.
+                                      }}
+                                    >
+                                      <CheckCircle2 /> Add to Readout
+                                    </button>
+                                    <button
+                                      className="audit-history-btn"
+                                      type="button"
+                                      disabled={!econ.row}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        // Wired in Phase 4 — includes the value case in the proposal.
+                                      }}
+                                    >
+                                      <FilePlus /> Include in Proposal
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <p className="audit-history-econ-empty">
+                                  Economic impact not yet quantified for this audit. Run the discovery transcript through
+                                  the economic extraction step to populate annual cost, savings range, and confidence.
+                                </p>
+                              )}
+                            </div>
                           </div>
 
                           <div className="audit-history-stage-panel" onClick={(event) => event.stopPropagation()}>

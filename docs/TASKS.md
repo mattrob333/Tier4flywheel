@@ -23,7 +23,7 @@
 
 ## Phase 5: Learning Loop
 
-- [ ] **5.1** Extend export with economic/readout/proposal blocks
+- [x] **5.1** Extend export with economic/readout/proposal blocks — shipped 8cae084 (economicImpactExportBlock + proposalExportBlock + readoutExportBlock, wired into both fullAuditExport and exportAll)
 - [ ] **5.2** System Improvement Audit endpoint (batch review)
 - [ ] **5.3** Evaluation Agent scoring categories
 - [ ] **5.4** Dashboard metrics on AdminHomePage

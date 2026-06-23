@@ -3,7 +3,7 @@
 **Spec source:** README.md, designspec.md, copyrewrite.md, docs-internal/advisor-audit-amendment-plan.md
 **Repo:** https://github.com/mattrob333/Tier4flywheel
 **Workspace:** ~/Tier4flywheel
-**Status:** 🏗️ Production live site + functional audit pipeline — Phases 3-5 pending
+**Status:** 🏗️ Production live site + functional audit pipeline — Phase 5 Learning Loop in progress (5.1 complete)
 
 ## Architecture: Two-Tier Build Loop
 - Inner Loop (cron TBD) — every 10m: Check → Test → Advance → Repeat. Self-pauses both crons at a genuine stopping point.
@@ -86,7 +86,7 @@
 - None — master is green (18/18 tests, build ✓). Phase 4 complete; Phase 5 (Learning Loop) next.
 
 ## Next Action
-- **Phase 5: Learning Loop** — Phase 4 is fully complete (4.1–4.6 all shipped: value-case prompt rules, value_case schema block, Pedigree enum → neutral names, economics in proposal prompt, Markdown render + ValueCaseCard UI, economic fields persisted). Next: Phase 5.1, extend AdminAuditHistory export (exportAll/fullAuditExport) to include economic_impact, readout, and proposal blocks.
+- **Phase 5.2: System Improvement Audit endpoint** — Phase 5.1 complete (export now includes structured economic_impact, readout, proposal blocks via shared helpers). Next: build a batch-review endpoint that computes aggregate metrics (Economic Capture Rate, Validation Rate, Value-Case Rate, conversion rates, Price-to-Problem-Cost Ratio) across completed advisor audits.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care
@@ -96,4 +96,4 @@
 - The old synchronous audit-report.js path is dead code, now annotated @deprecated — don't delete until Phases 3-5 verified live
 - All three Phase-0 course corrections are RESOLVED (commit d0ae3cb): master builds clean, parse-model fallback chain is correct, legacy files annotated
 
-**Last Updated:** 2026-06-22 — Phase 4.1/4.2/4.3/4.4/4.6 shipped (value-case prompt + schema, Pedigree enum → neutral, economics in proposal prompt + persisted to audit_proposals); master green (18/18 tests); 4.5 Proposal Markdown UI next
+**Last Updated:** 2026-06-22 — Phase 5.1 shipped (export extended with economic_impact, readout, proposal blocks); master green (18/18 tests); 5.2 System Improvement Audit endpoint next

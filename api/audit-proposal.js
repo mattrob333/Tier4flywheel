@@ -89,18 +89,52 @@ export default async function handler(req, res) {
         decision_maker_identified: readout.decision_maker_identified,
         timeline_discussed: readout.timeline_discussed,
         objections: readout.objections,
+        economics_validated: readout.economics_validated,
+        economics_revised: readout.economics_revised,
+        validated_annual_cost: readout.validated_annual_cost,
+        revised_annual_cost: readout.revised_annual_cost,
       }, null, 2),
-    ].join('\n');
+    ];
+
+    if (audit.economic_impact) {
+      const ei = audit.economic_impact;
+      input.push(
+        '',
+        'Validated economic impact (use these numbers in the value_case block when available):',
+        JSON.stringify({
+          status: ei.status,
+          confidence: ei.confidence,
+          currency: ei.currency,
+          annual_cost_estimate: ei.annual_cost_estimate,
+          annual_savings_low: ei.annual_savings_low,
+          annual_savings_high: ei.annual_savings_high,
+          annual_revenue_opportunity: ei.annual_revenue_opportunity,
+          payback_months_low: ei.payback_months_low,
+          payback_months_high: ei.payback_months_high,
+          formula: ei.formulas,
+          evidence_quotes: ei.evidence_quotes,
+          assumptions: ei.assumptions,
+          missing_inputs: ei.missing_inputs,
+          validation_status: ei.validation_status,
+          client_validation_notes: ei.client_validation_notes,
+        }, null, 2),
+      );
+    } else {
+      input.push('', 'Economic impact: not yet extracted. Set value_case confidence to Low and explain what is missing.');
+    }
+
+    const inputText = input.join('\n');
 
     const proposalJson = await createStructuredResponse({
       instructions: proposalPrompt,
-      input,
+      input: inputText,
       schema: proposalSchema,
       schemaName: 'advisor_proposal',
       maxOutputTokens: 6500,
       reportModel: true,
     });
     const proposalText = buildProposalText(proposalJson);
+    const valueCase = proposalJson.value_case || null;
     const proposal = await saveAuditProposal(auth, audit.id, {
       readout_id: readout.id,
       proposal_type: proposalJson.proposal_type,
@@ -110,7 +144,14 @@ export default async function handler(req, res) {
       proposal_status: 'draft',
       selected_recommendations: body.selected_recommendations,
       pricing_notes: proposalJson.pricing_notes,
-      generated_from_prompt_version: 'proposal_v1',
+      generated_from_prompt_version: 'proposal_v2',
+      economic_impact_id: audit.economic_impact?.id || null,
+      includes_value_case: Boolean(valueCase),
+      proposal_investment_low: valueCase?.investment_low ?? null,
+      proposal_investment_high: valueCase?.investment_high ?? null,
+      estimated_payback_months_low: valueCase?.payback_months_low ?? null,
+      estimated_payback_months_high: valueCase?.payback_months_high ?? null,
+      estimated_value: valueCase?.headline || null,
     });
 
     return res.status(200).json({ proposal_json: proposalJson, proposal_text: proposalText, proposal });

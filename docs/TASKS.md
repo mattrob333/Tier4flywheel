@@ -7,19 +7,19 @@
 - [x] **3.3** Annotate deprecated legacy files (audit-report.js, chunk, evidence) — @deprecated headers added (d0ae3cb)
 - [x] **3.4** Economic Opportunity card component for AdminAuditHistory rows — shipped 771a503
 - [x] **3.5** View/Edit Economics modal with editable variables + recalculated totals — shipped ce7d347
-- [ ] **3.6** Wire economic_validation into readout assistant Card 3
+- [x] **3.6** Wire economic_validation into readout assistant Card 3 — shipped (EconomicValidationControls in Card 3, POSTs to /api/audit-economic-validate)
 - [x] **3.7** `POST /api/audit-economic-validate` endpoint — shipped (audit-economic-validate.js + validateEconomicImpact store fn + vercel.json entry)
 - [x] **3.8** Persist validation status to `audit_readouts` + `audit_economic_impacts` — shipped with 3.7 (validateEconomicImpact writes both tables + advisor_audits lifecycle)
 - [x] **3.9** Update vercel.json with new function entries — audit-economic-validate.js added
 
 ## Phase 4: Proposal Integration
 
-- [ ] **4.1** Update proposalPrompt with value-case rules
-- [ ] **4.2** Update proposalSchema with value_case block
-- [ ] **4.3** Drop Pedigree-named proposal_type → neutral names
-- [ ] **4.4** Update audit-proposal.js to pass full context + economics
+- [x] **4.1** Update proposalPrompt with value-case rules — shipped (validated economics preference, directional labels, no ROI for low confidence, simple math, editable pricing)
+- [x] **4.2** Update proposalSchema with value_case block — shipped (headline, confidence, cost/savings/investment/payback ranges, basis, directional_note)
+- [x] **4.3** Drop Pedigree-named proposal_type → neutral names — shipped (enum: 'Agent Governance Demo Proposal'; NEXT_STEPS: 'Agent Governance Demo')
+- [x] **4.4** Update audit-proposal.js to pass full context + economics — shipped (economic_impact + readout validation fields passed to prompt; prompt version bumped to proposal_v2)
 - [ ] **4.5** Render proposal with <Markdown> + editable mode
-- [ ] **4.6** Populate audit_proposals economic fields on PATCH
+- [x] **4.6** Populate audit_proposals economic fields on PATCH — shipped (proposalRowFromPayload stores economic_impact_id, includes_value_case, investment/payback ranges, estimated_value)
 
 ## Phase 5: Learning Loop
 

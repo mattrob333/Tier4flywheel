@@ -374,10 +374,16 @@ function proposalRowFromPayload(auth, audit, payload, id) {
     proposal_text: clean(payload.proposal_text, 60000) || null,
     proposal_status: clean(payload.proposal_status, 80) || 'draft',
     selected_recommendations: Array.isArray(payload.selected_recommendations) ? payload.selected_recommendations : [],
-    estimated_value: clean(payload.estimated_value, 120) || null,
+    estimated_value: clean(payload.estimated_value, 280) || null,
     pricing_notes: clean(payload.pricing_notes, 2000) || null,
     generated_from_prompt_version: clean(payload.generated_from_prompt_version, 80) || 'proposal_v1',
     generated_model: clean(payload.generated_model, 120) || process.env.OPENAI_AUDIT_REPORT_MODEL || process.env.OPENAI_AUDIT_MODEL || null,
+    economic_impact_id: clean(payload.economic_impact_id, 80) || null,
+    includes_value_case: Boolean(payload.includes_value_case),
+    proposal_investment_low: toNumber(payload.proposal_investment_low),
+    proposal_investment_high: toNumber(payload.proposal_investment_high),
+    estimated_payback_months_low: toNumber(payload.estimated_payback_months_low),
+    estimated_payback_months_high: toNumber(payload.estimated_payback_months_high),
     updated_at: new Date().toISOString(),
   };
 }

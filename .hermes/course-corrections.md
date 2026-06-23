@@ -11,16 +11,14 @@ The OUTER loop appends prioritized directives here when it detects drift, guardr
 
 ## Open Corrections
 
-### [LOW] Stale test count in build-state.md — OPEN (audit 2026-06-22T20:10Z)
-Problem: `.hermes/build-state.md` line 37 states "19 tests across 3 test files" but the real gate is 18 tests (node --test reports `# tests 18 # pass 18`). Line 74–77 of the same file correctly says 18. The "19" is a leftover from before the 16→18 test additions and makes the state file internally inconsistent.
-Required fix: In `.hermes/build-state.md`, change the "19 tests across 3 test files" note (line 37) to match the real count: "18 tests across 3 test files". Do not touch any other line. This is a doc-only sync — no code change, re-run `npm test` to confirm 18/18 stays green.
-Acceptance: `npm test` shows 18 pass; build-state.md contains no "19 tests" string; file is internally consistent.
-
 _(all prior corrections resolved as of 2026-06-22 — see Resolved below)_
 
 ---
 
 ## Resolved Corrections
+
+### [LOW] Stale test count in build-state.md — RESOLVED (pending commit)
+**Outcome:** Changed "19 tests across 3 test files" → "18 tests across 3 test files" in `.hermes/build-state.md` line 37. `npm test` confirms 18/18 pass. File is now internally consistent.
 
 ### [HIGH] Verify master builds before any work — RESOLVED (d0ae3cb)
 **Outcome:** On current master, `npm install` completes, `npm test` passes 16/16, and `npm run build` produces `dist/` (exit 0, built in ~3.2s). Gate satisfied.

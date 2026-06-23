@@ -153,7 +153,7 @@ const NEXT_STEPS = [
   'Strategy & Roadmap',
   'Focused AI Pilot',
   'GEO/SEO Package',
-  'Pedigree Demo',
+  'Agent Governance Demo',
   'Custom Build PRD',
   'Training/Enablement',
   'Other',
@@ -163,7 +163,7 @@ const PROPOSAL_TYPES = [
   'Strategy & Roadmap Proposal',
   'Focused AI Pilot Proposal',
   'GEO/SEO Optimization Package Proposal',
-  'Pedigree Demo / Agent Governance Proposal',
+  'Agent Governance Demo Proposal',
   'Custom Build Proposal',
   'Training & Enablement Proposal',
   'PRD / Technical Scoping Proposal',
@@ -1297,9 +1297,106 @@ function QuestionList({ items }) {
   );
 }
 
+// Card 3 capture: lets the advisor record the client's economic validation
+// outcome during the readout call and persist it via /api/audit-economic-validate.
+function EconomicValidationControls({ auditId, impactId, readoutId, getAuthHeaders, economic, onValidated }) {
+  const [status, setStatus] = useState('');
+  const [revisedCost, setRevisedCost] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [note, setNote] = useState('');
+
+  if (!auditId || !impactId) return null;
+
+  async function save() {
+    if (!status) {
+      setNote('Pick a validation outcome first.');
+      return;
+    }
+    setSaving(true);
+    setNote('');
+    try {
+      const payload = {
+        audit_id: auditId,
+        impact_id: impactId,
+        validation_status: status,
+        client_economic_feedback: feedback || undefined,
+      };
+      if (readoutId) payload.readout_id = readoutId;
+      if (status === 'revised' && revisedCost !== '') payload.revised_annual_cost = Number(revisedCost);
+      const result = await postJSON('/api/audit-economic-validate', payload, getAuthHeaders);
+      setNote(result.economics_revised ? 'Revised economics saved.' : 'Validation saved.');
+      if (onValidated) onValidated(result);
+    } catch (error) {
+      setNote(error.message || 'Could not save validation.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const currentStatus = economic?.status;
+
+  return (
+    <div style={{ marginTop: 12, borderTop: '1px solid var(--t4-line, #eee)', paddingTop: 12 }}>
+      {currentStatus && (
+        <p className="lab" style={{ marginBottom: 8 }}>
+          Current: <strong>{currentStatus}</strong>
+        </p>
+      )}
+      <div className="t4-row">
+        <div className="t4-field">
+          <label>Client validation outcome</label>
+          <select
+            className="t4-input"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            disabled={saving}
+          >
+            <option value="">Select…</option>
+            <option value="validated">Validated — client confirmed the number</option>
+            <option value="revised">Revised — number changed with the client</option>
+            <option value="rejected">Rejected — client disagreed, no number agreed</option>
+          </select>
+        </div>
+        {status === 'revised' && (
+          <div className="t4-field">
+            <label>Revised annual cost ($/yr)</label>
+            <input
+              className="t4-input"
+              type="number"
+              min="0"
+              value={revisedCost}
+              onChange={(e) => setRevisedCost(e.target.value)}
+              disabled={saving}
+              placeholder="e.g. 250000"
+            />
+          </div>
+        )}
+      </div>
+      <div className="t4-field">
+        <label>Client feedback / notes</label>
+        <textarea
+          className="t4-input"
+          rows={2}
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          disabled={saving}
+          placeholder="What did the client say about the economics?"
+        />
+      </div>
+      <div className="t4-btnrow">
+        <button className="t4-btn" type="button" onClick={save} disabled={saving || !status}>
+          {saving ? 'Saving…' : 'Save validation'}
+        </button>
+        {note && <span className="t4-sub" style={{ alignSelf: 'center' }}>{note}</span>}
+      </div>
+    </div>
+  );
+}
+
 // Compact, live-call readout assistant. Renders the structured guide JSON as
 // cards instead of a long Markdown blob.
-function ReadoutAssistant({ guide }) {
+function ReadoutAssistant({ guide, auditId, impactId, readoutId, getAuthHeaders, savedEconomic, onValidated }) {
   if (!guide) {
     return (
       <p className="t4-sub" style={{ marginTop: 0 }}>
@@ -1332,6 +1429,14 @@ function ReadoutAssistant({ guide }) {
         <p className="cost">{estimate ? `${estimate} / year` : 'Not yet quantified'}</p>
         {economic.validation_script && <p>{economic.validation_script}</p>}
         <QuestionList items={economic.questions} />
+        <EconomicValidationControls
+          auditId={auditId}
+          impactId={impactId}
+          readoutId={readoutId}
+          getAuthHeaders={getAuthHeaders}
+          economic={savedEconomic}
+          onValidated={onValidated}
+        />
       </div>
 
       <div className="t4-card">
@@ -1422,6 +1527,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
   const [proposalStatus, setProposalStatus] = useState('draft');
   const [proposalEditing, setProposalEditing] = useState(false);
   const [economic, setEconomic] = useState(null);
+  const [impactId, setImpactId] = useState('');
 
   const type = getAuditType(client.typeKey);
 
@@ -1464,6 +1570,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
             );
             if (!cancelled) {
               setEconomic(econ.economic || null);
+              setImpactId(econ.impact_id || '');
             }
           } catch {
             // economics are optional; ignore load failures
@@ -1500,6 +1607,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     setProposalText('');
     setProposalJson(null);
     setProposalStatus('draft');
+    setEconomic(null);
+    setImpactId('');
     setErr('');
     setSaveNote('');
     setReportProgress('');
@@ -1655,6 +1764,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       if (!nextAuditId) throw new Error('Save the audit before extracting economics.');
       const result = await postJSON('/api/audit-economic-extract', { audit_id: nextAuditId }, getAuthHeaders);
       setEconomic(result.economic || null);
+      setImpactId(result.impact_id || '');
     });
 
   const doReadoutGuide = () =>
@@ -2043,7 +2153,17 @@ Looking forward to it.`
                 <h3>Readout assistant</h3>
                 {readoutGuide ? (
                   <>
-                    <ReadoutAssistant guide={readoutGuide} />
+                    <ReadoutAssistant
+                      guide={readoutGuide}
+                      auditId={auditId}
+                      impactId={impactId}
+                      readoutId={readoutId}
+                      getAuthHeaders={getAuthHeaders}
+                      savedEconomic={economic}
+                      onValidated={(result) => {
+                        setEconomic((prev) => (prev ? { ...prev, status: result.validation_status } : prev));
+                      }}
+                    />
                     <div className="t4-btnrow">
                       {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy assistant notes" />}
                       {readoutGuideText && (

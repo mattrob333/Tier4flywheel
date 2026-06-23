@@ -194,8 +194,17 @@ Rules:
 - Clearly mark open questions.
 - Include scope, deliverables, timeline, success metrics, assumptions, risks, guardrails, and recommended next meeting or approval step.
 - Pricing may be "custom quote required" or a simple editable range when the context supports it.
-- Return only JSON matching the requested schema.
-- Use ASCII characters only.`;
+
+Value-case rules (fill the value_case block):
+- If validated economic impact numbers are provided in the input, prefer them and mark confidence accordingly.
+- If only discovery-stage estimates exist, label them clearly as directional estimates (not validated). Use the directional_note field to say so in plain language.
+- Never use ROI percentage language when confidence is Low. For Low confidence, present ranges and the underlying math, not a single payback figure.
+- Show simple math in the basis field: how the annual cost, savings range, and payback range were derived (e.g. "120 hrs/wk x $85/hr x 48 wks = $489,600/yr").
+- Investment range should be the engagement price range (editable). Payback range = investment / annual savings, shown only when confidence is Medium or High.
+- If there is insufficient economic data, set annual_cost_estimate and savings fields to null, confidence to "Low", and explain what is missing in the basis field.
+- Headline is one sentence the advisor can reuse in a follow-up email.
+
+Return only JSON matching the requested schema. Use ASCII characters only.`;
 
 export const researchSchema = {
   type: 'object',
@@ -582,6 +591,7 @@ export const proposalSchema = {
     'open_questions',
     'recommended_next_meeting',
     'pricing_notes',
+    'value_case',
   ],
   properties: {
     proposal_title: { type: 'string', maxLength: 180 },
@@ -591,7 +601,7 @@ export const proposalSchema = {
         'Strategy & Roadmap Proposal',
         'Focused AI Pilot Proposal',
         'GEO/SEO Optimization Package Proposal',
-        'Pedigree Demo / Agent Governance Proposal',
+        'Agent Governance Demo Proposal',
         'Custom Build Proposal',
         'Training & Enablement Proposal',
         'PRD / Technical Scoping Proposal',
@@ -668,6 +678,36 @@ export const proposalSchema = {
     },
     recommended_next_meeting: { type: 'string', maxLength: 500 },
     pricing_notes: { type: 'string', maxLength: 700 },
+    value_case: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'headline',
+        'confidence',
+        'annual_cost_estimate',
+        'annual_savings_low',
+        'annual_savings_high',
+        'investment_low',
+        'investment_high',
+        'payback_months_low',
+        'payback_months_high',
+        'basis',
+        'directional_note',
+      ],
+      properties: {
+        headline: { type: 'string', maxLength: 280 },
+        confidence: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+        annual_cost_estimate: { type: ['number', 'null'] },
+        annual_savings_low: { type: ['number', 'null'] },
+        annual_savings_high: { type: ['number', 'null'] },
+        investment_low: { type: ['number', 'null'] },
+        investment_high: { type: ['number', 'null'] },
+        payback_months_low: { type: ['number', 'null'] },
+        payback_months_high: { type: ['number', 'null'] },
+        basis: { type: 'string', maxLength: 800 },
+        directional_note: { type: 'string', maxLength: 400 },
+      },
+    },
   },
 };
 

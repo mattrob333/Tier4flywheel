@@ -56,6 +56,30 @@ export function buildReadoutGuideText(guide) {
   ].filter((part) => part !== '').join('\n').trim();
 }
 
+function buildValueCaseText(vc) {
+  if (!vc) return '';
+  const cost = money(vc.annual_cost_estimate);
+  const savingsLow = money(vc.annual_savings_low);
+  const savingsHigh = money(vc.annual_savings_high);
+  const invLow = money(vc.investment_low);
+  const invHigh = money(vc.investment_high);
+  const paybackLow = vc.payback_months_low != null ? `${vc.payback_months_low} mo` : '';
+  const paybackHigh = vc.payback_months_high != null ? `${vc.payback_months_high} mo` : '';
+
+  return [
+    '## Value Case',
+    vc.headline || '',
+    '',
+    cost ? `Estimated annual problem cost: ${cost}` : '',
+    (savingsLow || savingsHigh) ? `Estimated annual savings range: ${savingsLow || '—'} – ${savingsHigh || '—'}` : '',
+    (invLow || invHigh) ? `Investment range: ${invLow || '—'} – ${invHigh || '—'}` : '',
+    (paybackLow || paybackHigh) ? `Estimated payback: ${paybackLow || '—'} – ${paybackHigh || '—'}` : '',
+    vc.confidence ? `Confidence: ${vc.confidence}` : '',
+    vc.directional_note ? `Note: ${vc.directional_note}` : '',
+    vc.basis ? `Basis: ${vc.basis}` : '',
+  ].filter((part) => part !== '').join('\n');
+}
+
 export function buildProposalText(proposal) {
   if (!proposal) return '';
 
@@ -70,6 +94,7 @@ export function buildProposalText(proposal) {
     '## What We Heard',
     list(proposal.what_we_heard),
     '',
+    buildValueCaseText(proposal.value_case),
     '## Confirmed Priorities',
     list(proposal.confirmed_priorities),
     '',

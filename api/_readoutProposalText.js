@@ -12,48 +12,29 @@ function money(value) {
 export function buildReadoutGuideText(guide) {
   if (!guide) return '';
 
-  const economic = guide.economic_validation || {};
-  const estimate = money(economic.estimated_annual_cost);
+  const gaps = Array.isArray(guide.gaps) ? guide.gaps.filter(Boolean) : [];
 
   return [
-    '# Readout Call Assistant',
+    '# Second Call - Things Worth Asking',
     '',
-    guide.conversation_goal ? `Goal: ${guide.conversation_goal}` : '',
+    guide.call_focus ? guide.call_focus : '',
     '',
-    '## Open the Call',
-    guide.opening_script || '',
+    'Share the report on screen and talk through it together. These are the few gaps the first',
+    'call left open - work them into the conversation where they fit naturally.',
     '',
-    '## Confirm the Report',
-    list(guide.confirm_report_questions),
-    '',
-    '## Validate the Economics',
-    estimate ? `Estimated annual cost: ${estimate}` : 'Estimated annual cost: not yet quantified',
-    economic.validation_script || '',
-    list(economic.questions),
-    '',
-    '## Prioritize the Next Step',
-    list(guide.priority_questions),
-    guide.next_step_options && guide.next_step_options.length ? 'Next step options:' : '',
-    list(guide.next_step_options),
-    '',
-    '## Capture Buying Signals',
-    list(guide.buying_signal_checklist),
-    '',
-    '## Objections',
-    list(guide.objection_questions),
-    '',
-    '## Close',
-    guide.closing_script || '',
-    '',
-    ...(guide.optional_deep_dive_questions && guide.optional_deep_dive_questions.length
-      ? [
-          '## Optional Deep Dive',
-          ...guide.optional_deep_dive_questions.map((item) =>
-            [`### ${item.section || 'Section'}`, list(item.questions)].filter(Boolean).join('\n\n'),
-          ),
-        ]
-      : []),
-  ].filter((part) => part !== '').join('\n').trim();
+    ...gaps.map((gap, index) =>
+      [
+        `## ${index + 1}. ${gap.topic || 'Gap to explore'}`,
+        gap.why_it_matters ? `Why it matters: ${gap.why_it_matters}` : '',
+        gap.suggested_question ? `Ask: ${gap.suggested_question}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    ),
+  ]
+    .filter((part) => part !== '')
+    .join('\n')
+    .trim();
 }
 
 function buildValueCaseText(vc) {
@@ -137,4 +118,123 @@ export function buildProposalText(proposal) {
     '## Recommended Next Meeting or Approval Step',
     proposal.recommended_next_meeting || '',
   ].filter((part) => part !== '').join('\n').trim();
+}
+
+export function buildBuildPackageText(pkg, clientName = '') {
+  if (!pkg) return '';
+
+  const product = pkg.product_spec || {};
+  const tech = pkg.tech_spec || {};
+  const plan = pkg.build_plan || {};
+  const title = clientName ? `${clientName} - Developer Build Package` : 'Developer Build Package';
+
+  const features = Array.isArray(product.core_features)
+    ? product.core_features
+        .filter(Boolean)
+        .map((f) => `- [${f.priority || 'MVP'}] ${f.name}: ${f.description}`)
+        .join('\n')
+    : '';
+
+  const components = Array.isArray(tech.components)
+    ? tech.components
+        .filter(Boolean)
+        .map((c) => `- ${c.name}: ${c.responsibility}`)
+        .join('\n')
+    : '';
+
+  const phases = Array.isArray(plan.phases)
+    ? plan.phases
+        .filter(Boolean)
+        .map((p) =>
+          [
+            `### ${p.name}${p.duration_estimate ? ` (${p.duration_estimate})` : ''}`,
+            list(p.deliverables),
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        )
+        .join('\n\n')
+    : '';
+
+  return [
+    `# ${title}`,
+    '',
+    'Prepared by Tier 4 Intelligence for a third-party development scope and quote.',
+    'Estimates below are preliminary planning ranges and are subject to the development team\'s own estimate.',
+    '',
+    '## Overview',
+    pkg.overview || '',
+    '',
+    '# 1. Product Spec',
+    '',
+    '## Problem',
+    product.problem || '',
+    '',
+    '## Goals',
+    list(product.goals),
+    '',
+    '## Target Users',
+    list(product.target_users),
+    '',
+    '## Core Features',
+    features,
+    '',
+    '## User Flows',
+    list(product.user_flows),
+    '',
+    '## Out of Scope',
+    list(product.out_of_scope),
+    '',
+    '## Success Metrics',
+    list(product.success_metrics),
+    '',
+    '# 2. Technical Spec',
+    '',
+    '## Recommended Architecture',
+    tech.recommended_architecture || '',
+    '',
+    '## Components',
+    components,
+    '',
+    '## Integrations',
+    list(tech.integrations),
+    '',
+    '## Data Model',
+    list(tech.data_model),
+    '',
+    '## AI Components',
+    list(tech.ai_components),
+    '',
+    '## Security and Compliance',
+    list(tech.security_and_compliance),
+    '',
+    '## Infrastructure',
+    list(tech.infrastructure),
+    '',
+    '# 3. Build Plan',
+    '',
+    '## Phases',
+    phases,
+    '',
+    '## Milestones',
+    list(plan.milestones),
+    '',
+    '## Effort Estimate',
+    plan.effort_estimate || '',
+    '',
+    '## Team Roles',
+    list(plan.team_roles),
+    '',
+    '## Assumptions',
+    list(plan.assumptions),
+    '',
+    '## Risks',
+    list(plan.risks),
+    '',
+    '# Open Questions',
+    list(pkg.open_questions),
+  ]
+    .filter((part) => part !== '')
+    .join('\n')
+    .trim();
 }

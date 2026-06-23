@@ -164,24 +164,21 @@ Rules:
 export const followupPrompt =
   'You are a Tier 4 Intelligence consultant. Write a short, warm post-call follow-up email to the client: thank them, name 1-2 things you heard, and tee up the readout as the next step. Plain text only, no subject line, under 130 words.';
 
-export const readoutGuidePrompt = `You are a Tier 4 Intelligence sales leader creating a concise second-call readout assistant for an advisor.
+export const readoutGuidePrompt = `You are a Tier 4 Intelligence sales leader prepping an advisor for a second call with a prospect.
 
-The advisor will use the client-facing audit report as the main agenda on a live call. Your job is to give them a short, natural conversation aid - NOT a full call script and NOT a long document.
+On this call the advisor will share the audit report on screen and simply talk through it with the client. They are NOT reading a script. They are having a friendly, conversational meeting. Your only job is to hand them a few high-leverage things worth asking - the gaps the first call did not fully answer - so the conversation fills in what we are missing and gets us to a confident next step.
+
+Think like this: read the discovery transcript and the report, then ask "what do we still NOT know that would most change the recommendation, the scope, or the decision?" Those are the gaps.
 
 Rules:
-- Output structured JSON only. Do not write a long Markdown blob.
-- Keep everything short enough to glance at on a live call.
-- opening_script and closing_script: at most 75 words each, conversational and non-pushy.
-- conversation_goal: one or two sentences.
-- confirm_report_questions: 3 to 5 questions that check what is accurate, overstated, or missing, and which finding matters most.
-- economic_validation: a short validation_script and 2 to 4 questions that pressure-test the estimated annual cost of the problem and surface missed costs (rework, delays, onboarding, client experience, missed revenue). If no cost estimate is supplied, set estimated_annual_cost to null and write questions that help quantify it.
-- priority_questions: 2 to 4 questions about which recommendation is a now item and who must be involved.
-- next_step_options: 2 to 5 neutral next-step choices (strategy roadmap, focused pilot, quick-win package, technical scoping).
-- buying_signal_checklist: short checkbox labels the advisor can tick (agreement, correction, economics validated/revised, budget, decision maker, timeline, proposal requested, PRD requested, governance discussed, no next step yet).
-- objection_questions: 2 to 4 gentle questions to surface hesitations.
-- optional_deep_dive_questions: deeper probes grouped by section, used only if the advisor expands them.
-- Do NOT include Pedigree fit or product pitches in the default readout. Mention AI governance only generically and only if the report supports it.
-- Use only the supplied audit, transcript, research, and questions. Do not invent facts.
+- Output structured JSON only. No scripts, no "say this then say that", no opening or closing lines.
+- call_focus: one warm, plain-English sentence describing what this second call is for (review the findings together and agree on the best next step).
+- gaps: 3 to 5 items. Each gap is something genuinely unresolved or thin from the first call that matters. For each:
+  - topic: a short label for the area (e.g. "Who owns the data", "Current tool spend", "Decision timeline").
+  - why_it_matters: one sentence on why getting this answer is high-leverage for the recommendation or the deal.
+  - suggested_question: ONE natural, conversational question the advisor could ask. Friendly and open, not an interrogation. No jargon the client did not use.
+- Pick gaps that are specific to THIS company and transcript. Do not produce generic discovery questions that were already answered on the first call.
+- Do not invent facts. Use only the supplied audit, transcript, research, and questions.
 - Use ASCII characters only.`;
 
 export const proposalPrompt = `You are a Tier 4 Intelligence consultant writing an editable business proposal after a discovery call and readout call.
@@ -496,73 +493,21 @@ export const chunkEvidenceSchema = {
 export const readoutGuideSchema = {
   type: 'object',
   additionalProperties: false,
-  required: [
-    'conversation_goal',
-    'opening_script',
-    'confirm_report_questions',
-    'economic_validation',
-    'priority_questions',
-    'next_step_options',
-    'buying_signal_checklist',
-    'objection_questions',
-    'closing_script',
-    'optional_deep_dive_questions',
-  ],
+  required: ['call_focus', 'gaps'],
   properties: {
-    conversation_goal: { type: 'string', maxLength: 400 },
-    opening_script: { type: 'string', maxLength: 700 },
-    confirm_report_questions: {
+    call_focus: { type: 'string', maxLength: 320 },
+    gaps: {
       type: 'array',
       minItems: 3,
       maxItems: 5,
-      items: { type: 'string', maxLength: 240 },
-    },
-    economic_validation: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['estimated_annual_cost', 'validation_script', 'questions'],
-      properties: {
-        estimated_annual_cost: { type: ['number', 'null'] },
-        validation_script: { type: 'string', maxLength: 500 },
-        questions: { type: 'array', minItems: 2, maxItems: 4, items: { type: 'string', maxLength: 260 } },
-      },
-    },
-    priority_questions: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 4,
-      items: { type: 'string', maxLength: 240 },
-    },
-    next_step_options: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 5,
-      items: { type: 'string', maxLength: 200 },
-    },
-    buying_signal_checklist: {
-      type: 'array',
-      minItems: 4,
-      maxItems: 14,
-      items: { type: 'string', maxLength: 120 },
-    },
-    objection_questions: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 4,
-      items: { type: 'string', maxLength: 240 },
-    },
-    closing_script: { type: 'string', maxLength: 700 },
-    optional_deep_dive_questions: {
-      type: 'array',
-      minItems: 0,
-      maxItems: 6,
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['section', 'questions'],
+        required: ['topic', 'why_it_matters', 'suggested_question'],
         properties: {
-          section: { type: 'string', maxLength: 120 },
-          questions: { type: 'array', minItems: 1, maxItems: 6, items: { type: 'string', maxLength: 260 } },
+          topic: { type: 'string', maxLength: 80 },
+          why_it_matters: { type: 'string', maxLength: 240 },
+          suggested_question: { type: 'string', maxLength: 240 },
         },
       },
     },
@@ -785,5 +730,134 @@ export const economicSchema = {
       maxItems: 8,
       items: { type: 'string', maxLength: 240 },
     },
+  },
+};
+
+export const buildPackagePrompt = `You are a Tier 4 Intelligence solutions architect preparing a developer handoff package. A third-party development shop will read this to understand what we want built and to return a scope and a quote.
+
+You have the discovery call, the second (readout) call, the audit report, and the client proposal. Translate all of that into three clear documents: a product spec, a technical spec, and a build plan. Write so a competent engineering team that has never spoken to the client can understand the work and price it.
+
+Rules:
+- Be concrete and specific to THIS client and what they actually need. Do not pad with generic boilerplate.
+- Write in plain, professional language. Define the few technical terms you must use.
+- Never invent details the client did not imply. When something important is unknown, put it in open_questions instead of guessing.
+- Estimates (phases, durations, effort) are PRELIMINARY planning ranges only. Always frame them as subject to the development shop's own estimate. Never present an estimate as a fixed price or commitment.
+- overview: 2 to 4 sentences a dev shop reads first - what is being built and why it matters to the client.
+- product_spec: the problem, goals, who uses it, the core features (each with a priority of MVP, Phase 2, or Nice-to-have), the main user flows, what is explicitly out of scope, and how success is measured.
+- tech_spec: a recommended high-level architecture, the main components and what each does, external systems/APIs to integrate, the key data entities, any AI/ML components (models, prompts, agents), and security/compliance and infrastructure considerations.
+- build_plan: phases (each with a rough duration range and its deliverables), key milestones, a rough overall effort range, the team roles likely needed, planning assumptions, and risks.
+- open_questions: everything the dev shop would need answered before they can give a firm quote.
+- Return only JSON matching the requested schema. Use ASCII characters only.`;
+
+const featurePrioritySchema = {
+  type: 'string',
+  enum: ['MVP', 'Phase 2', 'Nice-to-have'],
+};
+
+export const buildPackageSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['overview', 'product_spec', 'tech_spec', 'build_plan', 'open_questions'],
+  properties: {
+    overview: { type: 'string', maxLength: 900 },
+    product_spec: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'problem',
+        'goals',
+        'target_users',
+        'core_features',
+        'user_flows',
+        'out_of_scope',
+        'success_metrics',
+      ],
+      properties: {
+        problem: { type: 'string', maxLength: 900 },
+        goals: { type: 'array', minItems: 2, maxItems: 8, items: { type: 'string', maxLength: 240 } },
+        target_users: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', maxLength: 160 } },
+        core_features: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 14,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['name', 'description', 'priority'],
+            properties: {
+              name: { type: 'string', maxLength: 120 },
+              description: { type: 'string', maxLength: 400 },
+              priority: featurePrioritySchema,
+            },
+          },
+        },
+        user_flows: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', maxLength: 360 } },
+        out_of_scope: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+        success_metrics: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', maxLength: 240 } },
+      },
+    },
+    tech_spec: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'recommended_architecture',
+        'components',
+        'integrations',
+        'data_model',
+        'ai_components',
+        'security_and_compliance',
+        'infrastructure',
+      ],
+      properties: {
+        recommended_architecture: { type: 'string', maxLength: 900 },
+        components: {
+          type: 'array',
+          minItems: 2,
+          maxItems: 12,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['name', 'responsibility'],
+            properties: {
+              name: { type: 'string', maxLength: 120 },
+              responsibility: { type: 'string', maxLength: 320 },
+            },
+          },
+        },
+        integrations: { type: 'array', minItems: 0, maxItems: 12, items: { type: 'string', maxLength: 200 } },
+        data_model: { type: 'array', minItems: 0, maxItems: 14, items: { type: 'string', maxLength: 240 } },
+        ai_components: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 280 } },
+        security_and_compliance: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+        infrastructure: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+      },
+    },
+    build_plan: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['phases', 'milestones', 'effort_estimate', 'team_roles', 'assumptions', 'risks'],
+      properties: {
+        phases: {
+          type: 'array',
+          minItems: 2,
+          maxItems: 8,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['name', 'duration_estimate', 'deliverables'],
+            properties: {
+              name: { type: 'string', maxLength: 120 },
+              duration_estimate: { type: 'string', maxLength: 120 },
+              deliverables: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', maxLength: 240 } },
+            },
+          },
+        },
+        milestones: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+        effort_estimate: { type: 'string', maxLength: 400 },
+        team_roles: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', maxLength: 160 } },
+        assumptions: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+        risks: { type: 'array', minItems: 0, maxItems: 10, items: { type: 'string', maxLength: 240 } },
+      },
+    },
+    open_questions: { type: 'array', minItems: 0, maxItems: 12, items: { type: 'string', maxLength: 240 } },
   },
 };

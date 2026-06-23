@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ClipboardList, Search } from 'lucide-react';
 import AdminAuditHistory from '../components/AdminAuditHistory';
@@ -36,6 +36,29 @@ const STYLE = `
 const getEmptyAuthHeaders = async () => ({});
 
 function AdminDashboard({ devMode = false, getAuthHeaders }) {
+  // Pipeline Metrics is an internal sales-ops view. Salespeople never see it;
+  // only superusers (AUDIT_SUPERUSER_EMAILS) and local dev bypass do.
+  const [isSuperuser, setIsSuperuser] = useState(devMode);
+
+  useEffect(() => {
+    if (devMode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const headers = (await getAuthHeaders?.()) || {};
+        const res = await fetch('/api/advisor-audits?profile=1', { headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setIsSuperuser(Boolean(data.isSuperuser));
+      } catch {
+        // Default to hidden on any failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [devMode, getAuthHeaders]);
+
   return (
     <div className="admin-root">
       <style>{STYLE}</style>
@@ -83,7 +106,7 @@ function AdminDashboard({ devMode = false, getAuthHeaders }) {
           </a>
         </div>
 
-        <SystemMetricsPanel getAuthHeaders={getAuthHeaders} />
+        {isSuperuser && <SystemMetricsPanel getAuthHeaders={getAuthHeaders} />}
 
         <AdminAuditHistory getAuthHeaders={getAuthHeaders} />
 

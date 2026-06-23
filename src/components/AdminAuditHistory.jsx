@@ -981,6 +981,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                             </div>
                             {copiedId.startsWith(audit.id) && <div className="audit-history-copied">Copied</div>}
 
+                            {isSuperuser && (
                             <div className="audit-history-econ" onClick={(event) => event.stopPropagation()}>
                               <div className="audit-history-econ-head">
                                 <div className="audit-history-econ-title">
@@ -1057,6 +1058,7 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                 </p>
                               )}
                             </div>
+                            )}
                           </div>
 
                           <div className="audit-history-stage-panel" onClick={(event) => event.stopPropagation()}>

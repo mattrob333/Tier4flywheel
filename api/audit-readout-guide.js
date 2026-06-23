@@ -11,11 +11,9 @@ import {
 } from './_advisorAuditServer.js';
 import {
   getAdvisorAudit,
-  getEconomicImpact,
   saveAuditReadout,
 } from './_advisorAuditStore.js';
 import { buildReadoutGuideText } from './_readoutProposalText.js';
-import { toNumber } from './_economicImpact.js';
 
 export default async function handler(req, res) {
   if (!requirePost(req, res)) return;
@@ -30,9 +28,6 @@ export default async function handler(req, res) {
     if (!audit.report) return res.status(400).json({ error: 'Generate an audit report before the readout guide.' });
     if (audit.report?.geo_audit) return res.status(400).json({ error: 'GEO audits do not use readout guides.' });
 
-    const economic = await getEconomicImpact(auth, audit.id).catch(() => null);
-    const estimatedCost = toNumber(economic?.annual_cost_estimate);
-
     const input = [
       `Client: ${audit.client_name}`,
       `Audit type: ${audit.audit_type_name || audit.audit_type_key}`,
@@ -40,18 +35,14 @@ export default async function handler(req, res) {
       'Company research:',
       audit.research || '',
       '',
-      'Discovery questions:',
+      'Discovery questions asked on the first call:',
       JSON.stringify(audit.questions || [], null, 2),
       '',
-      'Discovery transcript:',
+      'Discovery transcript (first call):',
       audit.transcript || '',
       '',
       'Audit report JSON:',
       JSON.stringify(audit.report, null, 2),
-      '',
-      estimatedCost !== null
-        ? `Estimated annual cost of the problem (use this exact number in economic_validation.estimated_annual_cost): ${estimatedCost}`
-        : 'No economic estimate is available yet; set economic_validation.estimated_annual_cost to null and ask questions that help quantify it.',
     ].join('\n');
 
     const guide = await createStructuredResponse({
@@ -59,13 +50,9 @@ export default async function handler(req, res) {
       input,
       schema: readoutGuideSchema,
       schemaName: 'advisor_readout_guide',
-      maxOutputTokens: 5000,
+      maxOutputTokens: 3000,
       reportModel: true,
     });
-    // Trust the stored estimate over the model for the headline number.
-    if (estimatedCost !== null && guide.economic_validation) {
-      guide.economic_validation.estimated_annual_cost = estimatedCost;
-    }
     const guideText = buildReadoutGuideText(guide);
     const readout = await saveAuditReadout(auth, audit.id, {
       readout_id: body.readout_id,

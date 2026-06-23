@@ -27,7 +27,12 @@ export default async function handler(req, res) {
     const auth = await requireAdvisorAuth(req);
 
     if (req.method === 'GET') {
-      const id = getUrl(req).searchParams.get('id');
+      const url = getUrl(req);
+      if (url.searchParams.get('profile')) {
+        return res.status(200).json({ isSuperuser: auth.isSuperuser, email: auth.email || '' });
+      }
+
+      const id = url.searchParams.get('id');
       if (id) {
         const audit = await getAdvisorAudit(auth, id);
         return res.status(200).json({

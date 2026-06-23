@@ -143,9 +143,16 @@ const STYLE = `
 .t4-card li{margin:4px 0}
 .t4-card .cost{font-size:18px;font-weight:800;color:var(--t4-amber)}
 .t4-card details>summary{cursor:pointer;color:var(--t4-mut);font-size:12px;margin-top:6px}
+.t4-readout-hint{font-size:12.5px;color:var(--t4-mut);margin:0 0 16px}
+.t4-gap{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--t4-line);border-left:3px solid var(--t4-steel);border-radius:0 var(--t4-r) var(--t4-r) 0;background:var(--t4-panel2);padding:13px 15px;margin-bottom:10px}
+.t4-gap-num{flex:0 0 24px;width:24px;height:24px;border-radius:50%;background:rgba(94,192,138,.14);color:var(--t4-steel);font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.t4-gap-body{flex:1;min-width:0}
+.t4-gap-topic{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t4-amber-dim);font-weight:700;margin-bottom:4px}
+.t4-gap-q{font-size:14.5px;color:#fff;font-weight:600;margin:0 0 5px;line-height:1.45}
+.t4-gap-why{font-size:12.5px;color:var(--t4-mut);margin:0;line-height:1.5}
 `;
 
-const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Readout', 'Proposal'];
+const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Readout', 'Proposal', 'Dev Package'];
 const AGREEMENT_LEVELS = ['Unknown', 'Strongly agree', 'Mostly agree', 'Mixed', 'Mostly disagree'];
 const INTEREST_LEVELS = ['Unknown', 'High', 'Medium', 'Low', 'None'];
 const NEXT_STEPS = [
@@ -996,7 +1003,7 @@ function AdvisorIntelligence({ advisor }) {
   );
 }
 
-function Report({ rep, client, type, economic = null }) {
+function Report({ rep, client, type, economic = null, advanced = false }) {
   const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
   const norm = useMemo(() => normalizeReport(rep), [rep]);
 
@@ -1004,7 +1011,8 @@ function Report({ rep, client, type, economic = null }) {
 
   const r = norm.client || {};
   const nextSteps = cleanList(r.next_step_options);
-  const economicToShow = economic || norm.economic;
+  // Economic opportunity + advisor-intelligence are internal-only surfaces.
+  const economicToShow = advanced ? (economic || norm.economic) : null;
 
   return (
     <div>
@@ -1199,7 +1207,7 @@ function Report({ rep, client, type, economic = null }) {
         <CopyBtn text={markdown} label="Copy client report as Markdown" />
       </div>
 
-      <AdvisorIntelligence advisor={norm.advisor} />
+      {advanced && <AdvisorIntelligence advisor={norm.advisor} />}
     </div>
   );
 }
@@ -1438,106 +1446,209 @@ function EconomicValidationControls({ auditId, impactId, readoutId, getAuthHeade
 
 // Compact, live-call readout assistant. Renders the structured guide JSON as
 // cards instead of a long Markdown blob.
-function ReadoutAssistant({ guide, auditId, impactId, readoutId, getAuthHeaders, savedEconomic, onValidated }) {
-  if (!guide) {
-    return (
-      <p className="t4-sub" style={{ marginTop: 0 }}>
-        Generate the readout assistant to get a short, natural agenda for the second call.
-      </p>
-    );
-  }
+function priorityTagClass(priority) {
+  if (priority === 'MVP') return 'tag-High';
+  if (priority === 'Phase 2') return 'tag-Med';
+  return 'tag-Low';
+}
 
-  const economic = guide.economic_validation || {};
-  const estimate = money(economic.estimated_annual_cost);
-  const deepDives = Array.isArray(guide.optional_deep_dive_questions) ? guide.optional_deep_dive_questions : [];
+function SimpleList({ label, items }) {
+  const list = cleanList(items);
+  if (!list.length) return null;
+  return (
+    <>
+      {label && <p className="lab">{label}</p>}
+      <ul style={{ fontSize: 13, paddingLeft: 18, margin: '6px 0 14px' }}>
+        {list.map((item, k) => (
+          <li key={k} style={{ margin: '4px 0' }}>{item}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+// Developer build package: product spec + technical spec + build plan, rendered
+// for a third-party developer to scope and quote. Not gated by advanced - this
+// is a core client deliverable.
+function BuildPackage({ pkg }) {
+  if (!pkg) return null;
+  const product = pkg.product_spec || {};
+  const tech = pkg.tech_spec || {};
+  const plan = pkg.build_plan || {};
+  const features = Array.isArray(product.core_features) ? product.core_features.filter(Boolean) : [];
+  const components = Array.isArray(tech.components) ? tech.components.filter(Boolean) : [];
+  const phases = Array.isArray(plan.phases) ? plan.phases.filter(Boolean) : [];
 
   return (
     <div>
-      <div className="t4-card">
-        <h4>Open the Call</h4>
-        {guide.conversation_goal && (
-          <p style={{ color: 'var(--t4-mut)' }}>{guide.conversation_goal}</p>
+      {pkg.overview && (
+        <div className="t4-sec">
+          <h3>Overview</h3>
+          <p style={{ fontSize: 14 }}>{pkg.overview}</p>
+        </div>
+      )}
+
+      <div className="t4-sec">
+        <h3>Product Spec</h3>
+        {product.problem && (
+          <div className="t4-finding">
+            <h4>Problem</h4>
+            <p>{product.problem}</p>
+          </div>
         )}
-        <p>{guide.opening_script}</p>
-      </div>
-
-      <div className="t4-card">
-        <h4>Confirm the Report</h4>
-        <QuestionList items={guide.confirm_report_questions} />
-      </div>
-
-      <div className="t4-card">
-        <h4>Validate the Economics</h4>
-        <p className="cost">{estimate ? `${estimate} / year` : 'Not yet quantified'}</p>
-        {economic.validation_script && <p>{economic.validation_script}</p>}
-        <QuestionList items={economic.questions} />
-        <EconomicValidationControls
-          auditId={auditId}
-          impactId={impactId}
-          readoutId={readoutId}
-          getAuthHeaders={getAuthHeaders}
-          economic={savedEconomic}
-          onValidated={onValidated}
-        />
-      </div>
-
-      <div className="t4-card">
-        <h4>Prioritize the Next Step</h4>
-        <QuestionList items={guide.priority_questions} />
-        {cleanList(guide.next_step_options).length > 0 && (
+        <SimpleList label="Goals" items={product.goals} />
+        <SimpleList label="Target users" items={product.target_users} />
+        {features.length > 0 && (
           <>
-            <p className="lab" style={{ marginBottom: 0 }}>Next step options</p>
-            <ul>
-              {cleanList(guide.next_step_options).map((s, k) => (
-                <li key={k}>{s}</li>
+            <p className="lab">Core features</p>
+            <table className="t4-tbl">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                {features.map((f, k) => (
+                  <tr key={k}>
+                    <td>
+                      <div className="t4-rec-title">{f.name}</div>
+                      <div>{f.description}</div>
+                    </td>
+                    <td><span className={`t4-tag ${priorityTagClass(f.priority)}`}>{f.priority}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        <div style={{ marginTop: 14 }}>
+          <SimpleList label="User flows" items={product.user_flows} />
+          <SimpleList label="Out of scope" items={product.out_of_scope} />
+          <SimpleList label="Success metrics" items={product.success_metrics} />
+        </div>
+      </div>
+
+      <div className="t4-sec">
+        <h3>Technical Spec</h3>
+        {tech.recommended_architecture && (
+          <div className="t4-finding">
+            <h4>Recommended architecture</h4>
+            <p>{tech.recommended_architecture}</p>
+          </div>
+        )}
+        {components.length > 0 && (
+          <>
+            <p className="lab">Components</p>
+            <ul style={{ fontSize: 13, paddingLeft: 18, margin: '6px 0 14px' }}>
+              {components.map((c, k) => (
+                <li key={k} style={{ margin: '4px 0' }}>
+                  <strong style={{ color: '#fff' }}>{c.name}</strong> - {c.responsibility}
+                </li>
               ))}
             </ul>
           </>
         )}
+        <SimpleList label="Integrations" items={tech.integrations} />
+        <SimpleList label="Data model" items={tech.data_model} />
+        <SimpleList label="AI components" items={tech.ai_components} />
+        <SimpleList label="Security and compliance" items={tech.security_and_compliance} />
+        <SimpleList label="Infrastructure" items={tech.infrastructure} />
       </div>
 
-      <div className="t4-card">
-        <h4>Capture Buying Signals</h4>
-        <div className="t4-checkgrid">
-          {cleanList(guide.buying_signal_checklist).map((label, k) => (
-            <label className="t4-check" key={k}>
-              <input type="checkbox" />
-              {label}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="t4-card">
-        <h4>Objections</h4>
-        <QuestionList items={guide.objection_questions} />
-      </div>
-
-      <div className="t4-card">
-        <h4>Close</h4>
-        <p>{guide.closing_script}</p>
-      </div>
-
-      {deepDives.length > 0 && (
-        <div className="t4-card">
-          <details>
-            <summary>Optional deep-dive questions</summary>
-            <div style={{ marginTop: 8 }}>
-              {deepDives.map((item, k) => (
-                <div key={k} style={{ marginBottom: 8 }}>
-                  <p className="lab" style={{ marginBottom: 2 }}>{item.section}</p>
-                  <QuestionList items={item.questions} />
-                </div>
-              ))}
+      <div className="t4-sec">
+        <h3>Build Plan</h3>
+        {phases.map((p, k) => (
+          <div className="t4-phase" key={k}>
+            <div className="pt">
+              {p.name}
+              {p.duration_estimate ? ` - ${p.duration_estimate}` : ''}
             </div>
-          </details>
+            <ul>
+              {cleanList(p.deliverables).map((d, j) => (
+                <li key={j}>{d}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {plan.effort_estimate && (
+          <p style={{ fontSize: 13 }}>
+            <span className="lab">Effort estimate | </span>
+            {plan.effort_estimate}
+          </p>
+        )}
+        <SimpleList label="Milestones" items={plan.milestones} />
+        <SimpleList label="Team roles" items={plan.team_roles} />
+        <SimpleList label="Assumptions" items={plan.assumptions} />
+        <SimpleList label="Risks" items={plan.risks} />
+      </div>
+
+      {cleanList(pkg.open_questions).length > 0 && (
+        <div className="t4-sec">
+          <h3>Open Questions</h3>
+          <SimpleList items={pkg.open_questions} />
         </div>
       )}
+
+      <p className="t4-save-note">
+        Phase and effort estimates are preliminary planning ranges, subject to the developer's own estimate.
+      </p>
     </div>
   );
 }
 
-function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
+// Normalizes both the current gap-based readout shape and any older saved
+// guides (opening_script/confirm_report_questions/...) into a simple list of
+// gaps so the second-call view stays conversational, never a script.
+function readoutGaps(guide) {
+  if (!guide) return [];
+  if (Array.isArray(guide.gaps) && guide.gaps.length) {
+    return guide.gaps.filter(Boolean);
+  }
+  // Legacy fallback: fold old question lists into plain topics.
+  const legacy = [
+    ...cleanList(guide.confirm_report_questions),
+    ...cleanList(guide.priority_questions),
+  ];
+  return legacy.map((q) => ({ topic: '', why_it_matters: '', suggested_question: q }));
+}
+
+function ReadoutAssistant({ guide }) {
+  const gaps = readoutGaps(guide);
+
+  if (!guide || !gaps.length) {
+    return (
+      <p className="t4-sub" style={{ marginTop: 0 }}>
+        Generate a short list of things worth asking on the second call - the gaps the first call left open.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {guide.call_focus && (
+        <p className="t4-sub" style={{ marginTop: 0 }}>
+          {guide.call_focus}
+        </p>
+      )}
+      <p className="t4-readout-hint">
+        Share the report on the call and talk it through together. Work these in where they fit - no script.
+      </p>
+      {gaps.map((gap, k) => (
+        <div className="t4-gap" key={k}>
+          <div className="t4-gap-num">{k + 1}</div>
+          <div className="t4-gap-body">
+            {gap.topic && <div className="t4-gap-topic">{gap.topic}</div>}
+            {gap.suggested_question && <p className="t4-gap-q">&ldquo;{gap.suggested_question}&rdquo;</p>}
+            {gap.why_it_matters && <p className="t4-gap-why">{gap.why_it_matters}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advanced = false }) {
   const initialAuditId = useMemo(() => new URLSearchParams(window.location.search).get('auditId') || '', []);
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -1569,7 +1680,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
   const [proposalStatus, setProposalStatus] = useState('draft');
   const [proposalEditing, setProposalEditing] = useState(false);
   const [economic, setEconomic] = useState(null);
-  const [impactId, setImpactId] = useState('');
+  const [buildPackage, setBuildPackage] = useState(null);
+  const [buildPackageText, setBuildPackageText] = useState('');
 
   const type = getAuditType(client.typeKey);
 
@@ -1602,7 +1714,12 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
         setProposalText(row.proposal?.proposal_text || '');
         setProposalJson(row.proposal?.proposal_json || null);
         setProposalStatus(row.proposal?.proposal_status || 'draft');
-        setStep(row.proposal ? 6 : row.readout ? 5 : row.report ? 4 : nextResearch ? 2 : 1);
+        const savedPackage = row.proposal?.proposal_json?.build_package || null;
+        setBuildPackage(savedPackage);
+        setBuildPackageText(row.proposal?.proposal_json?.build_package_text || '');
+        setStep(
+          savedPackage ? 7 : row.proposal ? 6 : row.readout ? 5 : row.report ? 4 : nextResearch ? 2 : 1,
+        );
 
         if (row.report && !row.report.geo_audit) {
           try {
@@ -1612,7 +1729,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
             );
             if (!cancelled) {
               setEconomic(econ.economic || null);
-              setImpactId(econ.impact_id || '');
             }
           } catch {
             // economics are optional; ignore load failures
@@ -1650,7 +1766,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
     setProposalJson(null);
     setProposalStatus('draft');
     setEconomic(null);
-    setImpactId('');
+    setBuildPackage(null);
+    setBuildPackageText('');
     setErr('');
     setSaveNote('');
     setReportProgress('');
@@ -1782,6 +1899,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
         setProposalJson(null);
         setProposalStatus('draft');
         setEconomic(null);
+        setBuildPackage(null);
+        setBuildPackageText('');
         await saveAuditMilestone('report_ready', { report: result, followup: '' });
         setStep(4);
       } finally {
@@ -1806,7 +1925,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       if (!nextAuditId) throw new Error('Save the audit before extracting economics.');
       const result = await postJSON('/api/audit-economic-extract', { audit_id: nextAuditId }, getAuthHeaders);
       setEconomic(result.economic || null);
-      setImpactId(result.impact_id || '');
     });
 
   const doReadoutGuide = () =>
@@ -1897,6 +2015,18 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null }) {
       );
       setProposalId(result.proposal?.id || proposalId);
       setProposalStatus(result.proposal?.proposal_status || nextStatus);
+    });
+
+  const doBuildPackage = () =>
+    runStep(async () => {
+      const result = await postJSON(
+        '/api/audit-build-package',
+        { audit_id: auditId, readout_id: readoutId || undefined },
+        getAuthHeaders,
+      );
+      setBuildPackage(result.build_package || null);
+      setBuildPackageText(result.build_package_text || '');
+      if (result.proposal?.proposal_json) setProposalJson(result.proposal.proposal_json);
     });
 
   const clientNote = research
@@ -2129,8 +2259,8 @@ Looking forward to it.`
         {!busy && !loadingSaved && step === 4 && report && (
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
-            <Report rep={report} client={client} type={type} economic={economic} />
-            {!report.geo_audit && (
+            <Report rep={report} client={client} type={type} economic={economic} advanced={advanced} />
+            {advanced && !report.geo_audit && (
               <div className="t4-sec">
                 <h3>Economic Opportunity</h3>
                 <p className="t4-sub" style={{ marginTop: 0 }}>
@@ -2178,41 +2308,31 @@ Looking forward to it.`
 
         {!busy && !loadingSaved && step === 5 && report && !report.geo_audit && (
           <div>
-            <div className="t4-eyebrow">Step 5 | Readout</div>
-            <h2 className="t4-h2">Run the second call</h2>
+            <div className="t4-eyebrow">Step 5 | Second Call</div>
+            <h2 className="t4-h2">Review the report together</h2>
             <p className="t4-sub">
-              Use the audit report as the agenda. Confirm what is accurate, identify what matters most, validate the
-              economics, and capture the next step.
+              Share the report on the call and talk it through. On the right are a few high-leverage things worth
+              asking - the gaps the first call left open. Then paste the second-call transcript below.
             </p>
 
             <div className="t4-readout">
               <div className="t4-sec" style={{ marginTop: 0 }}>
-                <h3>Client-facing report</h3>
-                <Report rep={report} client={client} type={type} economic={economic} />
+                <h3>The report (share this on the call)</h3>
+                <Report rep={report} client={client} type={type} economic={economic} advanced={advanced} />
               </div>
 
               <div className="t4-sec" style={{ marginTop: 0 }}>
-                <h3>Readout assistant</h3>
+                <h3>Worth asking on this call</h3>
                 {readoutGuide ? (
                   <>
-                    <ReadoutAssistant
-                      guide={readoutGuide}
-                      auditId={auditId}
-                      impactId={impactId}
-                      readoutId={readoutId}
-                      getAuthHeaders={getAuthHeaders}
-                      savedEconomic={economic}
-                      onValidated={(result) => {
-                        setEconomic((prev) => (prev ? { ...prev, status: result.validation_status } : prev));
-                      }}
-                    />
+                    <ReadoutAssistant guide={readoutGuide} />
                     <div className="t4-btnrow">
-                      {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy assistant notes" />}
+                      {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy notes" />}
                       {readoutGuideText && (
                         <button
                           className="t4-ghost"
                           type="button"
-                          onClick={() => downloadText(`${safeFileName(client.name)}-readout-assistant.md`, readoutGuideText)}
+                          onClick={() => downloadText(`${safeFileName(client.name)}-talking-points.md`, readoutGuideText)}
                         >
                           <Download /> Download
                         </button>
@@ -2224,7 +2344,7 @@ Looking forward to it.`
                   </>
                 ) : (
                   <button className="t4-btn" type="button" onClick={doReadoutGuide}>
-                    Generate readout assistant <ArrowRight />
+                    Get talking points <ArrowRight />
                   </button>
                 )}
               </div>
@@ -2251,63 +2371,67 @@ Looking forward to it.`
               </div>
             </div>
 
-            <div className="t4-row">
-              <div className="t4-field">
-                <label>Client agreed with findings</label>
-                <select
-                  className="t4-select"
-                  value={readoutFields.client_agreement_level}
-                  onChange={(e) => setReadoutFields({ ...readoutFields, client_agreement_level: e.target.value })}
-                >
-                  {AGREEMENT_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </div>
-              <div className="t4-field">
-                <label>Client interest level</label>
-                <select
-                  className="t4-select"
-                  value={readoutFields.client_interest_level}
-                  onChange={(e) => setReadoutFields({ ...readoutFields, client_interest_level: e.target.value })}
-                >
-                  {INTEREST_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </div>
-            </div>
+            {advanced && (
+              <>
+                <div className="t4-row">
+                  <div className="t4-field">
+                    <label>Client agreed with findings</label>
+                    <select
+                      className="t4-select"
+                      value={readoutFields.client_agreement_level}
+                      onChange={(e) => setReadoutFields({ ...readoutFields, client_agreement_level: e.target.value })}
+                    >
+                      {AGREEMENT_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
+                    </select>
+                  </div>
+                  <div className="t4-field">
+                    <label>Client interest level</label>
+                    <select
+                      className="t4-select"
+                      value={readoutFields.client_interest_level}
+                      onChange={(e) => setReadoutFields({ ...readoutFields, client_interest_level: e.target.value })}
+                    >
+                      {INTEREST_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
+                    </select>
+                  </div>
+                </div>
 
-            <div className="t4-field">
-              <label>Selected next step</label>
-              <select
-                className="t4-select"
-                value={readoutFields.selected_next_step}
-                onChange={(e) => setReadoutFields({ ...readoutFields, selected_next_step: e.target.value })}
-              >
-                {NEXT_STEPS.map((value) => <option key={value} value={value}>{value}</option>)}
-              </select>
-            </div>
+                <div className="t4-field">
+                  <label>Selected next step</label>
+                  <select
+                    className="t4-select"
+                    value={readoutFields.selected_next_step}
+                    onChange={(e) => setReadoutFields({ ...readoutFields, selected_next_step: e.target.value })}
+                  >
+                    {NEXT_STEPS.map((value) => <option key={value} value={value}>{value}</option>)}
+                  </select>
+                </div>
 
-            <div className="t4-field">
-              <label>Outcome signals</label>
-              <div className="t4-checkgrid">
-                {OUTCOME_FLAGS.map(([key, label]) => (
-                  <label className="t4-check" key={key}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(readoutFields[key])}
-                      onChange={(e) => setReadoutFields({ ...readoutFields, [key]: e.target.checked })}
-                    />
-                    {label}
-                  </label>
-                ))}
-                <label className="t4-check">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(readoutFields.objections_raised)}
-                    onChange={(e) => setReadoutFields({ ...readoutFields, objections_raised: e.target.checked })}
-                  />
-                  Objections raised
-                </label>
-              </div>
-            </div>
+                <div className="t4-field">
+                  <label>Outcome signals</label>
+                  <div className="t4-checkgrid">
+                    {OUTCOME_FLAGS.map(([key, label]) => (
+                      <label className="t4-check" key={key}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(readoutFields[key])}
+                          onChange={(e) => setReadoutFields({ ...readoutFields, [key]: e.target.checked })}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                    <label className="t4-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(readoutFields.objections_raised)}
+                        onChange={(e) => setReadoutFields({ ...readoutFields, objections_raised: e.target.checked })}
+                      />
+                      Objections raised
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="t4-field">
               <label>Advisor notes</label>
@@ -2386,7 +2510,7 @@ Looking forward to it.`
                 ) : (
                   <Markdown>{proposalText}</Markdown>
                 )}
-                {proposalJson?.value_case && (
+                {advanced && proposalJson?.value_case && (
                   <ValueCaseCard valueCase={proposalJson.value_case} />
                 )}
                 <div className="t4-status-row">
@@ -2417,10 +2541,58 @@ Looking forward to it.`
                     Save edits
                   </button>
                 </div>
+                <div className="t4-btnrow">
+                  <button
+                    className="t4-btn"
+                    type="button"
+                    onClick={buildPackage ? () => setStep(7) : doBuildPackage}
+                  >
+                    {buildPackage ? 'Open developer build package' : 'Create developer build package'} <ArrowRight />
+                  </button>
+                </div>
                 <p className="t4-save-note">
-                  PRD generation and DevShop quote requests come after proposal approval in the next phase.
+                  The build package turns this into a tech spec, product spec, and build plan you can hand a
+                  third-party developer for a scope and quote.
                 </p>
               </div>
+            )}
+          </div>
+        )}
+
+        {!busy && !loadingSaved && step === 7 && report && !report.geo_audit && (
+          <div>
+            <div className="t4-eyebrow">Step 7 | Developer Build Package</div>
+            <h2 className="t4-h2">Hand-off for a third-party developer</h2>
+            <p className="t4-sub">
+              A product spec, technical spec, and build plan generated from the calls, the report, and the proposal.
+              Share it with a development shop to get a scope and a quote. Estimates are preliminary planning ranges.
+            </p>
+
+            <div className="t4-btnrow">
+              <button className="t4-ghost" type="button" onClick={() => setStep(6)}>
+                <ArrowLeft /> Back to proposal
+              </button>
+              <button className="t4-btn" type="button" onClick={doBuildPackage}>
+                {buildPackage ? <><RefreshCw /> Regenerate build package</> : <>Generate build package <ArrowRight /></>}
+              </button>
+            </div>
+
+            {buildPackage && (
+              <>
+                <BuildPackage pkg={buildPackage} />
+                <div className="t4-btnrow">
+                  {buildPackageText && <CopyBtn text={buildPackageText} label="Copy full package" />}
+                  {buildPackageText && (
+                    <button
+                      className="t4-ghost"
+                      type="button"
+                      onClick={() => downloadText(`${safeFileName(client.name)}-build-package.md`, buildPackageText)}
+                    >
+                      <Download /> Download package
+                    </button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -2450,11 +2622,31 @@ function MissingAuthConfig() {
 
 function ClerkAuditShell() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [advanced, setAdvanced] = useState(false);
 
   const getAuthHeaders = useCallback(async () => {
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [getToken]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch('/api/advisor-audits?profile=1', { headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setAdvanced(Boolean(data.isSuperuser));
+      } catch {
+        // Default to the streamlined (non-advanced) view on any failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, getAuthHeaders]);
 
   if (!isLoaded) {
     return (
@@ -2478,6 +2670,7 @@ function ClerkAuditShell() {
   return (
     <AuditPipeline
       getAuthHeaders={getAuthHeaders}
+      advanced={advanced}
       userSlot={
         <div className="t4-user">
           <UserButton afterSignOutUrl="/admin/audit" />
@@ -2492,7 +2685,7 @@ export default function AdminAuditPage() {
   const devBypass = isAdvisorAuthBypass();
 
   if (devBypass) {
-    return <AuditPipeline devMode getAuthHeaders={getEmptyAuthHeaders} />;
+    return <AuditPipeline devMode advanced getAuthHeaders={getEmptyAuthHeaders} />;
   }
 
   if (!clerkKey) {

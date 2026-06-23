@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ClipboardList, Search } from 'lucide-react';
 import AdminAuditHistory from '../components/AdminAuditHistory';
+import SystemMetricsPanel from '../components/SystemMetricsPanel';
 import AdvisorGate from '../components/AdvisorGate';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
 
@@ -81,6 +82,8 @@ function AdminDashboard({ devMode = false, getAuthHeaders }) {
             <span className="admin-meta">Open GEO audit</span>
           </a>
         </div>
+
+        <SystemMetricsPanel getAuthHeaders={getAuthHeaders} />
 
         <AdminAuditHistory getAuthHeaders={getAuthHeaders} />
 

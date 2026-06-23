@@ -25,8 +25,8 @@
 
 - [x] **5.1** Extend export with economic/readout/proposal blocks — shipped 8cae084 (economicImpactExportBlock + proposalExportBlock + readoutExportBlock, wired into both fullAuditExport and exportAll)
 - [x] **5.2** System Improvement Audit endpoint (batch review) — shipped 9982941 (GET /api/audit-system-improvement, computeSystemMetrics pure fn, 7 tests)
-- [ ] **5.3** Evaluation Agent scoring categories
-- [ ] **5.4** Dashboard metrics on AdminHomePage
+- [x] **5.3** Evaluation Agent scoring categories — already shipped in 9982941 (computeQualityScores: 5 categories, overall grade, improvement priorities; 4 dedicated tests)
+- [x] **5.4** Dashboard metrics on AdminHomePage — shipped (SystemMetricsPanel component: overall grade, 5 stat cards, improvement priorities, refresh button)
 - [ ] **5.5** Trend tracking over time
 
 ## Phase 0 completed

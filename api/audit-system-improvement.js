@@ -170,6 +170,104 @@ function round4(value) {
   return Math.round(value * 10000) / 10000;
 }
 
+/**
+ * Quality scoring categories for the Evaluation Agent.
+ * Each category produces a 0–100 score, a letter grade, and a qualitative
+ * assessment so the learning loop can identify where prompts/process need
+ * improvement.
+ *
+ * @param {object} metrics  Output of computeSystemMetrics()
+ * @returns {object}        Scoring categories + overall score
+ */
+export function computeQualityScores(metrics) {
+  const categories = {
+    prompt_effectiveness: scoreCategory(
+      'Prompt Effectiveness',
+      'How well does the discovery prompt extract economic data from the call?',
+      metrics.economic_capture.rate,
+      'Discovery prompts are capturing economic impact data in most audits.',
+      'Discovery prompts are missing economic data in many audits — review question wording.',
+    ),
+    report_completeness: scoreCategory(
+      'Report Completeness',
+      'Percentage of audits that reach readout and proposal stages.',
+      metrics.conversion.readout_reached > 0 && metrics.total_audits > 0
+        ? metrics.conversion.readout_reached / metrics.total_audits
+        : null,
+      'Most audits are progressing through the full pipeline.',
+      'Audits are stalling before reaching readout — check report quality and advisor workflow.',
+    ),
+    economic_accuracy: scoreCategory(
+      'Economic Accuracy',
+      'How often are estimated economic numbers validated by the client?',
+      metrics.validation.rate,
+      'Economic estimates are being validated in readouts.',
+      'Economic estimates are frequently rejected or not discussed — review extraction quality.',
+    ),
+    value_case_quality: scoreCategory(
+      'Value-Case Quality',
+      'Percentage of proposals that include a structured value case block.',
+      metrics.value_case.rate,
+      'Proposals consistently include value-case framing.',
+      'Proposals are missing value-case blocks — check proposal prompt and schema.',
+    ),
+    conversion_health: scoreCategory(
+      'Conversion Health',
+      'How effectively do readouts convert to proposals?',
+      metrics.conversion.proposal_rate,
+      'Readouts are converting to proposals at a healthy rate.',
+      'Readout-to-proposal conversion is low — review readout flow and next-step prompts.',
+    ),
+  };
+
+  const scores = Object.values(categories).map((c) => c.score);
+  const validScores = scores.filter((s) => s !== null);
+  const overall = validScores.length > 0
+    ? Math.round(validScores.reduce((sum, s) => sum + s, 0) / validScores.length)
+    : null;
+
+  return {
+    categories,
+    overall_score: overall,
+    overall_grade: gradeForScore(overall),
+    improvement_priorities: prioritiseImprovements(categories),
+  };
+}
+
+function scoreCategory(name, description, rate, goodNote, badNote) {
+  const score = rate !== null ? Math.round(rate * 100) : null;
+  return {
+    name,
+    description,
+    score,
+    grade: gradeForScore(score),
+    rate: round4(rate),
+    assessment: score === null ? 'Insufficient data.' : score >= 60 ? goodNote : badNote,
+  };
+}
+
+function gradeForScore(score) {
+  if (score === null) return 'N/A';
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+function prioritiseImprovements(categories) {
+  return Object.entries(categories)
+    .filter(([, c]) => c.score !== null && c.score < 60)
+    .sort(([, a], [, b]) => a.score - b.score)
+    .map(([key, c]) => ({
+      key,
+      name: c.name,
+      score: c.score,
+      grade: c.grade,
+      assessment: c.assessment,
+    }));
+}
+
 export default async function handler(req, res) {
   try {
     const auth = await requireAdvisorAuth(req);
@@ -181,11 +279,13 @@ export default async function handler(req, res) {
 
     const audits = await listAdvisorAudits(auth);
     const metrics = computeSystemMetrics(audits);
+    const scores = computeQualityScores(metrics);
 
     return res.status(200).json({
       generated_at: new Date().toISOString(),
       scope: auth.isSuperuser ? 'all_advisors' : 'own_audits',
       metrics,
+      scores,
     });
   } catch (error) {
     return handleApiError(res, error, 'System improvement audit failed.');

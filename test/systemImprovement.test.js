@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeSystemMetrics } from '../api/audit-system-improvement.js';
+import { computeSystemMetrics, computeQualityScores } from '../api/audit-system-improvement.js';
 
 test('computeSystemMetrics returns zeroed structure for empty input', () => {
   const result = computeSystemMetrics([]);
@@ -129,4 +129,75 @@ test('computeSystemMetrics builds sales stage breakdown', () => {
     readout_done: 1,
     not_started: 1,
   });
+});
+
+// --- computeQualityScores tests ---
+
+test('computeQualityScores returns N/A grades for empty metrics', () => {
+  const metrics = computeSystemMetrics([]);
+  const scores = computeQualityScores(metrics);
+  assert.equal(scores.overall_score, null);
+  assert.equal(scores.overall_grade, 'N/A');
+  assert.equal(scores.categories.prompt_effectiveness.grade, 'N/A');
+  assert.equal(scores.improvement_priorities.length, 0);
+});
+
+test('computeQualityScores scores prompt effectiveness from economic capture rate', () => {
+  const metrics = {
+    total_audits: 10,
+    economic_capture: { count: 8, rate: 0.8 },
+    validation: { rate: null },
+    value_case: { rate: null },
+    conversion: { readout_reached: 0, proposal_rate: null, request_rate: null },
+  };
+  const scores = computeQualityScores(metrics);
+  assert.equal(scores.categories.prompt_effectiveness.score, 80);
+  assert.equal(scores.categories.prompt_effectiveness.grade, 'B');
+});
+
+test('computeQualityScores scores economic accuracy from validation rate', () => {
+  const metrics = {
+    total_audits: 10,
+    economic_capture: { count: 10, rate: 1.0 },
+    validation: { rate: 0.9 },
+    value_case: { rate: null },
+    conversion: { readout_reached: 0, proposal_rate: null, request_rate: null },
+  };
+  const scores = computeQualityScores(metrics);
+  assert.equal(scores.categories.economic_accuracy.score, 90);
+  assert.equal(scores.categories.economic_accuracy.grade, 'A');
+});
+
+test('computeQualityScores identifies improvement priorities below 60', () => {
+  const metrics = {
+    total_audits: 10,
+    economic_capture: { count: 3, rate: 0.3 },
+    validation: { rate: 0.95 },
+    value_case: { rate: 0.4 },
+    conversion: { readout_reached: 5, proposal_rate: 0.2, request_rate: null },
+  };
+  const scores = computeQualityScores(metrics);
+  // prompt_effectiveness = 30 (F), value_case_quality = 40 (F), conversion_health = 20 (F)
+  // economic_accuracy = 95 (A)
+  const priorityKeys = scores.improvement_priorities.map((p) => p.key);
+  assert.ok(priorityKeys.includes('prompt_effectiveness'));
+  assert.ok(priorityKeys.includes('value_case_quality'));
+  assert.ok(priorityKeys.includes('conversion_health'));
+  assert.ok(!priorityKeys.includes('economic_accuracy'));
+  // Sorted ascending by score
+  assert.ok(scores.improvement_priorities[0].score <= scores.improvement_priorities[1].score);
+});
+
+test('computeQualityScores computes overall score as mean of valid categories', () => {
+  const metrics = {
+    total_audits: 10,
+    economic_capture: { count: 10, rate: 1.0 },
+    validation: { rate: 0.8 },
+    value_case: { rate: 0.6 },
+    conversion: { readout_reached: 10, proposal_rate: 0.5, request_rate: null },
+  };
+  const scores = computeQualityScores(metrics);
+  // Scores: 100, 80, 60, 50 + report_completeness=100 → mean = (100+80+60+50+100)/5 = 78
+  assert.equal(scores.overall_score, 78);
+  assert.equal(scores.overall_grade, 'C');
 });

@@ -3,7 +3,7 @@
 **Spec source:** README.md, designspec.md, copyrewrite.md, docs-internal/advisor-audit-amendment-plan.md
 **Repo:** https://github.com/mattrob333/Tier4flywheel
 **Workspace:** ~/Tier4flywheel
-**Status:** 🏗️ Production live site + functional audit pipeline — Phases 3–5 COMPLETE (all tasks shipped)
+**Status:** ⏸️ STOPPED — All Phases 3–5 complete (economic UI, proposal integration, learning loop). Quality gate green (35/35 tests, build ✓). No open corrections. No remaining tasks from the amendment plan.
 
 ## Architecture: Two-Tier Build Loop
 - Inner Loop (cron TBD) — every 10m: Check → Test → Advance → Repeat. Self-pauses both crons at a genuine stopping point.

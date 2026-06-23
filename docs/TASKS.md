@@ -24,7 +24,7 @@
 ## Phase 5: Learning Loop
 
 - [x] **5.1** Extend export with economic/readout/proposal blocks — shipped 8cae084 (economicImpactExportBlock + proposalExportBlock + readoutExportBlock, wired into both fullAuditExport and exportAll)
-- [ ] **5.2** System Improvement Audit endpoint (batch review)
+- [x] **5.2** System Improvement Audit endpoint (batch review) — shipped 9982941 (GET /api/audit-system-improvement, computeSystemMetrics pure fn, 7 tests)
 - [ ] **5.3** Evaluation Agent scoring categories
 - [ ] **5.4** Dashboard metrics on AdminHomePage
 - [ ] **5.5** Trend tracking over time

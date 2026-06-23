@@ -70,7 +70,7 @@
 - ⬜ A few `audit-report.js` legacy synchronous path files still exist (cleanup — annotated @deprecated, safe to leave until Phases 3-5 verified live)
 
 ## Quality Gate
-- `npm test` — 18 tests (node --test runner)
+- `npm test` — 25 tests (node --test runner)
 - `npm run lint` — ESLint
 - `npm run build` — Vite build (must produce dist/)
 - All currently passing based on last push
@@ -86,7 +86,7 @@
 - None — master is green (18/18 tests, build ✓). Phase 4 complete; Phase 5 (Learning Loop) next.
 
 ## Next Action
-- **Phase 5.2: System Improvement Audit endpoint** — Phase 5.1 complete (export now includes structured economic_impact, readout, proposal blocks via shared helpers). Next: build a batch-review endpoint that computes aggregate metrics (Economic Capture Rate, Validation Rate, Value-Case Rate, conversion rates, Price-to-Problem-Cost Ratio) across completed advisor audits.
+- **Phase 5.3: Evaluation Agent scoring categories** — Phase 5.2 complete (System Improvement Audit endpoint computes Economic Capture Rate, Validation Rate, Value-Case Rate, conversion rates, Price-to-Problem-Cost Ratio). Next: define scoring categories for audit quality (prompt effectiveness, report completeness, economic accuracy, conversion health) and wire them into the metrics endpoint.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care
@@ -96,4 +96,4 @@
 - The old synchronous audit-report.js path is dead code, now annotated @deprecated — don't delete until Phases 3-5 verified live
 - All three Phase-0 course corrections are RESOLVED (commit d0ae3cb): master builds clean, parse-model fallback chain is correct, legacy files annotated
 
-**Last Updated:** 2026-06-22 — Phase 5.1 shipped (export extended with economic_impact, readout, proposal blocks); master green (18/18 tests); 5.2 System Improvement Audit endpoint next
+**Last Updated:** 2026-06-22 — Phase 5.1/5.2 shipped (export blocks + System Improvement Audit endpoint); master green (25/25 tests); 5.3 Evaluation Agent scoring next

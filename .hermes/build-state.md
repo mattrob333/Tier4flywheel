@@ -83,10 +83,10 @@
 - **No Pedigree/SKU names in client-facing output** — that's what the three-layer split is for.
 
 ## Open Issues / Blockers
-- None — master is green (18/18 tests, build ✓). Phases 4.1–4.4 + 4.6 complete; Phase 4.5 (Proposal Markdown UI) next.
+- None — master is green (18/18 tests, build ✓). Phase 4 complete; Phase 5 (Learning Loop) next.
 
 ## Next Action
-- **Phase 4.5: Proposal UI** — Phases 4.1–4.4 + 4.6 are complete (value-case prompt rules, value_case schema block, Pedigree enum → neutral names, economics passed into proposal prompt, economic fields persisted to audit_proposals). Next: 4.5, render the proposal with `<Markdown>` (react-markdown is already a dependency) instead of raw textarea, add an editable-mode toggle, and surface the value_case block in the UI.
+- **Phase 5: Learning Loop** — Phase 4 is fully complete (4.1–4.6 all shipped: value-case prompt rules, value_case schema block, Pedigree enum → neutral names, economics in proposal prompt, Markdown render + ValueCaseCard UI, economic fields persisted). Next: Phase 5.1, extend AdminAuditHistory export (exportAll/fullAuditExport) to include economic_impact, readout, and proposal blocks.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care

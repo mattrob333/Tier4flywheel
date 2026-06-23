@@ -403,6 +403,48 @@ async function writeClipboard({ text, html }) {
   copyPlainWithSelection(plainText);
 }
 
+function fmtMoney(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  return `$${number.toLocaleString('en-US')}`;
+}
+
+function ValueCaseCard({ valueCase: vc }) {
+  if (!vc) return null;
+  const cost = fmtMoney(vc.annual_cost_estimate);
+  const savingsLow = fmtMoney(vc.annual_savings_low);
+  const savingsHigh = fmtMoney(vc.annual_savings_high);
+  const invLow = fmtMoney(vc.investment_low);
+  const invHigh = fmtMoney(vc.investment_high);
+  const payback = (vc.payback_months_low != null || vc.payback_months_high != null)
+    ? `${vc.payback_months_low ?? '—'} – ${vc.payback_months_high ?? '—'} mo`
+    : null;
+  const confidenceColor = vc.confidence === 'High' ? '#16a34a' : vc.confidence === 'Medium' ? '#d97706' : '#6b7280';
+
+  return (
+    <div className="t4-sec" style={{ background: 'var(--t4-surface, #111)', border: '1px solid var(--t4-border, #2a2a2a)', borderRadius: 10, padding: '14px 16px', margin: '12px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <strong style={{ fontSize: 14 }}>Value Case</strong>
+        {vc.confidence && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: confidenceColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {vc.confidence} confidence
+          </span>
+        )}
+      </div>
+      {vc.headline && <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--t4-text, #e5e5e5)' }}>{vc.headline}</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, fontSize: 12 }}>
+        {cost && <div><span style={{ color: 'var(--t4-mut, #888)' }}>Annual problem cost</span><br /><strong>{cost}</strong></div>}
+        {(savingsLow || savingsHigh) && <div><span style={{ color: 'var(--t4-mut, #888)' }}>Annual savings</span><br /><strong>{savingsLow || '—'} – {savingsHigh || '—'}</strong></div>}
+        {(invLow || invHigh) && <div><span style={{ color: 'var(--t4-mut, #888)' }}>Investment</span><br /><strong>{invLow || '—'} – {invHigh || '—'}</strong></div>}
+        {payback && <div><span style={{ color: 'var(--t4-mut, #888)' }}>Payback</span><br /><strong>{payback}</strong></div>}
+      </div>
+      {vc.directional_note && <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--t4-mut, #888)', fontStyle: 'italic' }}>{vc.directional_note}</p>}
+      {vc.basis && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--t4-mut, #888)' }}>{vc.basis}</p>}
+    </div>
+  );
+}
+
 function CopyBtn({ text, html, label, icon: Icon = Clipboard }) {
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -2343,6 +2385,9 @@ Looking forward to it.`
                   />
                 ) : (
                   <Markdown>{proposalText}</Markdown>
+                )}
+                {proposalJson?.value_case && (
+                  <ValueCaseCard valueCase={proposalJson.value_case} />
                 )}
                 <div className="t4-status-row">
                   {['draft', 'reviewed', 'sent', 'accepted', 'lost'].map((status) => (

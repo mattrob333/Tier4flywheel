@@ -294,31 +294,88 @@ function buildReportText(audit) {
   return sections.filter(Boolean).join('\n').trim();
 }
 
+/**
+ * Structured economic_impact export block.
+ * Surfaces the full economic extraction (variables, formulas, evidence,
+ * validation questions) plus denormalized fields and validation status
+ * so the learning-loop / evaluation agent can consume it without parsing
+ * the raw audit row.
+ */
+function economicImpactExportBlock(audit) {
+  const row = audit.economic_impact || null;
+  return {
+    has_extraction: Boolean(row) || Boolean(audit.economic_impact_status),
+    status: row?.status || audit.economic_impact_status || null,
+    currency: row?.currency || 'USD',
+    annual_cost_estimate: row?.annual_cost_estimate ?? audit.economic_annual_cost_estimate ?? null,
+    annual_savings_low: row?.annual_savings_low ?? null,
+    annual_savings_high: row?.annual_savings_high ?? null,
+    confidence: row?.confidence || audit.economic_confidence || null,
+    summary: audit.economic_summary || null,
+    validated: Boolean(audit.economic_validated),
+    variables: row?.variables || null,
+    formulas: row?.formulas || null,
+    evidence_quotes: row?.evidence_quotes || [],
+    assumptions: row?.assumptions || [],
+    missing_inputs: row?.missing_inputs || [],
+    validation_questions: row?.validation_questions || [],
+  };
+}
+
+/**
+ * Structured proposal export block.
+ * Includes the Phase 4 value_case block and economic linkage fields.
+ */
+function proposalExportBlock(audit) {
+  const p = audit.proposal || null;
+  return {
+    generated: Boolean(p),
+    type: p?.proposal_type || null,
+    status: p?.proposal_status || audit.proposal_status || null,
+    proposal_json: p?.proposal_json || null,
+    proposal_text: p?.proposal_text || null,
+    estimated_value: p?.estimated_value || null,
+    economic_impact_id: p?.economic_impact_id || null,
+    includes_value_case: Boolean(p?.includes_value_case),
+    investment_low: p?.investment_low ?? null,
+    investment_high: p?.investment_high ?? null,
+    payback_low: p?.payback_low ?? null,
+    payback_high: p?.payback_high ?? null,
+    value_case: p?.proposal_json?.value_case || null,
+  };
+}
+
+/**
+ * Structured readout export block.
+ * Includes economics validation outcome fields persisted in Phase 3.
+ */
+function readoutExportBlock(audit) {
+  const r = audit.readout || null;
+  return {
+    guide_json: r?.readout_guide_json || null,
+    guide_text: r?.readout_guide_text || null,
+    transcript: r?.readout_transcript_text || null,
+    advisor_notes: r?.advisor_notes || null,
+    client_agreement_level: r?.client_agreement_level || audit.client_agreement_level || null,
+    client_interest_level: r?.client_interest_level || audit.client_interest_level || null,
+    selected_next_step: r?.selected_next_step || audit.selected_next_step || null,
+    proposal_requested: Boolean(r?.proposal_requested || audit.proposal_requested),
+    objections: r?.objections || [],
+    economics_discussed: Boolean(r?.economics_discussed),
+    economics_validated: Boolean(r?.economics_validated),
+    economics_revised: Boolean(r?.economics_revised),
+  };
+}
+
 function fullAuditExport(audit) {
   return JSON.stringify(
     {
       exported_at: new Date().toISOString(),
       sales_stage: salesStageValue(audit),
       sales_stage_label: salesStageLabel(salesStageValue(audit)),
-      readout: {
-        guide_json: audit.readout?.readout_guide_json || null,
-        guide_text: audit.readout?.readout_guide_text || null,
-        transcript: audit.readout?.readout_transcript_text || null,
-        advisor_notes: audit.readout?.advisor_notes || null,
-        client_agreement_level: audit.readout?.client_agreement_level || audit.client_agreement_level || null,
-        client_interest_level: audit.readout?.client_interest_level || audit.client_interest_level || null,
-        selected_next_step: audit.readout?.selected_next_step || audit.selected_next_step || null,
-        proposal_requested: Boolean(audit.readout?.proposal_requested || audit.proposal_requested),
-        objections: audit.readout?.objections || [],
-      },
-      proposal: {
-        generated: Boolean(audit.proposal),
-        type: audit.proposal?.proposal_type || null,
-        status: audit.proposal?.proposal_status || audit.proposal_status || null,
-        proposal_json: audit.proposal?.proposal_json || null,
-        proposal_text: audit.proposal?.proposal_text || null,
-        estimated_value: audit.proposal?.estimated_value || null,
-      },
+      economic_impact: economicImpactExportBlock(audit),
+      readout: readoutExportBlock(audit),
+      proposal: proposalExportBlock(audit),
       audit,
     },
     null,
@@ -686,25 +743,9 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
         ...audit,
         sales_stage: salesStageValue(audit),
         sales_stage_label: salesStageLabel(salesStageValue(audit)),
-        readout: {
-          guide_json: audit.readout?.readout_guide_json || null,
-          guide_text: audit.readout?.readout_guide_text || null,
-          transcript: audit.readout?.readout_transcript_text || null,
-          advisor_notes: audit.readout?.advisor_notes || null,
-          client_agreement_level: audit.readout?.client_agreement_level || null,
-          client_interest_level: audit.readout?.client_interest_level || null,
-          selected_next_step: audit.readout?.selected_next_step || null,
-          proposal_requested: Boolean(audit.readout?.proposal_requested),
-          objections: audit.readout?.objections || [],
-        },
-        proposal: {
-          generated: Boolean(audit.proposal),
-          type: audit.proposal?.proposal_type || null,
-          status: audit.proposal?.proposal_status || null,
-          proposal_json: audit.proposal?.proposal_json || null,
-          proposal_text: audit.proposal?.proposal_text || null,
-          estimated_value: audit.proposal?.estimated_value || null,
-        },
+        economic_impact: economicImpactExportBlock(audit),
+        readout: readoutExportBlock(audit),
+        proposal: proposalExportBlock(audit),
       })),
     };
     downloadText(`tier4-advisor-audits-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');

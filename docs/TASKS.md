@@ -18,7 +18,7 @@
 - [x] **4.2** Update proposalSchema with value_case block — shipped (headline, confidence, cost/savings/investment/payback ranges, basis, directional_note)
 - [x] **4.3** Drop Pedigree-named proposal_type → neutral names — shipped (enum: 'Agent Governance Demo Proposal'; NEXT_STEPS: 'Agent Governance Demo')
 - [x] **4.4** Update audit-proposal.js to pass full context + economics — shipped (economic_impact + readout validation fields passed to prompt; prompt version bumped to proposal_v2)
-- [ ] **4.5** Render proposal with <Markdown> + editable mode
+- [x] **4.5** Render proposal with <Markdown> + editable mode — shipped (Markdown render + Edit/Preview toggle already present; added ValueCaseCard surfacing structured value_case block)
 - [x] **4.6** Populate audit_proposals economic fields on PATCH — shipped (proposalRowFromPayload stores economic_impact_id, includes_value_case, investment/payback ranges, estimated_value)
 
 ## Phase 5: Learning Loop

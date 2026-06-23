@@ -17,7 +17,7 @@ import {
   handleApiError,
   requireAdvisorAuth,
 } from './_advisorAuditServer.js';
-import { listAdvisorAudits } from './_advisorAuditStore.js';
+import { listAdvisorAudits, saveMetricSnapshot, listMetricSnapshots } from './_advisorAuditStore.js';
 
 /**
  * @param {any[]} audits  Audits with attached readout/proposal/economic_impact
@@ -268,6 +268,63 @@ function prioritiseImprovements(categories) {
     }));
 }
 
+/**
+ * Compute trend direction (improving / declining / stable / insufficient)
+ * from a list of snapshots.  Compares the most recent snapshot to the
+ * one before it (or the first if only 2 exist).
+ *
+ * @param {object[]} snapshots  Oldest-first array of snapshot rows
+ * @returns {object}            Trend indicators per metric
+ */
+export function computeTrends(snapshots) {
+  if (!snapshots || snapshots.length < 2) {
+    return { status: 'insufficient_data', comparisons: [] };
+  }
+
+  const prev = snapshots[snapshots.length - 2];
+  const curr = snapshots[snapshots.length - 1];
+
+  const fields = [
+    'economic_capture_rate',
+    'validation_rate',
+    'value_case_rate',
+    'proposal_rate',
+    'request_rate',
+    'overall_score',
+  ];
+
+  const comparisons = fields
+    .map((field) => {
+      const prevVal = prev[field];
+      const currVal = curr[field];
+      if (prevVal === null || currVal === null || prevVal === undefined || currVal === undefined) {
+        return null;
+      }
+      const delta = Number(currVal) - Number(prevVal);
+      // 2% threshold to filter noise
+      const direction = Math.abs(delta) < 0.02 ? 'stable' : delta > 0 ? 'improving' : 'declining';
+      return { field, prev: prevVal, curr: currVal, delta: Math.round(delta * 1000) / 1000, direction };
+    })
+    .filter(Boolean);
+
+  // Overall trend
+  const improvingCount = comparisons.filter((c) => c.direction === 'improving').length;
+  const decliningCount = comparisons.filter((c) => c.direction === 'declining').length;
+  const status = improvingCount > decliningCount
+    ? 'improving'
+    : decliningCount > improvingCount
+      ? 'declining'
+      : 'stable';
+
+  return {
+    status,
+    comparisons,
+    previous_snapshot_at: prev.created_at,
+    current_snapshot_at: curr.created_at,
+    snapshot_count: snapshots.length,
+  };
+}
+
 export default async function handler(req, res) {
   try {
     const auth = await requireAdvisorAuth(req);
@@ -281,11 +338,30 @@ export default async function handler(req, res) {
     const metrics = computeSystemMetrics(audits);
     const scores = computeQualityScores(metrics);
 
+    // Trend tracking: fetch prior snapshots and save a new one.
+    let trends = { status: 'insufficient_data', comparisons: [] };
+    let snapshots = [];
+    try {
+      snapshots = await listMetricSnapshots(auth, 20);
+      trends = computeTrends(snapshots);
+    } catch {
+      // Snapshot table may not be migrated yet — trends are non-critical.
+    }
+
+    // Save a new snapshot (non-blocking failure — don't break the endpoint).
+    try {
+      await saveMetricSnapshot(auth, metrics, scores);
+    } catch {
+      // Table may not exist yet on this environment.
+    }
+
     return res.status(200).json({
       generated_at: new Date().toISOString(),
       scope: auth.isSuperuser ? 'all_advisors' : 'own_audits',
       metrics,
       scores,
+      trends,
+      snapshots: snapshots.slice(-10),  // most recent 10, oldest-first
     });
   } catch (error) {
     return handleApiError(res, error, 'System improvement audit failed.');

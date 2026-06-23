@@ -49,6 +49,22 @@ const STYLE = `
 .metrics-priority .pri-name{font-weight:600;color:rgba(240,242,245,.8)}
 .metrics-priority .pri-note{font-size:11px;color:rgba(240,242,245,.4);margin-left:auto;text-align:right;max-width:260px}
 .metrics-ok{font-size:13px;color:rgba(94,192,138,.6);padding:8px 0}
+.metrics-trend{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:10px}
+.metrics-trend.improving{background:rgba(94,192,138,.15);color:#5EC08A}
+.metrics-trend.declining{background:rgba(229,115,115,.15);color:#E57373}
+.metrics-trend.stable{background:rgba(201,168,76,.15);color:#C9A84C}
+.metrics-trend.insufficient{background:rgba(255,255,255,.06);color:rgba(240,242,245,.3)}
+.metrics-trend svg{width:12px;height:12px}
+.metrics-trend-section{border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:14px}
+.metrics-trend-section h4{font-size:12px;font-weight:700;color:rgba(240,242,245,.5);margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.metrics-trend-section h4 svg{width:14px;height:14px;color:#5EC08A}
+.metrics-trend-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+.metrics-trend-row .trend-label{color:rgba(240,242,245,.7);font-weight:600;min-width:140px}
+.metrics-trend-row .trend-delta{font-size:12px;color:rgba(240,242,245,.4);margin-left:auto}
+.metrics-trend-row .trend-arrow{font-size:14px;font-weight:800}
+.metrics-trend-row .trend-arrow.improving{color:#5EC08A}
+.metrics-trend-row .trend-arrow.declining{color:#E57373}
+.metrics-trend-row .trend-arrow.stable{color:#C9A84C}
 `;
 
 function fmtPct(rate) {
@@ -160,6 +176,28 @@ export default function SystemMetricsPanel({ getAuthHeaders }) {
 
         {scores && (!scores.improvement_priorities || scores.improvement_priorities.length === 0) && scores.overall_score !== null && scores.overall_score >= 60 && (
           <div className="metrics-ok">✓ All quality categories are at or above threshold.</div>
+        )}
+
+        {data.trends && data.trends.status !== 'insufficient_data' && (
+          <div className="metrics-trend-section">
+            <h4><TrendingUp /> Trend Tracking <span className={`metrics-trend ${data.trends.status}`}>{data.trends.status}</span></h4>
+            {data.trends.comparisons.map((c) => (
+              <div key={c.field} className="metrics-trend-row">
+                <span className="trend-label">{c.field.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}</span>
+                <span className={`trend-arrow ${c.direction}`}>
+                  {c.direction === 'improving' ? '↑' : c.direction === 'declining' ? '↓' : '→'}
+                </span>
+                <span className="trend-delta">
+                  {c.prev !== null ? `${Math.round(c.prev * 100)}%` : '—'} → {c.curr !== null ? `${Math.round(c.curr * 100)}%` : '—'}
+                  {c.field === 'overall_score' && ` (${c.delta > 0 ? '+' : ''}${c.delta} pts)`}
+                </span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: 'rgba(240,242,245,.3)', marginTop: 8 }}>
+              Based on {data.trends.snapshot_count} snapshot{data.trends.snapshot_count !== 1 ? 's' : ''} ·
+              {' '}{data.snapshots?.length || 0} total recorded
+            </div>
+          </div>
         )}
       </>
     );

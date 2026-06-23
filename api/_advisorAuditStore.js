@@ -656,3 +656,48 @@ export async function updateEconomicImpact(auth, id, patch = {}) {
   await patchAuditLifecycle(audit.id, auditEconomicFields(updated));
   return updated;
 }
+
+/* ── Metric Snapshots (trend tracking) ── */
+
+/**
+ * Save a metric snapshot to audit_metric_snapshots so trends can be
+ * tracked over time.  Called after computeSystemMetrics/computeQualityScores.
+ */
+export async function saveMetricSnapshot(auth, metrics, scores) {
+  const scope = auth.isSuperuser ? 'all_advisors' : 'own_audits';
+  const row = {
+    advisor_id: auth.userId || null,
+    scope,
+    total_audits: metrics.total_audits || 0,
+    economic_capture_rate: metrics.economic_capture?.rate ?? null,
+    validation_rate: metrics.validation?.rate ?? null,
+    value_case_rate: metrics.value_case?.rate ?? null,
+    proposal_rate: metrics.conversion?.proposal_rate ?? null,
+    request_rate: metrics.conversion?.request_rate ?? null,
+    price_to_problem_cost_median: metrics.price_to_problem_cost?.median ?? null,
+    overall_score: scores?.overall_score ?? null,
+    overall_grade: scores?.overall_grade ?? null,
+    metrics_json: metrics,
+    scores_json: scores || {},
+  };
+  const rows = await supabaseFetch('audit_metric_snapshots', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify([row]),
+  });
+  return rows?.[0] || row;
+}
+
+/**
+ * Fetch recent metric snapshots for trend comparison.
+ * Returns up to `limit` most recent snapshots (oldest first for charting).
+ */
+export async function listMetricSnapshots(auth, limit = 10) {
+  const scope = auth.isSuperuser ? 'all_advisors' : 'own_audits';
+  const query = scope === 'all_advisors'
+    ? `audit_metric_snapshots?scope=eq.all_advisors&order=created_at.desc&limit=${limit}`
+    : `audit_metric_snapshots?advisor_id=eq.${encodeURIComponent(auth.userId)}&order=created_at.desc&limit=${limit}`;
+  const rows = await supabaseFetch(query, { method: 'GET' });
+  // Reverse to oldest-first for trend display
+  return (rows || []).reverse();
+}

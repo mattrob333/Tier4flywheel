@@ -27,7 +27,7 @@
 - [x] **5.2** System Improvement Audit endpoint (batch review) — shipped 9982941 (GET /api/audit-system-improvement, computeSystemMetrics pure fn, 7 tests)
 - [x] **5.3** Evaluation Agent scoring categories — already shipped in 9982941 (computeQualityScores: 5 categories, overall grade, improvement priorities; 4 dedicated tests)
 - [x] **5.4** Dashboard metrics on AdminHomePage — shipped (SystemMetricsPanel component: overall grade, 5 stat cards, improvement priorities, refresh button)
-- [ ] **5.5** Trend tracking over time
+- [x] **5.5** Trend tracking over time — shipped (metric snapshots table migration, saveMetricSnapshot/listMetricSnapshots store fns, computeTrends pure fn with 5 tests, endpoint saves snapshot + returns trends, SystemMetricsPanel trend section with improving/declining/stable arrows)
 
 ## Phase 0 completed
 - [x] Repo cloned and analyzed

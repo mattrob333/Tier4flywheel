@@ -3,7 +3,7 @@
 **Spec source:** README.md, designspec.md, copyrewrite.md, docs-internal/advisor-audit-amendment-plan.md
 **Repo:** https://github.com/mattrob333/Tier4flywheel
 **Workspace:** ~/Tier4flywheel
-**Status:** 🏗️ Production live site + functional audit pipeline — Phase 5 Learning Loop in progress (5.1–5.4 complete)
+**Status:** 🏗️ Production live site + functional audit pipeline — Phases 3–5 COMPLETE (all tasks shipped)
 
 ## Architecture: Two-Tier Build Loop
 - Inner Loop (cron TBD) — every 10m: Check → Test → Advance → Repeat. Self-pauses both crons at a genuine stopping point.
@@ -34,7 +34,7 @@
 - ✅ Clerk auth + advisor password gate
 - ✅ Admin dashboard with audit history
 - ✅ Superuser visibility across all advisor audits
-- ✅ 30 tests across 4 test files
+- ✅ 35 tests across 4 test files
 
 **Infrastructure:**
 - ✅ Vercel deployment with function configs
@@ -60,12 +60,12 @@
 - ✅ Proposal UI: <Markdown> renderer with editable mode + value case display
 - ✅ Populate `audit_proposals` economic fields
 
-**Phase 5 — Learning Loop (IN PROGRESS — 5.1–5.4 complete):**
+**Phase 5 — Learning Loop (COMPLETE):**
 - ✅ Extend export with economic_impact, readout, proposal blocks
 - ✅ System Improvement Audit (batch endpoint with computeSystemMetrics)
 - ✅ Evaluation Agent scoring categories (computeQualityScores: 5 categories, grades, improvement priorities)
 - ✅ Dashboard metrics panel on AdminHomePage (SystemMetricsPanel)
-- ⬜ Trend tracking over time (Phase 5.5 — last remaining task)
+- ✅ Trend tracking over time (metric snapshots table, computeTrends, UI trend indicators)
 
 **Plus some loose ends:**
 - ⬜ A few `audit-report.js` legacy synchronous path files still exist (cleanup — annotated @deprecated, safe to leave until Phases 3-5 verified live)
@@ -84,10 +84,10 @@
 - **No Pedigree/SKU names in client-facing output** — that's what the three-layer split is for.
 
 ## Open Issues / Blockers
-- None — master is green (30/30 tests, build ✓). Phase 5.1–5.4 complete; Phase 5.5 (trend tracking) next.
+- None — master is green (35/35 tests, build ✓). ALL Phases 3–5 complete.
 
 ## Next Action
-- **Phase 5.5: Trend tracking over time** — Phases 5.1–5.4 complete (export blocks, system improvement endpoint with computeSystemMetrics + computeQualityScores, dashboard metrics panel on AdminHomePage). Next: add trend tracking — store periodic metric snapshots and surface trends (improving/declining/stable) so the learning loop can show progress over time.
+- **ALL PHASES 3–5 COMPLETE.** No remaining tasks from the amendment plan. Master is green (35/35 tests, build ✓). The only loose end is the `audit-report.js` legacy files (annotated @deprecated, safe to leave). The new `audit_metric_snapshots` migration needs to be applied to the production Supabase instance for trend tracking to persist snapshots.
 
 ## Pitfalls / Notes for Future Ticks
 - This is the actual tier4intelligence.com — treat with care
@@ -97,4 +97,4 @@
 - The old synchronous audit-report.js path is dead code, now annotated @deprecated — don't delete until Phases 3-5 verified live
 - All three Phase-0 course corrections are RESOLVED (commit d0ae3cb): master builds clean, parse-model fallback chain is correct, legacy files annotated
 
-**Last Updated:** 2026-06-22 — Phase 5.3–5.4 shipped (scoring categories confirmed complete, dashboard metrics panel added to AdminHomePage); master green (30/30 tests); 5.5 trend tracking next
+**Last Updated:** 2026-06-22 — Phase 5.5 shipped (trend tracking: metric snapshots migration, computeTrends, UI trend indicators). ALL PHASES 3–5 COMPLETE. Master green (35/35 tests).

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeSystemMetrics, computeQualityScores } from '../api/audit-system-improvement.js';
+import { computeSystemMetrics, computeQualityScores, computeTrends } from '../api/audit-system-improvement.js';
 
 test('computeSystemMetrics returns zeroed structure for empty input', () => {
   const result = computeSystemMetrics([]);
@@ -200,4 +200,57 @@ test('computeQualityScores computes overall score as mean of valid categories', 
   // Scores: 100, 80, 60, 50 + report_completeness=100 → mean = (100+80+60+50+100)/5 = 78
   assert.equal(scores.overall_score, 78);
   assert.equal(scores.overall_grade, 'C');
+});
+
+// --- computeTrends tests ---
+
+test('computeTrends returns insufficient_data for fewer than 2 snapshots', () => {
+  assert.equal(computeTrends([]).status, 'insufficient_data');
+  assert.equal(computeTrends([{ overall_score: 80 }]).status, 'insufficient_data');
+});
+
+test('computeTrends detects improving trend', () => {
+  const snapshots = [
+    { economic_capture_rate: 0.5, validation_rate: 0.6, overall_score: 50, created_at: '2026-01-01' },
+    { economic_capture_rate: 0.7, validation_rate: 0.8, overall_score: 70, created_at: '2026-06-01' },
+  ];
+  const trends = computeTrends(snapshots);
+  assert.equal(trends.status, 'improving');
+  assert.equal(trends.snapshot_count, 2);
+  const captureTrend = trends.comparisons.find((c) => c.field === 'economic_capture_rate');
+  assert.equal(captureTrend.direction, 'improving');
+  assert.equal(captureTrend.delta, 0.2);
+});
+
+test('computeTrends detects declining trend', () => {
+  const snapshots = [
+    { economic_capture_rate: 0.8, validation_rate: 0.9, overall_score: 85, created_at: '2026-01-01' },
+    { economic_capture_rate: 0.5, validation_rate: 0.6, overall_score: 60, created_at: '2026-06-01' },
+  ];
+  const trends = computeTrends(snapshots);
+  assert.equal(trends.status, 'declining');
+});
+
+test('computeTrends detects stable trend within 2% threshold', () => {
+  const snapshots = [
+    { economic_capture_rate: 0.80, validation_rate: 0.80, overall_score: 80, created_at: '2026-01-01' },
+    { economic_capture_rate: 0.81, validation_rate: 0.79, overall_score: 81, created_at: '2026-06-01' },
+  ];
+  const trends = computeTrends(snapshots);
+  // Deltas are 0.01, -0.01, 1 → all within 2% threshold for rates, overall_score delta=1
+  const captureTrend = trends.comparisons.find((c) => c.field === 'economic_capture_rate');
+  assert.equal(captureTrend.direction, 'stable');
+});
+
+test('computeTrends handles null values gracefully', () => {
+  const snapshots = [
+    { economic_capture_rate: null, validation_rate: 0.5, overall_score: 50, created_at: '2026-01-01' },
+    { economic_capture_rate: 0.8, validation_rate: null, overall_score: 70, created_at: '2026-06-01' },
+  ];
+  const trends = computeTrends(snapshots);
+  // Only overall_score has both values → 1 comparison
+  const fields = trends.comparisons.map((c) => c.field);
+  assert.ok(fields.includes('overall_score'));
+  assert.ok(!fields.includes('economic_capture_rate'));
+  assert.ok(!fields.includes('validation_rate'));
 });

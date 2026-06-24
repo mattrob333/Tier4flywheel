@@ -1,6 +1,27 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
-import { ArrowLeft, ArrowRight, Clipboard, Download, Mail, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Clipboard,
+  ClipboardList,
+  DollarSign,
+  Download,
+  FileText,
+  Flag,
+  HelpCircle,
+  Lightbulb,
+  ListChecks,
+  Mail,
+  Milestone,
+  RefreshCw,
+  Rocket,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
 import Markdown from '../components/Markdown';
 import { isAdvisorAuthBypass } from '../lib/advisorAuthBypass';
@@ -72,7 +93,9 @@ const STYLE = `
 .t4-score-big .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:40px;font-weight:700;color:var(--t4-good);line-height:1}
 .t4-score-big .b{font-size:12px;color:var(--t4-mut);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
 .t4-sec{margin:36px 0}
-.t4-sec h3{font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--t4-amber);border-bottom:2px solid rgba(201,168,76,.22);padding-bottom:10px;margin:0 0 16px;font-weight:800}
+.t4-sec h3{display:flex;align-items:center;gap:11px;font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--t4-amber);border-bottom:2px solid rgba(201,168,76,.22);padding-bottom:10px;margin:0 0 16px;font-weight:800}
+.t4-sec-ico{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:rgba(94,192,138,.12);border:1px solid rgba(94,192,138,.3);color:var(--t4-steel);flex:0 0 30px}
+.t4-sec-ico svg{width:17px;height:17px}
 .t4-geo-grid{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:720px){.t4-geo-grid{grid-template-columns:1fr 1fr}}
 .t4-geo-metric{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px 14px}
@@ -90,6 +113,13 @@ const STYLE = `
 .t4-finding h4{font-size:16.5px;margin:0;color:#fff;font-weight:700}
 .t4-finding p{font-size:14.5px;margin:6px 0;line-height:1.6}
 .t4-finding .lab{color:var(--t4-mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
+.t4-find-lead{font-size:15.5px;color:#fff;font-weight:600;line-height:1.55;margin:2px 0 12px}
+.t4-find-item{padding:11px 0;border-top:1px solid rgba(255,255,255,.08)}
+.t4-find-item:first-of-type{border-top:none;padding-top:2px}
+.t4-find-item .k{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--t4-amber-dim);margin-bottom:5px}
+.t4-find-item .k svg{width:13px;height:13px}
+.t4-find-item .v{font-size:14.5px;line-height:1.62;color:rgba(240,242,245,.9)}
+.t4-find-ev{color:rgba(240,242,245,.66)}
 .t4-tbl{width:100%;border-collapse:collapse;font-size:14px}
 .t4-tbl th{text-align:left;color:var(--t4-mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;padding:9px 11px;border-bottom:1px solid var(--t4-line)}
 .t4-tbl td{padding:11px 11px;border-bottom:1px solid var(--t4-line);vertical-align:top;line-height:1.55}
@@ -545,6 +575,25 @@ function tagClass(value) {
   return String(value || 'Medium').replace(/\s+/g, '');
 }
 
+// Section header with a small icon chip so the report is scannable at a glance
+// (important on a screen share, not just a wall of headings).
+function SectionHeading({ icon: Icon, children }) {
+  return (
+    <h3>
+      {Icon ? <span className="t4-sec-ico"><Icon /></span> : null}
+      {children}
+    </h3>
+  );
+}
+
+// Color the domain score badge by value so high/low areas pop without reading.
+function scoreTag(score) {
+  const n = Number(score) || 0;
+  if (n >= 3.5) return 'tag-High';
+  if (n >= 2.5) return 'tag-Med';
+  return 'tag-Low';
+}
+
 function domainWhy(domain) {
   return domain?.why_it_matters || domain?.rationale || '';
 }
@@ -996,7 +1045,7 @@ function Report({ rep, client, type, advanced = false }) {
       </div>
 
       <div className="t4-sec">
-        <h3>Executive Summary</h3>
+        <SectionHeading icon={FileText}>Executive Summary</SectionHeading>
         <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.execSummary}</p>
         <ol style={{ fontSize: 15, lineHeight: 1.6, paddingLeft: 20, marginTop: 12 }}>
           {(r.topFindings || []).map((f, k) => (
@@ -1009,14 +1058,14 @@ function Report({ rep, client, type, advanced = false }) {
 
       {r.business_risk && (
         <div className="t4-sec">
-          <h3>Business Risk</h3>
+          <SectionHeading icon={AlertTriangle}>Business Risk</SectionHeading>
           <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.business_risk}</p>
         </div>
       )}
 
       {r.recommended_first_pilot && (
         <div className="t4-sec">
-          <h3>Recommended First Pilot</h3>
+          <SectionHeading icon={Rocket}>Recommended First Pilot</SectionHeading>
           <div className="t4-finding">
             <div className="ft">
               <h4>{r.recommended_first_pilot.title}</h4>
@@ -1061,41 +1110,41 @@ function Report({ rep, client, type, advanced = false }) {
       )}
 
       <div className="t4-sec">
-        <h3>Scorecard</h3>
+        <SectionHeading icon={BarChart3}>Scorecard</SectionHeading>
         {(r.domains || []).map((d, k) => (
           <Gauge key={k} name={d.name} score={d.score} />
         ))}
       </div>
 
       <div className="t4-sec">
-        <h3>Domain Findings</h3>
+        <SectionHeading icon={ListChecks}>Domain Findings</SectionHeading>
         {(r.domains || []).map((d, k) => (
           <div className="t4-finding" key={k}>
             <div className="ft">
               <h4>{d.name}</h4>
-              <span className="t4-tag tag-Med">{d.score}/5</span>
+              <span className={`t4-tag ${scoreTag(d.score)}`}>{d.score}/5</span>
             </div>
-            <p>{d.finding}</p>
-            <p>
-              <span className="lab">Means | </span>
-              {d.meaning}
-            </p>
-            <p style={{ color: 'var(--t4-mut)' }}>
-              <span className="lab">Why it matters | </span>
-              {domainWhy(d)}
-            </p>
+            <p className="t4-find-lead">{d.finding}</p>
+            <div className="t4-find-item">
+              <div className="k">Means</div>
+              <div className="v">{d.meaning}</div>
+            </div>
+            <div className="t4-find-item">
+              <div className="k">Why it matters</div>
+              <div className="v">{domainWhy(d)}</div>
+            </div>
             {d.evidence && (
-              <p style={{ color: 'var(--t4-mut)' }}>
-                <span className="lab">Evidence | </span>
-                {d.evidence}
-              </p>
+              <div className="t4-find-item">
+                <div className="k">Evidence</div>
+                <div className="v t4-find-ev">{d.evidence}</div>
+              </div>
             )}
           </div>
         ))}
       </div>
 
       <div className="t4-sec">
-        <h3>Recommendations</h3>
+        <SectionHeading icon={Lightbulb}>Recommendations</SectionHeading>
         <table className="t4-tbl">
           <thead>
             <tr>
@@ -1129,7 +1178,7 @@ function Report({ rep, client, type, advanced = false }) {
       </div>
 
       <div className="t4-sec">
-        <h3>{roadmapTitle(r)}</h3>
+        <SectionHeading icon={Milestone}>{roadmapTitle(r)}</SectionHeading>
         {roadmapPhases(r).map((p, k) => (
           <div className="t4-phase" key={k}>
             <div className="pt">
@@ -1146,7 +1195,7 @@ function Report({ rep, client, type, advanced = false }) {
 
       {nextSteps.length > 0 && (
         <div className="t4-sec">
-          <h3>Next Step Options</h3>
+          <SectionHeading icon={Flag}>Next Step Options</SectionHeading>
           <ul style={{ fontSize: 15, lineHeight: 1.6, paddingLeft: 20 }}>
             {nextSteps.map((s, k) => (
               <li key={k} style={{ margin: '7px 0' }}>
@@ -1159,7 +1208,7 @@ function Report({ rep, client, type, advanced = false }) {
 
       {r.closing && (
         <div className="t4-sec">
-          <h3>Closing</h3>
+          <SectionHeading icon={CheckCircle2}>Closing</SectionHeading>
           <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.closing}</p>
         </div>
       )}
@@ -1188,8 +1237,7 @@ function EconomicOpportunity({ economic }) {
     economic.status === 'insufficient_data' || economic.status === 'not_assessed';
 
   return (
-    <div className="t4-sec">
-      <h3>Economic Opportunity Assessment</h3>
+    <div className="t4-sec" style={{ margin: '0 0 18px' }}>
       {insufficient ? (
         <div className="t4-finding">
           <p>Economic impact was not fully quantified in this call.</p>
@@ -1444,13 +1492,13 @@ function BuildPackage({ pkg }) {
     <div>
       {pkg.overview && (
         <div className="t4-sec">
-          <h3>Overview</h3>
+          <SectionHeading icon={FileText}>Overview</SectionHeading>
           <p style={{ fontSize: 14 }}>{pkg.overview}</p>
         </div>
       )}
 
       <div className="t4-sec">
-        <h3>Product Spec</h3>
+        <SectionHeading icon={ListChecks}>Product Spec</SectionHeading>
         {product.problem && (
           <div className="t4-finding">
             <h4>Problem</h4>
@@ -1491,7 +1539,7 @@ function BuildPackage({ pkg }) {
       </div>
 
       <div className="t4-sec">
-        <h3>Technical Spec</h3>
+        <SectionHeading icon={BarChart3}>Technical Spec</SectionHeading>
         {tech.recommended_architecture && (
           <div className="t4-finding">
             <h4>Recommended architecture</h4>
@@ -1518,7 +1566,7 @@ function BuildPackage({ pkg }) {
       </div>
 
       <div className="t4-sec">
-        <h3>Build Plan</h3>
+        <SectionHeading icon={Milestone}>Build Plan</SectionHeading>
         {phases.map((p, k) => (
           <div className="t4-phase" key={k}>
             <div className="pt">
@@ -1546,7 +1594,7 @@ function BuildPackage({ pkg }) {
 
       {cleanList(pkg.open_questions).length > 0 && (
         <div className="t4-sec">
-          <h3>Open Questions</h3>
+          <SectionHeading icon={HelpCircle}>Open Questions</SectionHeading>
           <SimpleList items={pkg.open_questions} />
         </div>
       )}
@@ -2255,7 +2303,7 @@ Looking forward to it.`
             <Report rep={report} client={client} type={type} advanced={advanced} />
             {advanced && !report.geo_audit && (
               <div className="t4-sec">
-                <h3>Economic Opportunity</h3>
+                <SectionHeading icon={DollarSign}>Economic Opportunity</SectionHeading>
                 {economic && <EconomicOpportunity economic={economic} />}
                 {!economic && !econBusy && (
                   <p className="t4-sub" style={{ marginTop: 0 }}>
@@ -2280,7 +2328,7 @@ Looking forward to it.`
             )}
             {!report.geo_audit && (
               <div className="t4-sec">
-                <h3>Post-Call Email</h3>
+                <SectionHeading icon={Mail}>Post-Call Email</SectionHeading>
                 {followup ? (
                   <>
                     <div className="t4-emailbox">{followup}</div>
@@ -2302,9 +2350,9 @@ Looking forward to it.`
             )}
             {!report.geo_audit && (
               <div className="t4-sec">
-                <h3>
+                <SectionHeading icon={HelpCircle}>
                   Second-Call Questions <span className="t4-teamtag">Team use only</span>
-                </h3>
+                </SectionHeading>
                 <p className="t4-sub" style={{ marginTop: 0 }}>
                   Not shown to the client. On the next call, share the report and talk through it top to bottom, then
                   work these few gaps into the conversation. The client's answers get captured when you paste the
@@ -2339,7 +2387,7 @@ Looking forward to it.`
             )}
             {!report.geo_audit && (
               <div className="t4-sec">
-                <h3>Second Call - Paste The Transcript</h3>
+                <SectionHeading icon={ClipboardList}>Second Call - Paste The Transcript</SectionHeading>
                 <p className="t4-sub" style={{ marginTop: 0 }}>
                   Once you've had the review call, paste the transcript here. We'll turn it into the client proposal,
                   then you can generate the developer build package.

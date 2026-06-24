@@ -1682,6 +1682,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [buildPackage, setBuildPackage] = useState(null);
   const [buildPackageText, setBuildPackageText] = useState('');
   const [econBusy, setEconBusy] = useState(false);
+  const [econError, setEconError] = useState('');
 
   const type = getAuditType(client.typeKey);
 
@@ -1766,6 +1767,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     setProposalJson(null);
     setProposalStatus('draft');
     setEconomic(null);
+    setEconError('');
     setBuildPackage(null);
     setBuildPackageText('');
     setErr('');
@@ -1899,10 +1901,16 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setProposalJson(null);
         setProposalStatus('draft');
         setEconomic(null);
+        setEconError('');
         setBuildPackage(null);
         setBuildPackageText('');
-        await saveAuditMilestone('report_ready', { report: result, followup: '' });
+        const savedAudit = await saveAuditMilestone('report_ready', { report: result, followup: '' });
         setStep(4);
+        // Economic opportunity is part of the report: auto-run it in the
+        // background (advanced view only) so the card fills in without a click.
+        if (advanced && !result.geo_audit) {
+          doEconomicExtract(savedAudit?.id || auditId || undefined);
+        }
       } finally {
         setReportProgress('');
       }
@@ -1917,11 +1925,13 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
 
   // Local loading (not the full-page runStep) so the report stays on screen
   // while economics calculate, and the result lands inline at the report bottom.
-  const doEconomicExtract = async () => {
-    setErr('');
+  // Runs automatically right after a report is generated (see doReport); the
+  // optional forcedAuditId covers that case, where auditId state isn't set yet.
+  const doEconomicExtract = async (forcedAuditId) => {
     setEconBusy(true);
+    setEconError('');
     try {
-      let nextAuditId = auditId;
+      let nextAuditId = typeof forcedAuditId === 'string' ? forcedAuditId : auditId;
       if (!nextAuditId) {
         const saved = await saveAuditMilestone('report_ready');
         nextAuditId = saved?.id || '';
@@ -1930,7 +1940,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       const result = await postJSON('/api/audit-economic-extract', { audit_id: nextAuditId }, getAuthHeaders);
       setEconomic(result.economic || null);
     } catch (error) {
-      setErr(error.message || 'Could not extract economics. Please try again.');
+      // Auto-run is best-effort; surface a quiet inline error, never block the report.
+      setEconError(error.message || 'Could not calculate the economic opportunity. Use Re-run to try again.');
     } finally {
       setEconBusy(false);
     }
@@ -2273,20 +2284,21 @@ Looking forward to it.`
               <div className="t4-sec">
                 <h3>Economic Opportunity</h3>
                 {economic && <EconomicOpportunity economic={economic} />}
-                {!economic && (
+                {!economic && !econBusy && (
                   <p className="t4-sub" style={{ marginTop: 0 }}>
-                    Quantify the cost of the problem from the discovery call. Numbers come only from what the client
-                    said or what follows from it - nothing is invented.
+                    The cost of the problem from the discovery call - drawn only from what the client said or what
+                    follows from it, nothing invented. It runs automatically with the report.
                   </p>
                 )}
+                {econError && <p className="t4-save-note" style={{ marginTop: 0 }}>{econError}</p>}
                 <div className="t4-btnrow">
-                  <button className="t4-ghost" type="button" onClick={doEconomicExtract} disabled={econBusy}>
+                  <button className="t4-ghost" type="button" onClick={() => doEconomicExtract()} disabled={econBusy}>
                     {econBusy ? (
                       <><span className="t4-spin-sm" /> Calculating...</>
                     ) : economic ? (
-                      <><RefreshCw /> Re-run economic extraction</>
+                      <><RefreshCw /> Re-run</>
                     ) : (
-                      'Extract economic opportunity'
+                      'Calculate economic opportunity'
                     )}
                   </button>
                   {econBusy && <span className="t4-inline-load">Reading the transcript - about 20 seconds</span>}

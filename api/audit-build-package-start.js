@@ -3,7 +3,7 @@ import {
   buildPackageSchema,
 } from './_advisorAuditPrompts.js';
 import {
-  createStructuredResponse,
+  createBackgroundStructuredResponse,
   handleApiError,
   readJson,
   requireAdvisorAuth,
@@ -12,14 +12,15 @@ import {
 import {
   getAdvisorAudit,
   getAuditReadout,
-  saveAuditProposal,
 } from './_advisorAuditStore.js';
-import { buildBuildPackageText } from './_readoutProposalText.js';
 
 function clean(value, max = 60000) {
   return typeof value === 'string' ? value.slice(0, max).trim() : '';
 }
 
+// Kicks off the developer build package as a background job (like the report)
+// so the long generation never hits the function timeout. Status is polled by
+// /api/audit-build-package-status.
 export default async function handler(req, res) {
   if (!requirePost(req, res)) return;
 
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
       proposal.proposal_text || '',
     ].join('\n');
 
-    const buildPackage = await createStructuredResponse({
+    const response = await createBackgroundStructuredResponse({
       instructions: buildPackagePrompt,
       input,
       schema: buildPackageSchema,
@@ -72,41 +73,11 @@ export default async function handler(req, res) {
       reportModel: true,
     });
 
-    const buildPackageText = buildBuildPackageText(buildPackage, audit.client_name);
-
-    // Persist alongside the existing proposal so it reloads with the audit.
-    // No schema migration needed: the package lives inside proposal_json.
-    const mergedJson = {
-      ...(proposal.proposal_json && typeof proposal.proposal_json === 'object' ? proposal.proposal_json : {}),
-      build_package: buildPackage,
-      build_package_text: buildPackageText,
-    };
-
-    let saved = proposal;
-    try {
-      saved = await saveAuditProposal(auth, audit.id, {
-        proposal_id: proposal.id,
-        readout_id: proposal.readout_id || readout?.id || undefined,
-        proposal_type: proposal.proposal_type,
-        proposal_title: proposal.proposal_title,
-        proposal_json: mergedJson,
-        proposal_text: proposal.proposal_text,
-        proposal_status: proposal.proposal_status || 'draft',
-        pricing_notes: proposal.pricing_notes || '',
-        economic_impact_id: proposal.economic_impact_id || null,
-        includes_value_case: Boolean(proposal.includes_value_case),
-      });
-    } catch (error) {
-      // Persisting is best-effort; still return the generated package.
-      console.warn('[audit-build-package] could not persist build package', error?.message || error);
-    }
-
-    return res.status(200).json({
-      build_package: buildPackage,
-      build_package_text: buildPackageText,
-      proposal: saved,
+    return res.status(202).json({
+      response_id: response.id,
+      status: response.status || 'queued',
     });
   } catch (error) {
-    return handleApiError(res, error, 'Build package request failed.');
+    return handleApiError(res, error, 'Could not start the build package.');
   }
 }

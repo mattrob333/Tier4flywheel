@@ -47,18 +47,23 @@ function buildValueCaseText(vc) {
   const paybackLow = vc.payback_months_low != null ? `${vc.payback_months_low} mo` : '';
   const paybackHigh = vc.payback_months_high != null ? `${vc.payback_months_high} mo` : '';
 
+  // Each metric is its own bullet so markdown renders them on separate lines
+  // instead of collapsing the block into one run-on paragraph.
+  const metrics = [
+    cost ? `**Estimated annual problem cost:** ${cost}` : '',
+    (savingsLow || savingsHigh) ? `**Estimated annual savings:** ${savingsLow || '—'} – ${savingsHigh || '—'} / yr` : '',
+    (invLow || invHigh) ? `**Investment range:** ${invLow || '—'} – ${invHigh || '—'}` : '',
+    (paybackLow || paybackHigh) ? `**Estimated payback:** ${paybackLow || '—'} – ${paybackHigh || '—'}` : '',
+    vc.confidence ? `**Confidence:** ${vc.confidence}` : '',
+  ].filter(Boolean).map((line) => `- ${line}`).join('\n');
+
   return [
     '## Value Case',
     vc.headline || '',
-    '',
-    cost ? `Estimated annual problem cost: ${cost}` : '',
-    (savingsLow || savingsHigh) ? `Estimated annual savings range: ${savingsLow || '—'} – ${savingsHigh || '—'}` : '',
-    (invLow || invHigh) ? `Investment range: ${invLow || '—'} – ${invHigh || '—'}` : '',
-    (paybackLow || paybackHigh) ? `Estimated payback: ${paybackLow || '—'} – ${paybackHigh || '—'}` : '',
-    vc.confidence ? `Confidence: ${vc.confidence}` : '',
-    vc.directional_note ? `Note: ${vc.directional_note}` : '',
-    vc.basis ? `Basis: ${vc.basis}` : '',
-  ].filter((part) => part !== '').join('\n');
+    metrics,
+    vc.directional_note ? `_${vc.directional_note}_` : '',
+    vc.basis ? `**Basis:** ${vc.basis}` : '',
+  ].filter(Boolean).join('\n\n');
 }
 
 export function buildProposalText(proposal) {

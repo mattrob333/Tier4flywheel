@@ -156,14 +156,15 @@ const STYLE = `
 .t4-auth{max-width:460px;margin:0 auto;padding:72px 20px;text-align:center}
 .t4-auth h1{font-size:24px;color:#fff;margin:0 0 8px}
 .t4-auth p{color:var(--t4-mut);font-size:14px;margin:0 0 22px}
-.t4-md{font-size:14px;color:var(--t4-txt)}
-.t4-md h1{font-size:18px;color:#fff;margin:14px 0 8px}
-.t4-md h2{font-size:16px;color:#fff;margin:14px 0 6px}
-.t4-md h3{font-size:14px;color:var(--t4-amber-dim);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.08em}
-.t4-md p{margin:6px 0}
-.t4-md ul,.t4-md ol{margin:6px 0;padding-left:20px}
-.t4-md li{margin:3px 0}
-.t4-md strong{color:#fff}
+.t4-md{font-size:15.5px;line-height:1.68;color:var(--t4-txt)}
+.t4-md h1{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.01em;margin:8px 0 14px;line-height:1.2}
+.t4-md h2{font-size:16px;font-weight:800;color:var(--t4-amber);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid rgba(201,168,76,.22);padding-bottom:9px;margin:30px 0 14px}
+.t4-md h3{font-size:14px;color:var(--t4-amber-dim);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.t4-md p{margin:10px 0;line-height:1.68}
+.t4-md ul,.t4-md ol{margin:10px 0;padding-left:22px}
+.t4-md li{margin:7px 0;line-height:1.6}
+.t4-md strong{color:#fff;font-weight:700}
+.t4-md h1+p,.t4-md h2+p{margin-top:6px}
 .t4-internal{border:1px dashed var(--t4-amber-dim);border-radius:var(--t4-r);background:rgba(201,168,76,.06);padding:14px 16px;margin-top:18px}
 .t4-internal>summary{cursor:pointer;font-weight:800;color:var(--t4-amber);font-size:13px;letter-spacing:.04em}
 .t4-internal .lab{color:var(--t4-amber-dim)}
@@ -2058,16 +2059,47 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       setProposalStatus(result.proposal?.proposal_status || nextStatus);
     });
 
+  // Build package is a large generation, so it runs as a background job (start
+  // + poll) like the audit report - otherwise it blows past the function
+  // timeout and returns a 504.
   const doBuildPackage = () =>
     runStep(async () => {
-      const result = await postJSON(
-        '/api/audit-build-package',
+      setReportProgress('Starting the developer build package...');
+      const startedAt = Date.now();
+      const started = await postJSON(
+        '/api/audit-build-package-start',
         { audit_id: auditId, readout_id: readoutId || undefined },
         getAuthHeaders,
       );
+      if (!started.response_id) {
+        throw new Error('The build package job did not start. Please try again.');
+      }
+
+      let result = null;
+      while (!result) {
+        await wait(REPORT_POLL_INTERVAL_MS);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed > REPORT_MAX_WAIT_MS) {
+          throw new Error('The build package is still running after several minutes. Reopen this saved audit and try again.');
+        }
+        setReportProgress(`Writing the build package in the background (${formatElapsed(elapsed)} elapsed)...`);
+        const status = await postJSONWithRetry(
+          '/api/audit-build-package-status',
+          { response_id: started.response_id, audit_id: auditId },
+          getAuthHeaders,
+          2,
+        );
+        if (status.status === 'completed') {
+          result = status;
+        } else if (!['queued', 'in_progress'].includes(status.status)) {
+          throw new Error(`The build package ended with status ${status.status || 'unknown'}.`);
+        }
+      }
+
       setBuildPackage(result.build_package || null);
       setBuildPackageText(result.build_package_text || '');
       if (result.proposal?.proposal_json) setProposalJson(result.proposal.proposal_json);
+      setReportProgress('');
     });
 
   const clientNote = research

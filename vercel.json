@@ -126,8 +126,12 @@
       "maxDuration": 60,
       "memory": 1024
     },
-    "api/audit-build-package.js": {
-      "maxDuration": 60,
+    "api/audit-build-package-start.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/audit-build-package-status.js": {
+      "maxDuration": 30,
       "memory": 1024
     },
     "api/audit-followup.js": {

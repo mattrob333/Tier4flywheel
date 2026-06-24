@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
-import { ClipboardList, Search } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, ClipboardList, Search } from 'lucide-react';
 import AdminAuditHistory from '../components/AdminAuditHistory';
 import SystemMetricsPanel from '../components/SystemMetricsPanel';
 import AdvisorGate from '../components/AdvisorGate';
@@ -11,6 +11,7 @@ const STYLE = `
 .admin-wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
 .admin-top{display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:18px;margin-bottom:48px}
 .admin-badge{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;font-weight:800;letter-spacing:.14em;color:#fff;background:#5EC08A;border-radius:6px;padding:5px 9px}
+.admin-brand-icon{width:40px;height:40px;object-fit:contain;flex:0 0 40px;filter:drop-shadow(0 0 16px rgba(94,192,138,.3))}
 .admin-top h1{font-size:18px;font-weight:800;margin:0;color:#fff}
 .admin-top p{margin:0;color:rgba(240,242,245,.58);font-size:12px}
 .admin-user{margin-left:auto}
@@ -18,8 +19,14 @@ const STYLE = `
 .admin-eyebrow{display:inline-flex;width:fit-content;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.1);color:#C9A84C;border-radius:999px;padding:7px 12px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase}
 .admin-title{font-size:42px;line-height:1.04;letter-spacing:-.04em;font-weight:900;color:#fff;margin:20px 0 12px;max-width:760px}
 .admin-sub{font-size:17px;line-height:1.7;color:rgba(240,242,245,.72);max-width:720px;margin:0}
-.admin-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.admin-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:22px}
 @media(min-width:760px){.admin-grid{grid-template-columns:1fr 1fr}}
+.admin-metrics-wrap{margin:0 0 22px}
+.admin-metrics-toggle{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:rgba(240,242,245,.62);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.14s}
+.admin-metrics-toggle:hover{border-color:rgba(94,192,138,.4);color:#5EC08A}
+.admin-metrics-toggle svg{width:15px;height:15px}
+.admin-metrics-toggle .chev{margin-left:2px;opacity:.7}
+.admin-metrics-wrap .metrics-panel{margin-top:12px;margin-bottom:0}
 .admin-card{display:flex;flex-direction:column;gap:18px;text-decoration:none;color:inherit;background:rgba(26,31,46,.82);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:24px;min-height:240px;box-shadow:0 24px 70px rgba(0,0,0,.18);transition:.16s}
 .admin-card:hover{transform:translateY(-2px);border-color:rgba(94,192,138,.42);box-shadow:0 28px 90px rgba(94,192,138,.08)}
 .admin-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(94,192,138,.1);border:1px solid rgba(94,192,138,.28);color:#5EC08A}
@@ -39,6 +46,7 @@ function AdminDashboard({ devMode = false, getAuthHeaders }) {
   // Pipeline Metrics is an internal sales-ops view. Salespeople never see it;
   // only superusers (AUDIT_SUPERUSER_EMAILS) and local dev bypass do.
   const [isSuperuser, setIsSuperuser] = useState(devMode);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   useEffect(() => {
     if (devMode) return;
@@ -64,7 +72,7 @@ function AdminDashboard({ devMode = false, getAuthHeaders }) {
       <style>{STYLE}</style>
       <div className="admin-wrap">
         <div className="admin-top">
-          <span className="admin-badge">T4</span>
+          <img className="admin-brand-icon" src="/brand/tier4-icon-color.png" alt="Tier 4" />
           <div>
             <h1>Advisor Console</h1>
             <p>Tier 4 Intelligence | internal tools</p>
@@ -106,7 +114,22 @@ function AdminDashboard({ devMode = false, getAuthHeaders }) {
           </a>
         </div>
 
-        {isSuperuser && <SystemMetricsPanel getAuthHeaders={getAuthHeaders} />}
+        {isSuperuser && (
+          <div className="admin-metrics-wrap">
+            {showMetrics ? (
+              <>
+                <button className="admin-metrics-toggle" type="button" onClick={() => setShowMetrics(false)}>
+                  <Activity /> Hide pipeline metrics <ChevronUp className="chev" />
+                </button>
+                <SystemMetricsPanel getAuthHeaders={getAuthHeaders} />
+              </>
+            ) : (
+              <button className="admin-metrics-toggle" type="button" onClick={() => setShowMetrics(true)}>
+                <Activity /> Show pipeline metrics <ChevronDown className="chev" />
+              </button>
+            )}
+          </div>
+        )}
 
         <AdminAuditHistory getAuthHeaders={getAuthHeaders} />
 

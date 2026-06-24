@@ -152,10 +152,11 @@ const STYLE = `
 .t4-gap-body{flex:1;min-width:0}
 .t4-gap-topic{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t4-amber-dim);font-weight:700;margin-bottom:4px}
 .t4-gap-q{font-size:14.5px;color:#fff;font-weight:600;margin:0 0 5px;line-height:1.45}
-.t4-gap-why{font-size:12.5px;color:var(--t4-mut);margin:0;line-height:1.5}
+.t4-gap-why{font-size:13px;color:var(--t4-mut);margin:0;line-height:1.55}
+.t4-teamtag{display:inline-block;vertical-align:middle;margin-left:10px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t4-amber);background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:999px;padding:3px 8px;font-weight:700}
 `;
 
-const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Readout', 'Proposal', 'Dev Package'];
+const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Proposal', 'Dev Package'];
 const AGREEMENT_LEVELS = ['Unknown', 'Strongly agree', 'Mostly agree', 'Mixed', 'Mostly disagree'];
 const INTEREST_LEVELS = ['Unknown', 'High', 'Medium', 'Low', 'None'];
 const NEXT_STEPS = [
@@ -646,45 +647,6 @@ function buildGeoMarkdown(rep, client) {
     .filter(Boolean)
     .join('\n')
     .trim();
-}
-
-function defaultReadoutFields() {
-  return {
-    readout_call_date: '',
-    participants: '',
-    advisor_notes: '',
-    client_agreement_level: 'Unknown',
-    client_interest_level: 'Unknown',
-    selected_next_step: 'No Next Step Yet',
-    proposal_requested: false,
-    prd_requested: false,
-    geo_package_discussed: false,
-    pedigree_demo_discussed: false,
-    budget_discussed: false,
-    decision_maker_identified: false,
-    timeline_discussed: false,
-    objections_raised: false,
-  };
-}
-
-function readoutToFields(readout) {
-  return {
-    ...defaultReadoutFields(),
-    readout_call_date: readout?.readout_call_date || '',
-    participants: readout?.participants || '',
-    advisor_notes: readout?.advisor_notes || '',
-    client_agreement_level: readout?.client_agreement_level || 'Unknown',
-    client_interest_level: readout?.client_interest_level || 'Unknown',
-    selected_next_step: readout?.selected_next_step || 'No Next Step Yet',
-    proposal_requested: Boolean(readout?.proposal_requested),
-    prd_requested: Boolean(readout?.prd_requested),
-    geo_package_discussed: Boolean(readout?.geo_package_discussed),
-    pedigree_demo_discussed: Boolean(readout?.pedigree_demo_discussed),
-    budget_discussed: Boolean(readout?.budget_discussed),
-    decision_maker_identified: Boolean(readout?.decision_maker_identified),
-    timeline_discussed: Boolean(readout?.timeline_discussed),
-    objections_raised: Array.isArray(readout?.objections) && readout.objections.length > 0,
-  };
 }
 
 function roadmapTitle(report) {
@@ -1671,7 +1633,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [readoutGuide, setReadoutGuide] = useState(null);
   const [readoutGuideText, setReadoutGuideText] = useState('');
   const [readoutTranscript, setReadoutTranscript] = useState('');
-  const [readoutFields, setReadoutFields] = useState(defaultReadoutFields);
   const [proposalId, setProposalId] = useState('');
   const [proposalType, setProposalType] = useState('AI recommend');
   const [proposalText, setProposalText] = useState('');
@@ -1683,6 +1644,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [buildPackageText, setBuildPackageText] = useState('');
   const [econBusy, setEconBusy] = useState(false);
   const [econError, setEconError] = useState('');
+  const [guideBusy, setGuideBusy] = useState(false);
 
   const type = getAuditType(client.typeKey);
 
@@ -1709,7 +1671,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setReadoutGuide(row.readout?.readout_guide_json || null);
         setReadoutGuideText(row.readout?.readout_guide_text || '');
         setReadoutTranscript(row.readout?.readout_transcript_text || '');
-        setReadoutFields(readoutToFields(row.readout));
         setProposalId(row.proposal?.id || '');
         setProposalType(row.proposal?.proposal_type || 'AI recommend');
         setProposalText(row.proposal?.proposal_text || '');
@@ -1719,7 +1680,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setBuildPackage(savedPackage);
         setBuildPackageText(row.proposal?.proposal_json?.build_package_text || '');
         setStep(
-          savedPackage ? 7 : row.proposal ? 6 : row.readout ? 5 : row.report ? 4 : nextResearch ? 2 : 1,
+          savedPackage ? 6 : row.proposal ? 5 : row.report ? 4 : nextResearch ? 2 : 1,
         );
 
         if (row.report && !row.report.geo_audit) {
@@ -1760,7 +1721,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     setReadoutGuide(null);
     setReadoutGuideText('');
     setReadoutTranscript('');
-    setReadoutFields(defaultReadoutFields());
     setProposalId('');
     setProposalType('AI recommend');
     setProposalText('');
@@ -1895,7 +1855,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setReadoutGuide(null);
         setReadoutGuideText('');
         setReadoutTranscript('');
-        setReadoutFields(defaultReadoutFields());
         setProposalId('');
         setProposalText('');
         setProposalJson(null);
@@ -1906,10 +1865,13 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setBuildPackageText('');
         const savedAudit = await saveAuditMilestone('report_ready', { report: result, followup: '' });
         setStep(4);
-        // Economic opportunity is part of the report: auto-run it in the
-        // background (advanced view only) so the card fills in without a click.
-        if (advanced && !result.geo_audit) {
-          doEconomicExtract(savedAudit?.id || auditId || undefined);
+        // Everything that lands at the bottom of the report runs automatically,
+        // so the advisor never has to click an extra button: the second-call
+        // prep questions for everyone, and the economic card for the advanced view.
+        const reportAuditId = savedAudit?.id || auditId || undefined;
+        if (!result.geo_audit) {
+          doReadoutGuide(reportAuditId);
+          if (advanced) doEconomicExtract(reportAuditId);
         }
       } finally {
         setReportProgress('');
@@ -1947,14 +1909,18 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     }
   };
 
-  const doReadoutGuide = () =>
-    runStep(async () => {
-      let nextAuditId = auditId;
+  // Second-call prep questions ("worth asking on the next call"). Runs in the
+  // background on a local loading flag so the report stays on screen, and lands
+  // in the team-use section at the bottom of the report. No step change.
+  const doReadoutGuide = async (forcedAuditId) => {
+    setGuideBusy(true);
+    try {
+      let nextAuditId = typeof forcedAuditId === 'string' ? forcedAuditId : auditId;
       if (!nextAuditId) {
         const saved = await saveAuditMilestone('report_ready');
         nextAuditId = saved?.id || '';
       }
-      if (!nextAuditId) throw new Error('Save the audit before generating a readout guide.');
+      if (!nextAuditId) throw new Error('Save the audit before preparing questions.');
       const result = await postJSON(
         '/api/audit-readout-guide',
         { audit_id: nextAuditId, readout_id: readoutId || undefined },
@@ -1963,12 +1929,20 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       setReadoutId(result.readout?.id || readoutId);
       setReadoutGuide(result.guide || null);
       setReadoutGuideText(result.guide_text || '');
-      setStep(5);
-    });
+    } catch (error) {
+      setErr(error.message || 'Could not prepare the second-call questions.');
+    } finally {
+      setGuideBusy(false);
+    }
+  };
 
-  const saveReadoutTranscript = () =>
+  // Bottom-of-report action after the review call: save the second-call
+  // transcript (with the prep questions), then generate the proposal and move
+  // to the proposal step. One click turns the transcript into deliverables.
+  const submitSecondCall = () =>
     runStep(async () => {
-      const result = await postJSON(
+      setReportProgress('Saving the call transcript...');
+      const saved = await postJSON(
         '/api/audit-readout-transcript',
         {
           audit_id: auditId,
@@ -1976,26 +1950,25 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
           readout_guide_json: readoutGuide,
           readout_guide_text: readoutGuideText,
           readout_transcript_text: readoutTranscript,
-          advisor_notes: readoutFields.advisor_notes,
-          readout_call_date: readoutFields.readout_call_date || null,
-          participants: readoutFields.participants,
-          client_agreement_level: readoutFields.client_agreement_level,
-          client_interest_level: readoutFields.client_interest_level,
-          selected_next_step: readoutFields.selected_next_step,
-          proposal_requested: readoutFields.proposal_requested,
-          prd_requested: readoutFields.prd_requested,
-          geo_package_discussed: readoutFields.geo_package_discussed,
-          pedigree_demo_discussed: readoutFields.pedigree_demo_discussed,
-          budget_discussed: readoutFields.budget_discussed,
-          decision_maker_identified: readoutFields.decision_maker_identified,
-          timeline_discussed: readoutFields.timeline_discussed,
-          objections: readoutFields.objections_raised ? ['Objections raised during readout'] : [],
         },
         getAuthHeaders,
       );
-      setReadoutId(result.readout?.id || readoutId);
-      setReadoutFields(readoutToFields(result.readout));
-      setStep(6);
+      const nextReadoutId = saved.readout?.id || readoutId;
+      setReadoutId(nextReadoutId);
+
+      setReportProgress('Writing the proposal from the call...');
+      const result = await postJSON(
+        '/api/audit-proposal',
+        { audit_id: auditId, readout_id: nextReadoutId, proposal_type: proposalType },
+        getAuthHeaders,
+      );
+      setProposalId(result.proposal?.id || '');
+      setProposalType(result.proposal?.proposal_type || result.proposal_json?.proposal_type || proposalType);
+      setProposalJson(result.proposal_json || null);
+      setProposalText(result.proposal_text || '');
+      setProposalStatus(result.proposal?.proposal_status || 'draft');
+      setReportProgress('');
+      setStep(5);
     });
 
   const doProposal = () =>
@@ -2328,180 +2301,78 @@ Looking forward to it.`
               </div>
             )}
             {!report.geo_audit && (
-              <div className="t4-btnrow">
-                <button className="t4-btn" type="button" onClick={readoutGuideText ? () => setStep(5) : doReadoutGuide}>
-                  {readoutGuideText ? 'Continue to readout' : 'Generate Readout Guide'} <ArrowRight />
-                </button>
+              <div className="t4-sec">
+                <h3>
+                  Second-Call Questions <span className="t4-teamtag">Team use only</span>
+                </h3>
+                <p className="t4-sub" style={{ marginTop: 0 }}>
+                  Not shown to the client. On the next call, share the report and talk through it top to bottom, then
+                  work these few gaps into the conversation. The client's answers get captured when you paste the
+                  transcript below - you don't fill anything in by hand.
+                </p>
+                {guideBusy && !readoutGuide && (
+                  <div className="t4-inline-load"><span className="t4-spin-sm" /> Preparing questions...</div>
+                )}
+                {readoutGuide && <ReadoutAssistant guide={readoutGuide} />}
+                <div className="t4-btnrow">
+                  {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy questions" />}
+                  {readoutGuideText && (
+                    <button
+                      className="t4-ghost"
+                      type="button"
+                      onClick={() => downloadText(`${safeFileName(client.name)}-second-call-questions.md`, readoutGuideText)}
+                    >
+                      <Download /> Download
+                    </button>
+                  )}
+                  <button className="t4-ghost" type="button" onClick={() => doReadoutGuide()} disabled={guideBusy}>
+                    {guideBusy ? (
+                      <><span className="t4-spin-sm" /> Preparing...</>
+                    ) : readoutGuide ? (
+                      <><RefreshCw /> Regenerate</>
+                    ) : (
+                      'Prepare second-call questions'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+            {!report.geo_audit && (
+              <div className="t4-sec">
+                <h3>Second Call - Paste The Transcript</h3>
+                <p className="t4-sub" style={{ marginTop: 0 }}>
+                  Once you've had the review call, paste the transcript here. We'll turn it into the client proposal,
+                  then you can generate the developer build package.
+                </p>
+                <textarea
+                  className="t4-area big"
+                  value={readoutTranscript}
+                  onChange={(e) => setReadoutTranscript(e.target.value)}
+                  placeholder="Paste the second / review call transcript here..."
+                />
+                <div className="t4-btnrow">
+                  <button
+                    className="t4-btn"
+                    type="button"
+                    disabled={readoutTranscript.trim().length < 40}
+                    onClick={submitSecondCall}
+                  >
+                    Call complete - generate proposal <ArrowRight />
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
+
 
         {!busy && !loadingSaved && step === 5 && report && !report.geo_audit && (
           <div>
-            <div className="t4-eyebrow">Step 5 | Second Call</div>
-            <h2 className="t4-h2">Review the report together</h2>
+            <div className="t4-eyebrow">Step 5 | Proposal</div>
+            <h2 className="t4-h2">Your client proposal</h2>
             <p className="t4-sub">
-              Share the report on the call and talk it through. On the right are a few high-leverage things worth
-              asking - the gaps the first call left open. Then paste the second-call transcript below.
-            </p>
-
-            <div className="t4-readout">
-              <div className="t4-sec" style={{ marginTop: 0 }}>
-                <h3>The report (share this on the call)</h3>
-                <Report rep={report} client={client} type={type} advanced={advanced} />
-              </div>
-
-              <div className="t4-sec" style={{ marginTop: 0 }}>
-                <h3>Worth asking on this call</h3>
-                {readoutGuide ? (
-                  <>
-                    <ReadoutAssistant guide={readoutGuide} />
-                    <div className="t4-btnrow">
-                      {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy notes" />}
-                      {readoutGuideText && (
-                        <button
-                          className="t4-ghost"
-                          type="button"
-                          onClick={() => downloadText(`${safeFileName(client.name)}-talking-points.md`, readoutGuideText)}
-                        >
-                          <Download /> Download
-                        </button>
-                      )}
-                      <button className="t4-ghost" type="button" onClick={doReadoutGuide}>
-                        <RefreshCw /> Regenerate
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <button className="t4-btn" type="button" onClick={doReadoutGuide}>
-                    Get talking points <ArrowRight />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="t4-row">
-              <div className="t4-field">
-                <label>Readout call date</label>
-                <input
-                  className="t4-input"
-                  type="date"
-                  value={readoutFields.readout_call_date}
-                  onChange={(e) => setReadoutFields({ ...readoutFields, readout_call_date: e.target.value })}
-                />
-              </div>
-              <div className="t4-field">
-                <label>Participants</label>
-                <input
-                  className="t4-input"
-                  value={readoutFields.participants}
-                  onChange={(e) => setReadoutFields({ ...readoutFields, participants: e.target.value })}
-                  placeholder="Names, roles, decision makers..."
-                />
-              </div>
-            </div>
-
-            {advanced && (
-              <>
-                <div className="t4-row">
-                  <div className="t4-field">
-                    <label>Client agreed with findings</label>
-                    <select
-                      className="t4-select"
-                      value={readoutFields.client_agreement_level}
-                      onChange={(e) => setReadoutFields({ ...readoutFields, client_agreement_level: e.target.value })}
-                    >
-                      {AGREEMENT_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
-                    </select>
-                  </div>
-                  <div className="t4-field">
-                    <label>Client interest level</label>
-                    <select
-                      className="t4-select"
-                      value={readoutFields.client_interest_level}
-                      onChange={(e) => setReadoutFields({ ...readoutFields, client_interest_level: e.target.value })}
-                    >
-                      {INTEREST_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="t4-field">
-                  <label>Selected next step</label>
-                  <select
-                    className="t4-select"
-                    value={readoutFields.selected_next_step}
-                    onChange={(e) => setReadoutFields({ ...readoutFields, selected_next_step: e.target.value })}
-                  >
-                    {NEXT_STEPS.map((value) => <option key={value} value={value}>{value}</option>)}
-                  </select>
-                </div>
-
-                <div className="t4-field">
-                  <label>Outcome signals</label>
-                  <div className="t4-checkgrid">
-                    {OUTCOME_FLAGS.map(([key, label]) => (
-                      <label className="t4-check" key={key}>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(readoutFields[key])}
-                          onChange={(e) => setReadoutFields({ ...readoutFields, [key]: e.target.checked })}
-                        />
-                        {label}
-                      </label>
-                    ))}
-                    <label className="t4-check">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(readoutFields.objections_raised)}
-                        onChange={(e) => setReadoutFields({ ...readoutFields, objections_raised: e.target.checked })}
-                      />
-                      Objections raised
-                    </label>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="t4-field">
-              <label>Advisor notes</label>
-              <textarea
-                className="t4-area"
-                value={readoutFields.advisor_notes}
-                onChange={(e) => setReadoutFields({ ...readoutFields, advisor_notes: e.target.value })}
-                placeholder="What mattered, what they challenged, budget/timeline hints, objections..."
-              />
-            </div>
-
-            <div className="t4-field">
-              <label>Readout call transcript</label>
-              <textarea
-                className="t4-area big"
-                value={readoutTranscript}
-                onChange={(e) => setReadoutTranscript(e.target.value)}
-                placeholder="Paste the second/readout call transcript here..."
-              />
-            </div>
-
-            <div className="t4-btnrow">
-              <button className="t4-ghost" type="button" onClick={() => setStep(4)}>
-                <ArrowLeft /> Back to report
-              </button>
-              <button className="t4-btn" type="button" disabled={readoutTranscript.trim().length < 40} onClick={saveReadoutTranscript}>
-                Save readout and continue <ArrowRight />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!busy && !loadingSaved && step === 6 && report && !report.geo_audit && (
-          <div>
-            <div className="t4-eyebrow">Step 6 | Proposal</div>
-            <h2 className="t4-h2">Turn the readout into a proposal</h2>
-            <p className="t4-sub">
-              Generate a business-facing next step from the discovery call, audit report, readout guide, and second call
-              transcript. Edit it before sending.
+              Built from the discovery call, the audit report, and the second-call transcript. Edit it before sending,
+              or change the type and regenerate.
             </p>
 
             <div className="t4-field">
@@ -2512,10 +2383,15 @@ Looking forward to it.`
             </div>
 
             <div className="t4-btnrow">
-              <button className="t4-ghost" type="button" onClick={() => setStep(5)}>
-                <ArrowLeft /> Back to readout
+              <button className="t4-ghost" type="button" onClick={() => setStep(4)}>
+                <ArrowLeft /> Back to report
               </button>
-              <button className="t4-btn" type="button" disabled={readoutTranscript.trim().length < 40} onClick={doProposal}>
+              <button
+                className="t4-btn"
+                type="button"
+                disabled={!readoutId && readoutTranscript.trim().length < 40}
+                onClick={doProposal}
+              >
                 {proposalText ? 'Regenerate Proposal' : 'Generate Proposal'} <ArrowRight />
               </button>
             </div>
@@ -2576,7 +2452,7 @@ Looking forward to it.`
                   <button
                     className="t4-btn"
                     type="button"
-                    onClick={buildPackage ? () => setStep(7) : doBuildPackage}
+                    onClick={buildPackage ? () => setStep(6) : doBuildPackage}
                   >
                     {buildPackage ? 'Open developer build package' : 'Create developer build package'} <ArrowRight />
                   </button>
@@ -2590,9 +2466,9 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && !loadingSaved && step === 7 && report && !report.geo_audit && (
+        {!busy && !loadingSaved && step === 6 && report && !report.geo_audit && (
           <div>
-            <div className="t4-eyebrow">Step 7 | Developer Build Package</div>
+            <div className="t4-eyebrow">Step 6 | Developer Build Package</div>
             <h2 className="t4-h2">Hand-off for a third-party developer</h2>
             <p className="t4-sub">
               A product spec, technical spec, and build plan generated from the calls, the report, and the proposal.
@@ -2600,7 +2476,7 @@ Looking forward to it.`
             </p>
 
             <div className="t4-btnrow">
-              <button className="t4-ghost" type="button" onClick={() => setStep(6)}>
+              <button className="t4-ghost" type="button" onClick={() => setStep(5)}>
                 <ArrowLeft /> Back to proposal
               </button>
               <button className="t4-btn" type="button" onClick={doBuildPackage}>

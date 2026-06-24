@@ -29,8 +29,8 @@ const STYLE = `
 .t4-step.act .num{background:var(--t4-good);color:#fff}
 .t4-step.done .num{background:var(--t4-good);color:var(--t4-ink)}
 .t4-eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--t4-amber-dim);margin-bottom:8px}
-.t4-h2{font-size:24px;font-weight:700;margin:0 0 6px;color:#fff;letter-spacing:-.02em}
-.t4-sub{color:var(--t4-mut);font-size:14px;margin:0 0 24px;max-width:64ch}
+.t4-h2{font-size:30px;font-weight:800;margin:0 0 8px;color:#fff;letter-spacing:-.02em;line-height:1.18}
+.t4-sub{color:var(--t4-mut);font-size:15.5px;line-height:1.65;margin:0 0 24px;max-width:70ch}
 .t4-field{margin-bottom:18px}
 .t4-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 .t4-field .hint{color:var(--t4-mut);font-weight:400;font-size:12px}
@@ -54,6 +54,9 @@ const STYLE = `
 .t4-spin{width:34px;height:34px;border:3px solid var(--t4-line);border-top-color:var(--t4-amber);border-radius:50%;margin:0 auto 18px;animation:t4spin 1s linear infinite}
 @keyframes t4spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion){.t4-spin{animation:none}}
+.t4-spin-sm{display:inline-block;width:14px;height:14px;border:2px solid var(--t4-line);border-top-color:var(--t4-amber);border-radius:50%;animation:t4spin 1s linear infinite;vertical-align:middle}
+@media(prefers-reduced-motion){.t4-spin-sm{animation:none}}
+.t4-inline-load{display:inline-flex;align-items:center;color:var(--t4-mut);font-size:13.5px}
 .t4-load p{color:var(--t4-mut);font-size:14px}
 .t4-err{background:var(--t4-panel);border:1px solid var(--t4-bad);border-left-width:3px;border-radius:var(--t4-r);padding:14px 16px;font-size:13px;margin:16px 0}
 .t4-brief{background:var(--t4-panel);border:1px solid var(--t4-line);border-left:3px solid var(--t4-steel);border-radius:0 var(--t4-r) var(--t4-r) 0;padding:14px 18px;margin-bottom:20px}
@@ -68,28 +71,28 @@ const STYLE = `
 .t4-score-big{text-align:center;background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 22px;min-width:140px}
 .t4-score-big .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:40px;font-weight:700;color:var(--t4-good);line-height:1}
 .t4-score-big .b{font-size:12px;color:var(--t4-mut);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
-.t4-sec{margin:24px 0}
-.t4-sec h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4-amber-dim);border-bottom:1px solid var(--t4-line);padding-bottom:8px;margin:0 0 14px;font-weight:700}
+.t4-sec{margin:36px 0}
+.t4-sec h3{font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--t4-amber);border-bottom:2px solid rgba(201,168,76,.22);padding-bottom:10px;margin:0 0 16px;font-weight:800}
 .t4-geo-grid{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:720px){.t4-geo-grid{grid-template-columns:1fr 1fr}}
 .t4-geo-metric{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px 14px}
 .t4-geo-metric .gm-label{font-size:12px;color:var(--t4-mut);margin-bottom:5px}
 .t4-geo-metric .gm-value{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:18px;color:#fff}
 .t4-codeblock{background:var(--t4-panel2);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:12px;max-height:300px;overflow:auto;font-size:12px;color:var(--t4-mut);white-space:pre-wrap}
-.t4-gauge{display:flex;align-items:center;gap:10px;margin:6px 0}
-.t4-gauge .gn{font-size:13px;flex:1}
+.t4-gauge{display:flex;align-items:center;gap:10px;margin:8px 0}
+.t4-gauge .gn{font-size:14.5px;flex:1}
 .t4-bars{display:flex;gap:3px}
 .t4-pip{width:18px;height:8px;border-radius:2px;background:var(--t4-line)}
 .t4-pip.on{background:var(--t4-good)}
 .t4-gauge .gv{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;color:var(--t4-good);width:30px;text-align:right}
-.t4-finding{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:14px 16px;margin-bottom:10px}
-.t4-finding .ft{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:12px}
-.t4-finding h4{font-size:14px;margin:0;color:#fff;font-weight:700}
-.t4-finding p{font-size:13px;margin:4px 0}
-.t4-finding .lab{color:var(--t4-mut);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
-.t4-tbl{width:100%;border-collapse:collapse;font-size:13px}
-.t4-tbl th{text-align:left;color:var(--t4-mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--t4-line)}
-.t4-tbl td{padding:9px 10px;border-bottom:1px solid var(--t4-line);vertical-align:top}
+.t4-finding{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 18px;margin-bottom:12px}
+.t4-finding .ft{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:12px}
+.t4-finding h4{font-size:16.5px;margin:0;color:#fff;font-weight:700}
+.t4-finding p{font-size:14.5px;margin:6px 0;line-height:1.6}
+.t4-finding .lab{color:var(--t4-mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
+.t4-tbl{width:100%;border-collapse:collapse;font-size:14px}
+.t4-tbl th{text-align:left;color:var(--t4-mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;padding:9px 11px;border-bottom:1px solid var(--t4-line)}
+.t4-tbl td{padding:11px 11px;border-bottom:1px solid var(--t4-line);vertical-align:top;line-height:1.55}
 .t4-tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;padding:2px 7px;border-radius:4px;display:inline-block}
 .tag-High{background:rgba(95,179,126,.16);color:var(--t4-good)}
 .tag-Med{background:rgba(217,139,84,.16);color:var(--t4-warn)}
@@ -1003,7 +1006,7 @@ function AdvisorIntelligence({ advisor }) {
   );
 }
 
-function Report({ rep, client, type, economic = null, advanced = false }) {
+function Report({ rep, client, type, advanced = false }) {
   const markdown = useMemo(() => buildMarkdown(rep, client, type), [rep, client, type]);
   const norm = useMemo(() => normalizeReport(rep), [rep]);
 
@@ -1011,8 +1014,6 @@ function Report({ rep, client, type, economic = null, advanced = false }) {
 
   const r = norm.client || {};
   const nextSteps = cleanList(r.next_step_options);
-  // Economic opportunity + advisor-intelligence are internal-only surfaces.
-  const economicToShow = advanced ? (economic || norm.economic) : null;
 
   return (
     <div>
@@ -1034,10 +1035,10 @@ function Report({ rep, client, type, economic = null, advanced = false }) {
 
       <div className="t4-sec">
         <h3>Executive Summary</h3>
-        <p style={{ fontSize: 14 }}>{r.execSummary}</p>
-        <ol style={{ fontSize: 13, paddingLeft: 18, marginTop: 10 }}>
+        <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.execSummary}</p>
+        <ol style={{ fontSize: 15, lineHeight: 1.6, paddingLeft: 20, marginTop: 12 }}>
           {(r.topFindings || []).map((f, k) => (
-            <li key={k} style={{ margin: '4px 0' }}>
+            <li key={k} style={{ margin: '7px 0' }}>
               {f}
             </li>
           ))}
@@ -1047,11 +1048,9 @@ function Report({ rep, client, type, economic = null, advanced = false }) {
       {r.business_risk && (
         <div className="t4-sec">
           <h3>Business Risk</h3>
-          <p style={{ fontSize: 14 }}>{r.business_risk}</p>
+          <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.business_risk}</p>
         </div>
       )}
-
-      {economicToShow && <EconomicOpportunity economic={economicToShow} />}
 
       {r.recommended_first_pilot && (
         <div className="t4-sec">
@@ -1186,9 +1185,9 @@ function Report({ rep, client, type, economic = null, advanced = false }) {
       {nextSteps.length > 0 && (
         <div className="t4-sec">
           <h3>Next Step Options</h3>
-          <ul style={{ fontSize: 14, paddingLeft: 18 }}>
+          <ul style={{ fontSize: 15, lineHeight: 1.6, paddingLeft: 20 }}>
             {nextSteps.map((s, k) => (
-              <li key={k} style={{ margin: '4px 0' }}>
+              <li key={k} style={{ margin: '7px 0' }}>
                 {s}
               </li>
             ))}
@@ -1199,7 +1198,7 @@ function Report({ rep, client, type, economic = null, advanced = false }) {
       {r.closing && (
         <div className="t4-sec">
           <h3>Closing</h3>
-          <p style={{ fontSize: 14 }}>{r.closing}</p>
+          <p style={{ fontSize: 16, lineHeight: 1.65 }}>{r.closing}</p>
         </div>
       )}
 
@@ -1682,6 +1681,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [economic, setEconomic] = useState(null);
   const [buildPackage, setBuildPackage] = useState(null);
   const [buildPackageText, setBuildPackageText] = useState('');
+  const [econBusy, setEconBusy] = useState(false);
 
   const type = getAuditType(client.typeKey);
 
@@ -1915,8 +1915,12 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       await saveAuditMilestone('followup_ready', { followup: result.email });
     });
 
-  const doEconomicExtract = () =>
-    runStep(async () => {
+  // Local loading (not the full-page runStep) so the report stays on screen
+  // while economics calculate, and the result lands inline at the report bottom.
+  const doEconomicExtract = async () => {
+    setErr('');
+    setEconBusy(true);
+    try {
       let nextAuditId = auditId;
       if (!nextAuditId) {
         const saved = await saveAuditMilestone('report_ready');
@@ -1925,7 +1929,12 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       if (!nextAuditId) throw new Error('Save the audit before extracting economics.');
       const result = await postJSON('/api/audit-economic-extract', { audit_id: nextAuditId }, getAuthHeaders);
       setEconomic(result.economic || null);
-    });
+    } catch (error) {
+      setErr(error.message || 'Could not extract economics. Please try again.');
+    } finally {
+      setEconBusy(false);
+    }
+  };
 
   const doReadoutGuide = () =>
     runStep(async () => {
@@ -2259,18 +2268,28 @@ Looking forward to it.`
         {!busy && !loadingSaved && step === 4 && report && (
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
-            <Report rep={report} client={client} type={type} economic={economic} advanced={advanced} />
+            <Report rep={report} client={client} type={type} advanced={advanced} />
             {advanced && !report.geo_audit && (
               <div className="t4-sec">
                 <h3>Economic Opportunity</h3>
-                <p className="t4-sub" style={{ marginTop: 0 }}>
-                  Quantify the cost of the problem from the discovery call. Numbers come only from what the client said
-                  or what follows from it - nothing is invented.
-                </p>
+                {economic && <EconomicOpportunity economic={economic} />}
+                {!economic && (
+                  <p className="t4-sub" style={{ marginTop: 0 }}>
+                    Quantify the cost of the problem from the discovery call. Numbers come only from what the client
+                    said or what follows from it - nothing is invented.
+                  </p>
+                )}
                 <div className="t4-btnrow">
-                  <button className="t4-ghost" type="button" onClick={doEconomicExtract}>
-                    {economic ? <><RefreshCw /> Re-run economic extraction</> : 'Extract economic opportunity'}
+                  <button className="t4-ghost" type="button" onClick={doEconomicExtract} disabled={econBusy}>
+                    {econBusy ? (
+                      <><span className="t4-spin-sm" /> Calculating...</>
+                    ) : economic ? (
+                      <><RefreshCw /> Re-run economic extraction</>
+                    ) : (
+                      'Extract economic opportunity'
+                    )}
                   </button>
+                  {econBusy && <span className="t4-inline-load">Reading the transcript - about 20 seconds</span>}
                 </div>
               </div>
             )}
@@ -2318,7 +2337,7 @@ Looking forward to it.`
             <div className="t4-readout">
               <div className="t4-sec" style={{ marginTop: 0 }}>
                 <h3>The report (share this on the call)</h3>
-                <Report rep={report} client={client} type={type} economic={economic} advanced={advanced} />
+                <Report rep={report} client={client} type={type} advanced={advanced} />
               </div>
 
               <div className="t4-sec" style={{ marginTop: 0 }}>

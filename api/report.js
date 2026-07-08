@@ -9,7 +9,18 @@ import { URL } from 'url';
 // Simple in-memory cache (persists for function warm lifetime)
 const cache = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_MAX_ENTRIES = 200;
+const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2MB per fetched resource
 const CRAWL_CHECKS = ['homepage', 'robots.txt', 'llms.txt', 'llms-full.txt', 'sitemap.xml'];
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function formatDuration(ms = 0) {
   if (ms < 1000) return `${ms}ms`;
@@ -51,7 +62,16 @@ function fetchUrl(url, options = {}, redirectCount = 0) {
       }
 
       let data = '';
-      res.on('data', chunk => data += chunk);
+      let bytes = 0;
+      res.on('data', chunk => {
+        bytes += chunk.length;
+        if (bytes > MAX_BODY_BYTES) {
+          res.destroy();
+          resolve({ status: res.statusCode, body: data, headers: res.headers, finalUrl: url, truncated: true });
+          return;
+        }
+        data += chunk;
+      });
       res.on('end', () => resolve({ status: res.statusCode, body: data, headers: res.headers, finalUrl: url }));
     });
     req.on('error', reject);
@@ -106,41 +126,44 @@ async function runAudit(domain) {
     results.meta.fetchError = e.message;
   }
 
-  // Robots.txt
-  try {
-    const r = await fetchUrl(`${url}/robots.txt`);
+  // robots.txt, llms.txt, llms-full.txt, and sitemap.xml are independent — fetch in parallel
+  const [robotsRes, llmsRes, llmsFullRes, sitemapRes] = await Promise.allSettled([
+    fetchUrl(`${url}/robots.txt`),
+    fetchUrl(`${url}/llms.txt`),
+    fetchUrl(`${url}/llms-full.txt`),
+    fetchUrl(`${url}/sitemap.xml`),
+  ]);
+
+  if (robotsRes.status === 'fulfilled') {
+    const r = robotsRes.value;
     const rb = r.body;
     results.meta.hasRobots = r.status === 200;
     results.meta.allowsGPTBot = rb.includes('GPTBot');
     results.meta.allowsClaudeBot = rb.includes('ClaudeBot');
     results.meta.allowsPerplexity = rb.includes('PerplexityBot');
     results.meta.allowsGoogleExtended = rb.includes('Google-Extended');
-  } catch {
+  } else {
     results.meta.allowsGPTBot = false;
   }
 
-  // llms.txt
-  try {
-    const r = await fetchUrl(`${url}/llms.txt`);
+  if (llmsRes.status === 'fulfilled') {
+    const r = llmsRes.value;
     results.meta.hasLlmsTxt = r.status === 200 && r.body.length > 50;
-  } catch {
+  } else {
     results.meta.hasLlmsTxt = false;
   }
 
-  // llms-full.txt
-  try {
-    const r = await fetchUrl(`${url}/llms-full.txt`);
+  if (llmsFullRes.status === 'fulfilled') {
+    const r = llmsFullRes.value;
     results.meta.hasLlmsFullTxt = r.status === 200 && r.body.length > 50;
-  } catch {
+  } else {
     results.meta.hasLlmsFullTxt = false;
   }
 
-  // Sitemap
-  try {
-    const r = await fetchUrl(`${url}/sitemap.xml`);
-    const matches = r.body.match(/<loc>/g);
+  if (sitemapRes.status === 'fulfilled') {
+    const matches = sitemapRes.value.body.match(/<loc>/g);
     results.meta.sitemapCount = matches ? matches.length : 0;
-  } catch {
+  } else {
     results.meta.sitemapCount = 0;
   }
 
@@ -229,6 +252,9 @@ async function runAudit(domain) {
 }
 
 function renderHTML(audit, source = '') {
+  const domain = escapeHtml(audit.domain);
+  const finalUrl = escapeHtml(audit.url);
+  const utmDomain = encodeURIComponent(audit.domain);
   const total = audit.total;
   const ratingColor = total >= 75 ? '#5EC08A' : total >= 50 ? '#C9A84C' : '#d66a6a';
   const ratingTone = total >= 75 ? 'Strong' : total >= 50 ? 'Average' : 'Weak';
@@ -256,11 +282,11 @@ function renderHTML(audit, source = '') {
 
   const issueRows = audit.issues.map(i => {
     const dot = i.severity === 'critical' ? '#d66a6a' : i.severity === 'high' ? '#d66a6a' : '#C9A84C';
-    return `<div class="issue-item"><div class="issue-dot" style="background:${dot}"></div><div class="issue-text">${i.text}</div></div>`;
+    return `<div class="issue-item"><div class="issue-dot" style="background:${dot}"></div><div class="issue-text">${escapeHtml(i.text)}</div></div>`;
   }).join('');
 
   const winRows = audit.wins.map(w =>
-    `<div class="win-item"><div class="win-dot"></div><div class="win-text">${w}</div></div>`
+    `<div class="win-item"><div class="win-dot"></div><div class="win-text">${escapeHtml(w)}</div></div>`
   ).join('');
 
   const platforms = [
@@ -301,7 +327,7 @@ function renderHTML(audit, source = '') {
     <div class="card-title">Crawl Evidence</div>
     <div class="meta-row"><span>Workflow</span><strong>Technical crawl, not AI-generated</strong></div>
     <div class="meta-row"><span>Status</span><strong>${cacheStatus} - ${cacheDetail}</strong></div>
-    <div class="meta-row"><span>Final URL</span><strong>${audit.url}</strong></div>
+    <div class="meta-row"><span>Final URL</span><strong>${finalUrl}</strong></div>
     <div class="meta-row"><span>Checks run</span><strong>${audit.meta.checksRun || CRAWL_CHECKS.length}</strong></div>
     <div class="meta-row"><span>Crawl time</span><strong>${formatDuration(audit.meta.crawlDurationMs || 0)}</strong></div>
     <div class="meta-row"><span>Visible words</span><strong>${audit.meta.wordCount || 0}</strong></div>
@@ -314,9 +340,9 @@ function renderHTML(audit, source = '') {
   </div>
   <div class="cta-card">
     <h3>Get Your Full Remediation Plan</h3>
-    <p>We can take ${audit.domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live — no commitment required.</p>
+    <p>We can take ${domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live — no commitment required.</p>
     <div class="btn-row">
-      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call →</a>
+      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${utmDomain}" target="_blank">Book a Free Call →</a>
     </div>
   </div>`;
   void remediationContent;
@@ -326,9 +352,9 @@ function renderHTML(audit, source = '') {
   </div>
   <div class="cta-card">
     <h3>Get Your Full Remediation Plan</h3>
-    <p>We can take ${audit.domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live - no commitment required.</p>
+    <p>We can take ${domain} from ${total} to 75+ in under two weeks. One 30-minute call, we walk through every fix live - no commitment required.</p>
     <div class="btn-row">
-      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${audit.domain}" target="_blank">Book a Free Call -></a>
+      <a class="btn-primary" href="https://tier4intelligence.com/?utm_source=report&utm_medium=audit&utm_campaign=${utmDomain}" target="_blank">Book a Free Call -></a>
     </div>
   </div>`;
   const remediationSection = source === 'outbound'
@@ -359,7 +385,7 @@ function renderHTML(audit, source = '') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Search Audit — ${audit.domain}</title>
+<title>AI Search Audit — ${domain}</title>
 <meta name="robots" content="noindex">
 <style>
 :root{--t4-ink:#0B1426;--t4-panel:#1A1F2E;--t4-panel2:#0F172A;--t4-line:rgba(255,255,255,.1);--t4-txt:#F0F2F5;--t4-mut:rgba(240,242,245,.62);--t4-amber:#C9A84C;--t4-steel:#5EC08A;--t4-good:#5EC08A;--t4-bad:#d66a6a;--t4-r:8px}
@@ -442,7 +468,7 @@ ${advisorBackLink}
         </div>
       </div>
       <div class="badge">Tier 4 Intelligence — AI Search Audit</div>
-      <div class="hero-title">AI Search Visibility Report<br><span class="hero-domain">${audit.domain}</span></div>
+      <div class="hero-title">AI Search Visibility Report<br><span class="hero-domain">${domain}</span></div>
       <div class="hero-sub">Generated ${dateStr} &bull; Powered by Tier 4 Intelligence</div>
     </div>
     <div class="score-wrap">
@@ -484,7 +510,7 @@ ${advisorBackLink}
 
   <div class="footer">
     Tier 4 Intelligence &bull; Alpharetta, GA &bull; tier4intelligence.com<br>
-    This report was generated automatically and reflects a point-in-time snapshot of ${audit.domain}.
+    This report was generated automatically and reflects a point-in-time snapshot of ${domain}.
   </div>
 </div>
 
@@ -558,8 +584,8 @@ export default async function handler(req, res) {
   const wantsJson = req.query?.format === 'json';
   const forceFresh = source === 'outbound' || queryFlag(req.query?.refresh) || queryFlag(req.query?.fresh);
 
-  if (!domain || domain.length < 4 || !domain.includes('.')) {
-    return res.status(400).send('<h1>Missing domain parameter</h1><p>Usage: /api/report?domain=example.com</p>');
+  if (!domain || domain.length < 4 || domain.length > 253 || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(domain)) {
+    return res.status(400).send('<h1>Missing or invalid domain parameter</h1><p>Usage: /api/report?domain=example.com</p>');
   }
 
   // Check cache
@@ -585,6 +611,9 @@ export default async function handler(req, res) {
     const html = wantsJson ? '' : renderHTML(audit, source);
 
     if (!forceFresh) {
+      if (cache.size >= CACHE_MAX_ENTRIES) {
+        cache.delete(cache.keys().next().value);
+      }
       cache.set(domain, { audit, ts: Date.now() });
     }
 
@@ -596,6 +625,6 @@ export default async function handler(req, res) {
     if (wantsJson) return res.status(200).json(audit);
     return res.status(200).send(html);
   } catch (err) {
-    return res.status(500).send(`<h1>Audit failed</h1><p>${err.message}</p>`);
+    return res.status(500).send(`<h1>Audit failed</h1><p>${escapeHtml(err.message)}</p>`);
   }
 }

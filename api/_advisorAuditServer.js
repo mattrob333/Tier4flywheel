@@ -28,14 +28,36 @@ function getClerk() {
   return clerkClient;
 }
 
+const MAX_JSON_BODY_BYTES = 4 * 1024 * 1024;
+
+function parseJsonBody(raw) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    const err = new Error(`Invalid JSON body: ${error.message}`);
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
 export async function readJson(req) {
   if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') return JSON.parse(req.body || '{}');
+  if (typeof req.body === 'string') return parseJsonBody(req.body);
 
   const chunks = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
-  const raw = Buffer.concat(chunks).toString('utf8');
-  return raw ? JSON.parse(raw) : {};
+  let bytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > MAX_JSON_BODY_BYTES) {
+      const err = new Error('Request body too large.');
+      err.statusCode = 413;
+      throw err;
+    }
+    chunks.push(buffer);
+  }
+  return parseJsonBody(Buffer.concat(chunks).toString('utf8'));
 }
 
 export function requirePost(req, res) {
@@ -138,10 +160,18 @@ export async function requireAdvisorAuth(req) {
   }
 
   const authorizedParties = listEnv('CLERK_AUTHORIZED_PARTIES');
-  const payload = await verifyToken(token, {
-    secretKey: process.env.CLERK_SECRET_KEY,
-    ...(authorizedParties.length ? { authorizedParties } : {}),
-  });
+  let payload;
+  try {
+    payload = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY,
+      ...(authorizedParties.length ? { authorizedParties } : {}),
+    });
+  } catch (error) {
+    const err = new Error('Invalid or expired session token.');
+    err.statusCode = 401;
+    err.cause = error;
+    throw err;
+  }
 
   const requiredOrgId = process.env.CLERK_ALLOWED_ORG_ID;
   if (requiredOrgId && payload.org_id !== requiredOrgId) {

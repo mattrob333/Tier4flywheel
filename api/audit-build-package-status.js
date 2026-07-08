@@ -27,6 +27,10 @@ export default async function handler(req, res) {
     if (!responseId) return res.status(400).json({ error: 'Background response id is required.' });
     if (!auditId) return res.status(400).json({ error: 'Audit id is required.' });
 
+    // Verify ownership before touching the background response so an advisor
+    // can't read another advisor's job output (or learn its status) by id.
+    const audit = await getAdvisorAudit(auth, auditId);
+
     const result = await retrieveBackgroundStructuredResponse({
       responseId,
       schema: buildPackageSchema,
@@ -38,8 +42,6 @@ export default async function handler(req, res) {
     if (result.status !== 'completed') {
       return res.status(200).json({ status: result.status, response_id: result.responseId });
     }
-
-    const audit = await getAdvisorAudit(auth, auditId);
     const buildPackage = result.result;
     const buildPackageText = buildBuildPackageText(buildPackage, audit.client_name);
 

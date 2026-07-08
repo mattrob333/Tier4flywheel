@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SignIn, UserButton, useAuth } from '@clerk/react';
 import { ArrowLeft, ExternalLink, FolderOpen, RefreshCw } from 'lucide-react';
 import AdvisorGate from '../components/AdvisorGate';
@@ -80,6 +80,9 @@ function SavedAuditsList({ devMode = false, getAuthHeaders }) {
   const [tab, setTab] = useState('mine');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Tracks whether the user explicitly chose a tab, so the superuser default
+  // ("all") only applies before any manual selection.
+  const tabPickedRef = useRef(false);
 
   const visibleAudits = useMemo(() => {
     if (isSuperuser && tab === 'all') return audits;
@@ -93,7 +96,7 @@ function SavedAuditsList({ devMode = false, getAuthHeaders }) {
       const data = await getJSON('/api/advisor-audits', getAuthHeaders);
       setAudits(Array.isArray(data.audits) ? data.audits : []);
       setIsSuperuser(Boolean(data.isSuperuser));
-      if (data.isSuperuser) setTab((current) => current || 'all');
+      if (data.isSuperuser) setTab((current) => (tabPickedRef.current ? current : 'all'));
     } catch (err) {
       setError(err.message || 'Could not load saved audits.');
     } finally {
@@ -142,10 +145,10 @@ function SavedAuditsList({ devMode = false, getAuthHeaders }) {
 
         {isSuperuser && (
           <div className="audits-tabs">
-            <button className={`audits-tab${tab === 'mine' ? ' active' : ''}`} type="button" onClick={() => setTab('mine')}>
+            <button className={`audits-tab${tab === 'mine' ? ' active' : ''}`} type="button" onClick={() => { tabPickedRef.current = true; setTab('mine'); }}>
               My Audits
             </button>
-            <button className={`audits-tab${tab === 'all' ? ' active' : ''}`} type="button" onClick={() => setTab('all')}>
+            <button className={`audits-tab${tab === 'all' ? ' active' : ''}`} type="button" onClick={() => { tabPickedRef.current = true; setTab('all'); }}>
               All Advisor Audits
             </button>
           </div>

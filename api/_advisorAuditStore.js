@@ -37,7 +37,15 @@ async function supabaseFetch(path, options = {}) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Non-JSON body (e.g. a gateway HTML error page) — keep the real HTTP status below.
+      data = null;
+    }
+  }
 
   if (!response.ok) {
     const err = new Error(data?.message || data?.error || 'Supabase request failed.');
@@ -269,7 +277,9 @@ export async function updateAdvisorAuditSalesStage(auth, id, salesStage) {
     }),
   });
 
-  return rows?.[0] || { ...row, report: nextReport };
+  const updated = rows?.[0] || { ...row, report: nextReport };
+  const [withArtifacts] = await attachLatestArtifacts([updated]);
+  return withArtifacts || updated;
 }
 
 async function patchAuditLifecycle(id, fields) {
@@ -314,6 +324,28 @@ function readoutRowFromPayload(auth, audit, payload, id) {
   };
 }
 
+// Upserts rebuild the whole row from the payload, which would null out any column
+// the caller didn't send. When updating an existing row, keep the stored value for
+// every field the payload omitted so partial updates aren't destructive.
+function preserveOmittedFields(row, existing, payload, protectedFields) {
+  if (!existing) return row;
+  const merged = { ...row };
+  for (const field of Object.keys(row)) {
+    if (protectedFields.includes(field)) continue;
+    if (!(field in payload)) merged[field] = existing[field];
+  }
+  return merged;
+}
+
+const ROW_META_FIELDS = ['id', 'audit_id', 'advisor_id', 'client_name', 'updated_at'];
+
+async function fetchRowById(table, id) {
+  const rows = await supabaseFetch(`${table}?select=*&id=eq.${encodeURIComponent(id)}&limit=1`, {
+    method: 'GET',
+  });
+  return rows?.[0] || null;
+}
+
 export async function saveAuditReadout(auth, auditId, payload) {
   const audit = await getAdvisorAudit(auth, auditId);
   if (audit.owner_clerk_user_id !== auth.userId) {
@@ -324,7 +356,13 @@ export async function saveAuditReadout(auth, auditId, payload) {
 
   const requestedId = clean(payload.readout_id || payload.id, 80);
   const id = requestedId || randomUUID();
-  const row = readoutRowFromPayload(auth, audit, payload, id);
+  const existing = requestedId ? await fetchRowById('audit_readouts', requestedId) : null;
+  const row = preserveOmittedFields(
+    readoutRowFromPayload(auth, audit, payload, id),
+    existing,
+    payload,
+    ROW_META_FIELDS,
+  );
   const rows = await supabaseFetch('audit_readouts?on_conflict=id', {
     method: 'POST',
     headers: {
@@ -334,9 +372,11 @@ export async function saveAuditReadout(auth, auditId, payload) {
   });
 
   const readout = rows?.[0] || row;
+  const lifecycleStatus =
+    clean(payload.status, 80) || (row.readout_transcript_text ? 'readout_transcript_added' : 'readout_guide_ready');
   await patchAuditLifecycle(audit.id, {
-    status: payload.status || (row.readout_transcript_text ? 'readout_transcript_added' : 'readout_guide_ready'),
-    current_stage: payload.status || (row.readout_transcript_text ? 'readout_transcript_added' : 'readout_guide_ready'),
+    status: lifecycleStatus,
+    current_stage: lifecycleStatus,
     readout_status: row.readout_transcript_text ? 'transcript_added' : 'guide_ready',
     selected_next_step: row.selected_next_step,
     client_interest_level: row.client_interest_level,
@@ -398,7 +438,13 @@ export async function saveAuditProposal(auth, auditId, payload) {
 
   const requestedId = clean(payload.proposal_id || payload.id, 80);
   const id = requestedId || randomUUID();
-  const row = proposalRowFromPayload(auth, audit, payload, id);
+  const existing = requestedId ? await fetchRowById('audit_proposals', requestedId) : null;
+  const row = preserveOmittedFields(
+    proposalRowFromPayload(auth, audit, payload, id),
+    existing,
+    payload,
+    ROW_META_FIELDS,
+  );
   const rows = await supabaseFetch('audit_proposals?on_conflict=id', {
     method: 'POST',
     headers: {
@@ -526,7 +572,12 @@ export async function validateEconomicImpact(auth, auditId, payload = {}) {
   }
   // Revised numbers apply on 'revised' (and may also be sent on 'validated' to confirm).
   if (validationStatus === 'revised') {
-    if (payload.annual_cost_estimate !== undefined) impactFields.annual_cost_estimate = toNumber(payload.annual_cost_estimate);
+    if (payload.annual_cost_estimate !== undefined) {
+      impactFields.annual_cost_estimate = toNumber(payload.annual_cost_estimate);
+    } else if (payload.revised_annual_cost !== undefined) {
+      // Documented alias: callers may send only revised_annual_cost on 'revised'.
+      impactFields.annual_cost_estimate = toNumber(payload.revised_annual_cost);
+    }
     if (payload.annual_savings_low !== undefined) impactFields.annual_savings_low = toNumber(payload.annual_savings_low);
     if (payload.annual_savings_high !== undefined) impactFields.annual_savings_high = toNumber(payload.annual_savings_high);
     if (typeof payload.confidence === 'string') impactFields.confidence = payload.confidence;

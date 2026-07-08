@@ -557,6 +557,11 @@ function downloadText(filename, text, type = 'text/markdown') {
   URL.revokeObjectURL(url);
 }
 
+function fmtOverall(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(1) : '-';
+}
+
 function Gauge({ name, score }) {
   const value = Number(score) || 0;
   return (
@@ -733,7 +738,7 @@ function buildMarkdown(rep, client, type) {
   const nextSteps = cleanList(r.next_step_options);
 
   return `# ${type.name} - ${client.name}
-Overall: ${Number(r.overall).toFixed(1)}/5 - ${r.band}
+Overall: ${fmtOverall(r.overall)}/5 - ${r.band}
 
 ## Executive Summary
 ${r.execSummary}
@@ -1040,7 +1045,7 @@ function Report({ rep, client, type, advanced = false }) {
           </p>
         </div>
         <div className="t4-score-big">
-          <div className="n">{Number(r.overall).toFixed(1)}</div>
+          <div className="n">{fmtOverall(r.overall)}</div>
           <div className="b">{r.band}</div>
         </div>
       </div>
@@ -1695,6 +1700,16 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [econError, setEconError] = useState('');
   const [guideBusy, setGuideBusy] = useState(false);
 
+  // Cancellation token for the long-running background polls (report / build
+  // package). Bumped by reset() and on unmount so a stale loop can't write an
+  // old audit's results over new state after "Start over" or navigation.
+  const pollRunRef = useRef(0);
+  useEffect(() => {
+    return () => {
+      pollRunRef.current += 1;
+    };
+  }, []);
+
   const type = getAuditType(client.typeKey);
 
   useEffect(() => {
@@ -1759,6 +1774,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   }, [initialAuditId, getAuthHeaders]);
 
   function reset() {
+    pollRunRef.current += 1;
     setStep(1);
     setAuditId('');
     setClient({ name: '', url: '', desc: '', typeKey: 'discovery', author: '' });
@@ -1845,6 +1861,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const doReport = () =>
     runStep(async () => {
       setReportProgress('');
+      const pollRun = pollRunRef.current;
       try {
         const cleanTranscript = transcript.trim();
         const startedAt = Date.now();
@@ -1865,6 +1882,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         let repairAttempted = false;
         while (!result) {
           await wait(REPORT_POLL_INTERVAL_MS);
+          if (pollRunRef.current !== pollRun) return;
           const elapsed = Date.now() - startedAt;
           if (elapsed > REPORT_MAX_WAIT_MS) {
             throw new Error('The report is still running after several minutes. Refresh the page and reopen this saved audit before trying again.');
@@ -1897,6 +1915,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
             throw new Error(`The background report ended with status ${status.status || 'unknown'}.`);
           }
         }
+        if (pollRunRef.current !== pollRun) return;
 
         setReport(result);
         setFollowup('');
@@ -1917,8 +1936,14 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         // Everything that lands at the bottom of the report runs automatically,
         // so the advisor never has to click an extra button: the second-call
         // prep questions for everyone, and the economic card for the advanced view.
-        const reportAuditId = savedAudit?.id || auditId || undefined;
-        if (!result.geo_audit) {
+        let reportAuditId = savedAudit?.id || auditId || undefined;
+        if (!reportAuditId) {
+          // Retry the save here with the fresh report — the auto-run helpers
+          // below would otherwise re-save from stale closure state (report: null).
+          const retried = await saveAuditMilestone('report_ready', { report: result, followup: '' });
+          reportAuditId = retried?.id || undefined;
+        }
+        if (!result.geo_audit && reportAuditId) {
           doReadoutGuide(reportAuditId);
           if (advanced) doEconomicExtract(reportAuditId);
         }
@@ -1990,34 +2015,37 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   // to the proposal step. One click turns the transcript into deliverables.
   const submitSecondCall = () =>
     runStep(async () => {
-      setReportProgress('Saving the call transcript...');
-      const saved = await postJSON(
-        '/api/audit-readout-transcript',
-        {
-          audit_id: auditId,
-          readout_id: readoutId || undefined,
-          readout_guide_json: readoutGuide,
-          readout_guide_text: readoutGuideText,
-          readout_transcript_text: readoutTranscript,
-        },
-        getAuthHeaders,
-      );
-      const nextReadoutId = saved.readout?.id || readoutId;
-      setReadoutId(nextReadoutId);
+      try {
+        setReportProgress('Saving the call transcript...');
+        const saved = await postJSON(
+          '/api/audit-readout-transcript',
+          {
+            audit_id: auditId,
+            readout_id: readoutId || undefined,
+            readout_guide_json: readoutGuide,
+            readout_guide_text: readoutGuideText,
+            readout_transcript_text: readoutTranscript,
+          },
+          getAuthHeaders,
+        );
+        const nextReadoutId = saved.readout?.id || readoutId;
+        setReadoutId(nextReadoutId);
 
-      setReportProgress('Writing the proposal from the call...');
-      const result = await postJSON(
-        '/api/audit-proposal',
-        { audit_id: auditId, readout_id: nextReadoutId, proposal_type: proposalType },
-        getAuthHeaders,
-      );
-      setProposalId(result.proposal?.id || '');
-      setProposalType(result.proposal?.proposal_type || result.proposal_json?.proposal_type || proposalType);
-      setProposalJson(result.proposal_json || null);
-      setProposalText(result.proposal_text || '');
-      setProposalStatus(result.proposal?.proposal_status || 'draft');
-      setReportProgress('');
-      setStep(5);
+        setReportProgress('Writing the proposal from the call...');
+        const result = await postJSON(
+          '/api/audit-proposal',
+          { audit_id: auditId, readout_id: nextReadoutId, proposal_type: proposalType },
+          getAuthHeaders,
+        );
+        setProposalId(result.proposal?.id || '');
+        setProposalType(result.proposal?.proposal_type || result.proposal_json?.proposal_type || proposalType);
+        setProposalJson(result.proposal_json || null);
+        setProposalText(result.proposal_text || '');
+        setProposalStatus(result.proposal?.proposal_status || 'draft');
+        setStep(5);
+      } finally {
+        setReportProgress('');
+      }
     });
 
   const doProposal = () =>
@@ -2065,6 +2093,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const doBuildPackage = () =>
     runStep(async () => {
       setReportProgress('Starting the developer build package...');
+      const pollRun = pollRunRef.current;
       const startedAt = Date.now();
       const started = await postJSON(
         '/api/audit-build-package-start',
@@ -2078,6 +2107,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       let result = null;
       while (!result) {
         await wait(REPORT_POLL_INTERVAL_MS);
+        if (pollRunRef.current !== pollRun) return;
         const elapsed = Date.now() - startedAt;
         if (elapsed > REPORT_MAX_WAIT_MS) {
           throw new Error('The build package is still running after several minutes. Reopen this saved audit and try again.');
@@ -2096,6 +2126,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         }
       }
 
+      if (pollRunRef.current !== pollRun) return;
       setBuildPackage(result.build_package || null);
       setBuildPackageText(result.build_package_text || '');
       if (result.proposal?.proposal_json) setProposalJson(result.proposal.proposal_json);

@@ -93,7 +93,7 @@ test('computeSystemMetrics computes price-to-problem-cost ratio', () => {
   const audits = [
     {
       economic_impact: { annual_cost_estimate: 100000 },
-      proposal: { investment_low: 20000, investment_high: 40000 },
+      proposal: { proposal_investment_low: 20000, proposal_investment_high: 40000 },
       report: {},
     },
     {
@@ -103,7 +103,13 @@ test('computeSystemMetrics computes price-to-problem-cost ratio', () => {
     },
     {
       economic_impact: { annual_cost_estimate: null },
-      proposal: { investment_low: 10000 },
+      proposal: { proposal_investment_low: 10000 },
+      report: {},
+    },
+    {
+      // Headline-style estimated_value (a string, as stored) must not poison the samples.
+      economic_impact: { annual_cost_estimate: 80000 },
+      proposal: { estimated_value: 'Save $1.2M per year' },
       report: {},
     },
   ];
@@ -111,6 +117,7 @@ test('computeSystemMetrics computes price-to-problem-cost ratio', () => {
   // Sample 1: investment midpoint = 30000, annual cost = 100000 → ratio 0.3
   // Sample 2: investment = 15000, annual cost = 50000 → ratio 0.3
   // Sample 3: no annual cost → excluded
+  // Sample 4: non-numeric estimated_value → excluded
   assert.equal(result.price_to_problem_cost.samples, 2);
   assert.equal(result.price_to_problem_cost.median, 0.3);
   assert.equal(result.price_to_problem_cost.mean, 0.3);

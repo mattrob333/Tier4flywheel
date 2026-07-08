@@ -547,9 +547,22 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
 
   async function copyText(text, id) {
     if (!text) return;
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    window.setTimeout(() => setCopiedId(''), 1600);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(''), 1600);
+    } catch {
+      setError('Could not copy to the clipboard.');
+    }
   }
 
   async function updateSalesStage(audit, value) {
@@ -561,7 +574,21 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
         { salesStage: value },
         getAuthHeaders,
       );
-      setAudits((current) => current.map((item) => (item.id === audit.id ? data.audit : item)));
+      // Keep the attached artifacts if the API response doesn't include them —
+      // otherwise the row's readout/proposal/economics UI would blank out.
+      setAudits((current) =>
+        current.map((item) =>
+          item.id === audit.id
+            ? {
+                ...item,
+                ...data.audit,
+                readout: data.audit?.readout ?? item.readout,
+                proposal: data.audit?.proposal ?? item.proposal,
+                economic_impact: data.audit?.economic_impact ?? item.economic_impact,
+              }
+            : item,
+        ),
+      );
     } catch (err) {
       setError(err.message || 'Could not update sales stage.');
     } finally {

@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const report = body.report || {};
     const t = getAuditType(client.typeKey);
 
-    if (!clean(client.name, 200) || !report.overall) {
+    if (!clean(client.name, 200) || report.overall == null) {
       return res.status(400).json({ error: 'Client and report are required.' });
     }
 

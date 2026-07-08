@@ -19,6 +19,12 @@ import {
 } from './_advisorAuditServer.js';
 import { listAdvisorAudits, saveMetricSnapshot, listMetricSnapshots } from './_advisorAuditStore.js';
 
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
 /**
  * @param {any[]} audits  Audits with attached readout/proposal/economic_impact
  * @returns {object}      Aggregate metrics object
@@ -94,24 +100,25 @@ export function computeSystemMetrics(audits) {
     const annualCost =
       audit.economic_impact?.annual_cost_estimate ?? audit.economic_annual_cost_estimate ?? null;
     const proposal = audit.proposal;
-    const investmentLow = proposal?.investment_low ?? null;
-    const investmentHigh = proposal?.investment_high ?? null;
-    const estimatedValue = proposal?.estimated_value ?? null;
+    const investmentLow = toFiniteNumber(proposal?.proposal_investment_low ?? proposal?.investment_low);
+    const investmentHigh = toFiniteNumber(proposal?.proposal_investment_high ?? proposal?.investment_high);
+    const estimatedValue = toFiniteNumber(proposal?.estimated_value);
 
     // Use midpoint of investment range if available, otherwise estimated_value
     let investment = null;
     if (investmentLow !== null && investmentHigh !== null) {
-      investment = (Number(investmentLow) + Number(investmentHigh)) / 2;
+      investment = (investmentLow + investmentHigh) / 2;
     } else if (investmentLow !== null) {
-      investment = Number(investmentLow);
+      investment = investmentLow;
     } else if (investmentHigh !== null) {
-      investment = Number(investmentHigh);
+      investment = investmentHigh;
     } else if (estimatedValue !== null) {
-      investment = Number(estimatedValue);
+      investment = estimatedValue;
     }
 
-    if (annualCost !== null && investment !== null && Number(annualCost) > 0) {
-      ratioSamples.push(Number(investment) / Number(annualCost));
+    const cost = toFiniteNumber(annualCost);
+    if (cost !== null && cost > 0 && investment !== null) {
+      ratioSamples.push(investment / cost);
     }
   }
 
@@ -349,10 +356,19 @@ export default async function handler(req, res) {
     }
 
     // Save a new snapshot (non-blocking failure — don't break the endpoint).
-    try {
-      await saveMetricSnapshot(auth, metrics, scores);
-    } catch {
-      // Table may not exist yet on this environment.
+    // Debounced: refreshing the dashboard shouldn't pile up near-identical
+    // snapshots, which would make trend comparisons meaningless.
+    const SNAPSHOT_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
+    const latestSnapshot = snapshots[snapshots.length - 1];
+    const latestSnapshotAge = latestSnapshot?.created_at
+      ? Date.now() - new Date(latestSnapshot.created_at).getTime()
+      : Infinity;
+    if (latestSnapshotAge >= SNAPSHOT_MIN_INTERVAL_MS) {
+      try {
+        await saveMetricSnapshot(auth, metrics, scores);
+      } catch {
+        // Table may not exist yet on this environment.
+      }
     }
 
     return res.status(200).json({

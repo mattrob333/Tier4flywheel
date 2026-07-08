@@ -29,11 +29,14 @@ export default async function handler(req, res) {
       'entry.source': source || 'inbound',
     });
 
-    await fetch(FORM_SUBMIT_URL, {
+    const response = await fetch(FORM_SUBMIT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     });
+    if (!response.ok) {
+      console.error('LEAD_FORM_ERROR:', `Google Form responded ${response.status}`);
+    }
   } catch (err) {
     console.error('LEAD_FORM_ERROR:', err.message);
     // Don't fail -- console.log backup is there

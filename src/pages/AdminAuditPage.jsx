@@ -44,7 +44,10 @@ const STYLE = `
 .t4-dashboard-link:hover{background:rgba(94,192,138,.16);border-color:var(--t4-steel);transform:translateY(-1px)}
 .t4-dashboard-link svg{width:16px;height:16px}
 .t4-steps{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap}
-.t4-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t4-mut);padding:7px 12px;border:1px solid var(--t4-line);border-radius:20px}
+.t4-step{display:flex;align-items:center;gap:8px;font-size:12px;font-family:inherit;color:var(--t4-mut);padding:7px 12px;border:1px solid var(--t4-line);border-radius:20px;background:transparent}
+button.t4-step{cursor:pointer}
+button.t4-step:hover:not(:disabled){border-color:var(--t4-steel);color:var(--t4-txt)}
+button.t4-step:disabled{cursor:default;opacity:.55}
 .t4-step .num{font-family:"IBM Plex Mono",ui-monospace,monospace;width:18px;height:18px;border-radius:50%;background:var(--t4-line);color:var(--t4-txt);display:flex;align-items:center;justify-content:center;font-size:11px}
 .t4-step.act{border-color:var(--t4-good);color:var(--t4-txt)}
 .t4-step.act .num{background:var(--t4-good);color:#fff}
@@ -187,7 +190,8 @@ const STYLE = `
 .t4-teamtag{display:inline-block;vertical-align:middle;margin-left:10px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t4-amber);background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:999px;padding:3px 8px;font-weight:700}
 `;
 
-const STEPS = ['Client', 'Questions', 'Discovery', 'Report', 'Proposal', 'Dev Package'];
+const STEPS = ['Client', 'Call 1 Prep', 'Call 1 Transcript', 'Proposal Draft', 'Deliverables'];
+const GEO_STEPS = ['Client', 'Call Prep', 'Transcript', 'Report'];
 const AGREEMENT_LEVELS = ['Unknown', 'Strongly agree', 'Mostly agree', 'Mixed', 'Mostly disagree'];
 const INTEREST_LEVELS = ['Unknown', 'High', 'Medium', 'Low', 'None'];
 const NEXT_STEPS = [
@@ -1612,57 +1616,6 @@ function BuildPackage({ pkg }) {
   );
 }
 
-// Normalizes both the current gap-based readout shape and any older saved
-// guides (opening_script/confirm_report_questions/...) into a simple list of
-// gaps so the second-call view stays conversational, never a script.
-function readoutGaps(guide) {
-  if (!guide) return [];
-  if (Array.isArray(guide.gaps) && guide.gaps.length) {
-    return guide.gaps.filter(Boolean);
-  }
-  // Legacy fallback: fold old question lists into plain topics.
-  const legacy = [
-    ...cleanList(guide.confirm_report_questions),
-    ...cleanList(guide.priority_questions),
-  ];
-  return legacy.map((q) => ({ topic: '', why_it_matters: '', suggested_question: q }));
-}
-
-function ReadoutAssistant({ guide }) {
-  const gaps = readoutGaps(guide);
-
-  if (!guide || !gaps.length) {
-    return (
-      <p className="t4-sub" style={{ marginTop: 0 }}>
-        Generate a short list of things worth asking on the second call - the gaps the first call left open.
-      </p>
-    );
-  }
-
-  return (
-    <div>
-      {guide.call_focus && (
-        <p className="t4-sub" style={{ marginTop: 0 }}>
-          {guide.call_focus}
-        </p>
-      )}
-      <p className="t4-readout-hint">
-        Share the report on the call and talk it through together. Work these in where they fit - no script.
-      </p>
-      {gaps.map((gap, k) => (
-        <div className="t4-gap" key={k}>
-          <div className="t4-gap-num">{k + 1}</div>
-          <div className="t4-gap-body">
-            {gap.topic && <div className="t4-gap-topic">{gap.topic}</div>}
-            {gap.suggested_question && <p className="t4-gap-q">&ldquo;{gap.suggested_question}&rdquo;</p>}
-            {gap.why_it_matters && <p className="t4-gap-why">{gap.why_it_matters}</p>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advanced = false }) {
   const initialAuditId = useMemo(() => new URLSearchParams(window.location.search).get('auditId') || '', []);
   const [step, setStep] = useState(1);
@@ -1684,8 +1637,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [report, setReport] = useState(null);
   const [followup, setFollowup] = useState('');
   const [readoutId, setReadoutId] = useState('');
-  const [readoutGuide, setReadoutGuide] = useState(null);
-  const [readoutGuideText, setReadoutGuideText] = useState('');
   const [readoutTranscript, setReadoutTranscript] = useState('');
   const [proposalId, setProposalId] = useState('');
   const [proposalType, setProposalType] = useState('AI recommend');
@@ -1698,7 +1649,13 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [buildPackageText, setBuildPackageText] = useState('');
   const [econBusy, setEconBusy] = useState(false);
   const [econError, setEconError] = useState('');
-  const [guideBusy, setGuideBusy] = useState(false);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [pkgBusy, setPkgBusy] = useState(false);
+  const [pkgProgress, setPkgProgress] = useState('');
+  const [pkgError, setPkgError] = useState('');
+  const [finalReady, setFinalReady] = useState(false);
+  const [showFullReport, setShowFullReport] = useState(false);
 
   // Cancellation token for the long-running background polls (report / build
   // package). Bumped by reset() and on unmount so a stale loop can't write an
@@ -1711,6 +1668,18 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   }, []);
 
   const type = getAuditType(client.typeKey);
+  const isGeo = Boolean(report?.geo_audit);
+  const stepLabels = isGeo ? GEO_STEPS : STEPS;
+
+  // A step chip is clickable once its content exists, so advisors can move
+  // freely back and forth through everything already generated.
+  function stepAvailable(n) {
+    if (n === 1) return true;
+    if (n === 2 || n === 3) return Boolean(research);
+    if (n === 4) return Boolean(report);
+    if (n === 5) return !isGeo && (finalReady || Boolean(buildPackage));
+    return false;
+  }
 
   useEffect(() => {
     if (!initialAuditId) return;
@@ -1732,8 +1701,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setReport(row.report || null);
         setFollowup(row.followup_email || '');
         setReadoutId(row.readout?.id || '');
-        setReadoutGuide(row.readout?.readout_guide_json || null);
-        setReadoutGuideText(row.readout?.readout_guide_text || '');
         setReadoutTranscript(row.readout?.readout_transcript_text || '');
         setProposalId(row.proposal?.id || '');
         setProposalType(row.proposal?.proposal_type || 'AI recommend');
@@ -1743,9 +1710,13 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         const savedPackage = row.proposal?.proposal_json?.build_package || null;
         setBuildPackage(savedPackage);
         setBuildPackageText(row.proposal?.proposal_json?.build_package_text || '');
-        setStep(
-          savedPackage ? 6 : row.proposal ? 5 : row.report ? 4 : nextResearch ? 2 : 1,
+        // The proposal is "final" once the second-call transcript has been
+        // captured; before that it's the draft the advisor reviews on call 2.
+        const hasFinal = Boolean(
+          (row.readout?.readout_transcript_text && row.proposal) || savedPackage,
         );
+        setFinalReady(hasFinal);
+        setStep(hasFinal ? 5 : row.report ? 4 : nextResearch ? 2 : 1);
 
         if (row.report && !row.report.geo_audit) {
           try {
@@ -1783,8 +1754,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     setReport(null);
     setFollowup('');
     setReadoutId('');
-    setReadoutGuide(null);
-    setReadoutGuideText('');
     setReadoutTranscript('');
     setProposalId('');
     setProposalType('AI recommend');
@@ -1798,6 +1767,12 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     setErr('');
     setSaveNote('');
     setReportProgress('');
+    setDraftError('');
+    setPkgBusy(false);
+    setPkgProgress('');
+    setPkgError('');
+    setFinalReady(false);
+    setShowFullReport(false);
     if (window.location.search.includes('auditId=')) {
       window.history.replaceState(null, '', '/admin/audit');
     }
@@ -1920,8 +1895,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setReport(result);
         setFollowup('');
         setReadoutId('');
-        setReadoutGuide(null);
-        setReadoutGuideText('');
         setReadoutTranscript('');
         setProposalId('');
         setProposalText('');
@@ -1943,8 +1916,9 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
           const retried = await saveAuditMilestone('report_ready', { report: result, followup: '' });
           reportAuditId = retried?.id || undefined;
         }
+        setFinalReady(false);
         if (!result.geo_audit && reportAuditId) {
-          doReadoutGuide(reportAuditId);
+          doProposalDraft(reportAuditId);
           if (advanced) doEconomicExtract(reportAuditId);
         }
       } finally {
@@ -1983,36 +1957,36 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     }
   };
 
-  // Second-call prep questions ("worth asking on the next call"). Runs in the
-  // background on a local loading flag so the report stays on screen, and lands
-  // in the team-use section at the bottom of the report. No step change.
-  const doReadoutGuide = async (forcedAuditId) => {
-    setGuideBusy(true);
+  // The proposal draft is the document the advisor shares on screen during the
+  // second call and simply talks through — the client's reactions get captured
+  // in that call's transcript. It generates automatically after the report, on
+  // a local loading flag so the page stays usable.
+  const doProposalDraft = async (forcedAuditId) => {
+    setDraftBusy(true);
+    setDraftError('');
     try {
-      let nextAuditId = typeof forcedAuditId === 'string' ? forcedAuditId : auditId;
-      if (!nextAuditId) {
-        const saved = await saveAuditMilestone('report_ready');
-        nextAuditId = saved?.id || '';
-      }
-      if (!nextAuditId) throw new Error('Save the audit before preparing questions.');
+      const nextAuditId = typeof forcedAuditId === 'string' ? forcedAuditId : auditId;
+      if (!nextAuditId) throw new Error('Save the audit before drafting the proposal.');
       const result = await postJSON(
-        '/api/audit-readout-guide',
-        { audit_id: nextAuditId, readout_id: readoutId || undefined },
+        '/api/audit-proposal',
+        { audit_id: nextAuditId, mode: 'draft', proposal_type: proposalType },
         getAuthHeaders,
       );
-      setReadoutId(result.readout?.id || readoutId);
-      setReadoutGuide(result.guide || null);
-      setReadoutGuideText(result.guide_text || '');
+      setProposalId(result.proposal?.id || '');
+      setProposalType(result.proposal?.proposal_type || result.proposal_json?.proposal_type || proposalType);
+      setProposalJson(result.proposal_json || null);
+      setProposalText(result.proposal_text || '');
+      setProposalStatus('draft');
     } catch (error) {
-      setErr(error.message || 'Could not prepare the second-call questions.');
+      setDraftError(error.message || 'Could not draft the proposal. Use Regenerate to try again.');
     } finally {
-      setGuideBusy(false);
+      setDraftBusy(false);
     }
   };
 
-  // Bottom-of-report action after the review call: save the second-call
-  // transcript (with the prep questions), then generate the proposal and move
-  // to the proposal step. One click turns the transcript into deliverables.
+  // One click after the second call: save that call's transcript, write the
+  // final proposal (with a "what changed" section vs the reviewed draft), move
+  // to Deliverables, and kick off the developer build package automatically.
   const submitSecondCall = () =>
     runStep(async () => {
       try {
@@ -2022,8 +1996,6 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
           {
             audit_id: auditId,
             readout_id: readoutId || undefined,
-            readout_guide_json: readoutGuide,
-            readout_guide_text: readoutGuideText,
             readout_transcript_text: readoutTranscript,
           },
           getAuthHeaders,
@@ -2031,10 +2003,15 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         const nextReadoutId = saved.readout?.id || readoutId;
         setReadoutId(nextReadoutId);
 
-        setReportProgress('Writing the proposal from the call...');
+        setReportProgress('Writing the final proposal from the call...');
         const result = await postJSON(
           '/api/audit-proposal',
-          { audit_id: auditId, readout_id: nextReadoutId, proposal_type: proposalType },
+          {
+            audit_id: auditId,
+            readout_id: nextReadoutId,
+            proposal_type: proposalType,
+            draft_proposal_text: proposalText,
+          },
           getAuthHeaders,
         );
         setProposalId(result.proposal?.id || '');
@@ -2042,12 +2019,15 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setProposalJson(result.proposal_json || null);
         setProposalText(result.proposal_text || '');
         setProposalStatus(result.proposal?.proposal_status || 'draft');
+        setFinalReady(true);
         setStep(5);
+        doBuildPackage(nextReadoutId);
       } finally {
         setReportProgress('');
       }
     });
 
+  // Regenerate the final proposal from the Deliverables step.
   const doProposal = () =>
     runStep(async () => {
       const result = await postJSON(
@@ -2056,6 +2036,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
           audit_id: auditId,
           readout_id: readoutId,
           proposal_type: proposalType,
+          draft_proposal_text: proposalText,
         },
         getAuthHeaders,
       );
@@ -2089,15 +2070,21 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
 
   // Build package is a large generation, so it runs as a background job (start
   // + poll) like the audit report - otherwise it blows past the function
-  // timeout and returns a 504.
-  const doBuildPackage = () =>
-    runStep(async () => {
-      setReportProgress('Starting the developer build package...');
-      const pollRun = pollRunRef.current;
+  // timeout and returns a 504. It uses a local busy flag so the final proposal
+  // stays on screen (and editable) while the spec writes itself.
+  const doBuildPackage = async (forcedReadoutId) => {
+    setPkgBusy(true);
+    setPkgError('');
+    const pollRun = pollRunRef.current;
+    try {
+      setPkgProgress('Starting the developer build package...');
       const startedAt = Date.now();
       const started = await postJSON(
         '/api/audit-build-package-start',
-        { audit_id: auditId, readout_id: readoutId || undefined },
+        {
+          audit_id: auditId,
+          readout_id: (typeof forcedReadoutId === 'string' ? forcedReadoutId : readoutId) || undefined,
+        },
         getAuthHeaders,
       );
       if (!started.response_id) {
@@ -2112,7 +2099,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         if (elapsed > REPORT_MAX_WAIT_MS) {
           throw new Error('The build package is still running after several minutes. Reopen this saved audit and try again.');
         }
-        setReportProgress(`Writing the build package in the background (${formatElapsed(elapsed)} elapsed)...`);
+        setPkgProgress(`Writing the build spec in the background (${formatElapsed(elapsed)} elapsed). You can review the proposal above while it runs.`);
         const status = await postJSONWithRetry(
           '/api/audit-build-package-status',
           { response_id: started.response_id, audit_id: auditId },
@@ -2130,8 +2117,17 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       setBuildPackage(result.build_package || null);
       setBuildPackageText(result.build_package_text || '');
       if (result.proposal?.proposal_json) setProposalJson(result.proposal.proposal_json);
-      setReportProgress('');
-    });
+    } catch (error) {
+      if (pollRunRef.current === pollRun) {
+        setPkgError(error.message || 'Could not generate the build package. Use Regenerate to try again.');
+      }
+    } finally {
+      if (pollRunRef.current === pollRun) {
+        setPkgBusy(false);
+        setPkgProgress('');
+      }
+    }
+  };
 
   const clientNote = research
     ? `Hi there,
@@ -2176,11 +2172,18 @@ Looking forward to it.`
         </div>
 
         <div className="t4-steps">
-          {STEPS.map((s, i) => (
-            <div key={s} className={`t4-step${step === i + 1 ? ' act' : step > i + 1 ? ' done' : ''}`}>
-              <span className="num">{step > i + 1 ? 'ok' : i + 1}</span>
+          {stepLabels.map((s, i) => (
+            <button
+              key={s}
+              type="button"
+              className={`t4-step${step === i + 1 ? ' act' : stepAvailable(i + 1) && step > i + 1 ? ' done' : ''}`}
+              disabled={busy || loadingSaved || !stepAvailable(i + 1)}
+              onClick={() => stepAvailable(i + 1) && setStep(i + 1)}
+              title={stepAvailable(i + 1) ? `Go to ${s}` : 'Not generated yet'}
+            >
+              <span className="num">{stepAvailable(i + 1) && step > i + 1 ? 'ok' : i + 1}</span>
               {s}
-            </div>
+            </button>
           ))}
         </div>
 
@@ -2320,7 +2323,13 @@ Looking forward to it.`
             <div className="t4-btnrow">
               <CopyBtn text={research.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')} label="Copy questions" />
               <CopyBtn text={clientNote} html={clientNoteHtml} label="Copy client-ready version" />
-              <button className="t4-ghost" type="button" onClick={doResearch}>
+              <button
+                className="t4-ghost"
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Regenerate the questions? This replaces the current set.')) doResearch();
+                }}
+              >
                 <RefreshCw /> Regenerate
               </button>
               <button className="t4-btn" type="button" onClick={() => setStep(3)}>
@@ -2335,8 +2344,8 @@ Looking forward to it.`
             <div className="t4-eyebrow">Step 3 | Paste The Transcript</div>
             <h2 className="t4-h2">Drop in the call transcript</h2>
             <p className="t4-sub">
-              Paste the full transcript from Fireflies, Google Meet, or Teams. The tool reads it, scores each area, and
-              writes the report.
+              Paste the full transcript from Fireflies, Google Meet, or Teams. The tool reads it, scores each area,
+              writes the report, and drafts the proposal you'll review with the client on the second call.
             </p>
             <div className="t4-field">
               <textarea
@@ -2360,10 +2369,91 @@ Looking forward to it.`
           </div>
         )}
 
-        {!busy && !loadingSaved && step === 4 && report && (
+        {!busy && !loadingSaved && step === 4 && report && isGeo && (
           <div>
             <div className="t4-eyebrow">Step 4 | Report</div>
             <Report rep={report} client={client} type={type} advanced={advanced} />
+          </div>
+        )}
+
+        {!busy && !loadingSaved && step === 4 && report && !isGeo && (
+          <div>
+            <div className="t4-eyebrow">Step 4 | Proposal Draft - Your Second Call</div>
+            <h2 className="t4-h2">Talk this through with {client.name}</h2>
+            <p className="t4-sub">
+              This draft was written from your first call. On the second call, share it on screen and walk through it
+              together - no script. Where the client corrects a number, trims scope, or says "yes, that one", just keep
+              talking; it all gets captured when you paste that call's transcript at the bottom.
+            </p>
+
+            <div className="t4-sec">
+              <SectionHeading icon={ClipboardList}>Proposal Draft</SectionHeading>
+              {draftBusy && !proposalText && (
+                <div className="t4-inline-load">
+                  <span className="t4-spin-sm" /> Writing the proposal draft from the first call - about a minute...
+                </div>
+              )}
+              {draftError && <p className="t4-save-note" style={{ marginTop: 0 }}>{draftError}</p>}
+              {proposalText && (
+                <>
+                  {proposalEditing ? (
+                    <textarea
+                      className="t4-area big"
+                      value={proposalText}
+                      onChange={(e) => setProposalText(e.target.value)}
+                    />
+                  ) : (
+                    <Markdown>{proposalText}</Markdown>
+                  )}
+                  {advanced && proposalJson?.value_case && <ValueCaseCard valueCase={proposalJson.value_case} />}
+                  <div className="t4-btnrow">
+                    <CopyBtn text={proposalText} label="Copy draft" />
+                    <button
+                      className="t4-ghost"
+                      type="button"
+                      onClick={() => downloadText(`${safeFileName(client.name)}-proposal-draft.md`, proposalText)}
+                    >
+                      <Download /> Download draft
+                    </button>
+                    <button className="t4-ghost" type="button" onClick={() => setProposalEditing((v) => !v)}>
+                      {proposalEditing ? 'Preview' : 'Edit'}
+                    </button>
+                    <button
+                      className="t4-ghost"
+                      type="button"
+                      disabled={draftBusy}
+                      onClick={() => {
+                        if (window.confirm('Regenerate the draft? This replaces the current draft, including any edits.')) {
+                          doProposalDraft();
+                        }
+                      }}
+                    >
+                      {draftBusy ? <><span className="t4-spin-sm" /> Writing...</> : <><RefreshCw /> Regenerate draft</>}
+                    </button>
+                  </div>
+                </>
+              )}
+              {!proposalText && !draftBusy && (
+                <div className="t4-btnrow">
+                  <button className="t4-btn" type="button" onClick={() => doProposalDraft()}>
+                    Write the proposal draft <ArrowRight />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="t4-sec">
+              <SectionHeading icon={FileText}>Full Assessment Report</SectionHeading>
+              <p className="t4-sub" style={{ marginTop: 0 }}>
+                The scored report behind the draft. Open it if the client wants to go deeper on a finding.
+              </p>
+              <div className="t4-btnrow">
+                <button className="t4-ghost" type="button" onClick={() => setShowFullReport((v) => !v)}>
+                  {showFullReport ? 'Hide full report' : 'Show full report'}
+                </button>
+              </div>
+              {showFullReport && <Report rep={report} client={client} type={type} advanced={advanced} />}
+            </div>
             {advanced && !report.geo_audit && (
               <div className="t4-sec">
                 <SectionHeading icon={DollarSign}>Economic Opportunity</SectionHeading>
@@ -2411,207 +2501,160 @@ Looking forward to it.`
                 )}
               </div>
             )}
-            {!report.geo_audit && (
-              <div className="t4-sec">
-                <SectionHeading icon={HelpCircle}>
-                  Second-Call Questions <span className="t4-teamtag">Team use only</span>
-                </SectionHeading>
-                <p className="t4-sub" style={{ marginTop: 0 }}>
-                  Not shown to the client. On the next call, share the report and talk through it top to bottom, then
-                  work these few gaps into the conversation. The client's answers get captured when you paste the
-                  transcript below - you don't fill anything in by hand.
-                </p>
-                {guideBusy && !readoutGuide && (
-                  <div className="t4-inline-load"><span className="t4-spin-sm" /> Preparing questions...</div>
+            <div className="t4-sec">
+              <SectionHeading icon={HelpCircle}>After The Second Call</SectionHeading>
+              <p className="t4-sub" style={{ marginTop: 0 }}>
+                Had the call? Paste its transcript here. One click writes the final client proposal - including what
+                changed on the call - and the developer build spec.
+              </p>
+              <textarea
+                className="t4-area big"
+                value={readoutTranscript}
+                onChange={(e) => setReadoutTranscript(e.target.value)}
+                placeholder="Paste the second call transcript here..."
+              />
+              <div className="t4-btnrow">
+                <button
+                  className="t4-btn"
+                  type="button"
+                  disabled={readoutTranscript.trim().length < 40}
+                  onClick={submitSecondCall}
+                >
+                  Call complete - create the deliverables <ArrowRight />
+                </button>
+                {readoutTranscript.trim().length > 0 && readoutTranscript.trim().length < 40 && (
+                  <span className="t4-inline-load">Paste the full transcript to continue.</span>
                 )}
-                {readoutGuide && <ReadoutAssistant guide={readoutGuide} />}
-                <div className="t4-btnrow">
-                  {readoutGuideText && <CopyBtn text={readoutGuideText} label="Copy questions" />}
-                  {readoutGuideText && (
-                    <button
-                      className="t4-ghost"
-                      type="button"
-                      onClick={() => downloadText(`${safeFileName(client.name)}-second-call-questions.md`, readoutGuideText)}
-                    >
-                      <Download /> Download
-                    </button>
-                  )}
-                  <button className="t4-ghost" type="button" onClick={() => doReadoutGuide()} disabled={guideBusy}>
-                    {guideBusy ? (
-                      <><span className="t4-spin-sm" /> Preparing...</>
-                    ) : readoutGuide ? (
-                      <><RefreshCw /> Regenerate</>
-                    ) : (
-                      'Prepare second-call questions'
-                    )}
-                  </button>
-                </div>
               </div>
-            )}
-            {!report.geo_audit && (
-              <div className="t4-sec">
-                <SectionHeading icon={ClipboardList}>Second Call - Paste The Transcript</SectionHeading>
-                <p className="t4-sub" style={{ marginTop: 0 }}>
-                  Once you've had the review call, paste the transcript here. We'll turn it into the client proposal,
-                  then you can generate the developer build package.
-                </p>
+            </div>
+          </div>
+        )}
+
+
+        {!busy && !loadingSaved && step === 5 && report && !isGeo && (
+          <div>
+            <div className="t4-eyebrow">Step 5 | Deliverables</div>
+            <h2 className="t4-h2">Ready to send</h2>
+            <p className="t4-sub">
+              The final proposal for {client.name || 'the client'}, updated with what the second call changed, plus the
+              build spec for a third-party developer. Review, edit, download, send.
+            </p>
+
+            <div className="t4-sec">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <SectionHeading icon={Mail}>Client Proposal</SectionHeading>
+                <button className="t4-ghost" type="button" onClick={() => setProposalEditing((v) => !v)}>
+                  {proposalEditing ? 'Preview' : 'Edit'}
+                </button>
+              </div>
+              {proposalEditing ? (
                 <textarea
                   className="t4-area big"
-                  value={readoutTranscript}
-                  onChange={(e) => setReadoutTranscript(e.target.value)}
-                  placeholder="Paste the second / review call transcript here..."
+                  value={proposalText}
+                  onChange={(e) => setProposalText(e.target.value)}
                 />
-                <div className="t4-btnrow">
+              ) : (
+                <Markdown>{proposalText}</Markdown>
+              )}
+              {advanced && proposalJson?.value_case && (
+                <ValueCaseCard valueCase={proposalJson.value_case} />
+              )}
+              <div className="t4-status-row">
+                {['draft', 'reviewed', 'sent', 'accepted', 'lost'].map((status) => (
                   <button
-                    className="t4-btn"
+                    key={status}
+                    className={`t4-status${proposalStatus === status ? ' active' : ''}`}
                     type="button"
-                    disabled={readoutTranscript.trim().length < 40}
-                    onClick={submitSecondCall}
+                    onClick={() => {
+                      if (
+                        (status === 'accepted' || status === 'lost') &&
+                        !window.confirm(`Mark this proposal as ${status}?`)
+                      ) {
+                        return;
+                      }
+                      setProposalStatus(status);
+                      saveProposal(status);
+                    }}
                   >
-                    Call complete - generate proposal <ArrowRight />
+                    {status.replace(/_/g, ' ')}
                   </button>
-                </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
-
-
-        {!busy && !loadingSaved && step === 5 && report && !report.geo_audit && (
-          <div>
-            <div className="t4-eyebrow">Step 5 | Proposal</div>
-            <h2 className="t4-h2">Your client proposal</h2>
-            <p className="t4-sub">
-              Built from the discovery call, the audit report, and the second-call transcript. Edit it before sending,
-              or change the type and regenerate.
-            </p>
-
-            <div className="t4-field">
-              <label>Proposal type</label>
-              <select className="t4-select" value={proposalType} onChange={(e) => setProposalType(e.target.value)}>
-                {PROPOSAL_TYPES.map((value) => <option key={value} value={value}>{value}</option>)}
-              </select>
-            </div>
-
-            <div className="t4-btnrow">
-              <button className="t4-ghost" type="button" onClick={() => setStep(4)}>
-                <ArrowLeft /> Back to report
-              </button>
-              <button
-                className="t4-btn"
-                type="button"
-                disabled={!readoutId && readoutTranscript.trim().length < 40}
-                onClick={doProposal}
-              >
-                {proposalText ? 'Regenerate Proposal' : 'Generate Proposal'} <ArrowRight />
-              </button>
-            </div>
-
-            {proposalText && (
-              <div className="t4-sec">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h3 style={{ margin: 0 }}>Proposal</h3>
-                  <button
-                    className="t4-ghost"
-                    type="button"
-                    onClick={() => setProposalEditing((v) => !v)}
-                  >
-                    {proposalEditing ? 'Preview' : 'Edit'}
-                  </button>
+              <div className="t4-btnrow">
+                <CopyBtn text={proposalText} label="Copy proposal" />
+                <button
+                  className="t4-ghost"
+                  type="button"
+                  onClick={() => downloadText(`${safeFileName(client.name)}-proposal.md`, proposalText)}
+                >
+                  <Download /> Download proposal
+                </button>
+                <button className="t4-ghost" type="button" onClick={() => saveProposal(proposalStatus)}>
+                  Save edits
+                </button>
+                <div className="t4-field" style={{ margin: 0 }}>
+                  <select className="t4-select" value={proposalType} onChange={(e) => setProposalType(e.target.value)}>
+                    {PROPOSAL_TYPES.map((value) => <option key={value} value={value}>{value}</option>)}
+                  </select>
                 </div>
-                {proposalEditing ? (
-                  <textarea
-                    className="t4-area big"
-                    value={proposalText}
-                    onChange={(e) => setProposalText(e.target.value)}
-                  />
-                ) : (
-                  <Markdown>{proposalText}</Markdown>
-                )}
-                {advanced && proposalJson?.value_case && (
-                  <ValueCaseCard valueCase={proposalJson.value_case} />
-                )}
-                <div className="t4-status-row">
-                  {['draft', 'reviewed', 'sent', 'accepted', 'lost'].map((status) => (
-                    <button
-                      key={status}
-                      className={`t4-status${proposalStatus === status ? ' active' : ''}`}
-                      type="button"
-                      onClick={() => {
-                        setProposalStatus(status);
-                        saveProposal(status);
-                      }}
-                    >
-                      {status.replace(/_/g, ' ')}
-                    </button>
-                  ))}
-                </div>
-                <div className="t4-btnrow">
-                  <CopyBtn text={proposalText} label="Copy proposal" />
-                  <button
-                    className="t4-ghost"
-                    type="button"
-                    onClick={() => downloadText(`${safeFileName(client.name)}-proposal.md`, proposalText)}
-                  >
-                    <Download /> Download proposal
-                  </button>
-                  <button className="t4-ghost" type="button" onClick={() => saveProposal(proposalStatus)}>
-                    Save edits
-                  </button>
-                </div>
-                <div className="t4-btnrow">
-                  <button
-                    className="t4-btn"
-                    type="button"
-                    onClick={buildPackage ? () => setStep(6) : doBuildPackage}
-                  >
-                    {buildPackage ? 'Open developer build package' : 'Create developer build package'} <ArrowRight />
-                  </button>
-                </div>
-                <p className="t4-save-note">
-                  The build package turns this into a tech spec, product spec, and build plan you can hand a
-                  third-party developer for a scope and quote.
-                </p>
+                <button
+                  className="t4-ghost"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Regenerate the proposal? This replaces the current version, including any edits.')) {
+                      doProposal();
+                    }
+                  }}
+                >
+                  <RefreshCw /> Regenerate
+                </button>
               </div>
-            )}
-          </div>
-        )}
-
-        {!busy && !loadingSaved && step === 6 && report && !report.geo_audit && (
-          <div>
-            <div className="t4-eyebrow">Step 6 | Developer Build Package</div>
-            <h2 className="t4-h2">Hand-off for a third-party developer</h2>
-            <p className="t4-sub">
-              A product spec, technical spec, and build plan generated from the calls, the report, and the proposal.
-              Share it with a development shop to get a scope and a quote. Estimates are preliminary planning ranges.
-            </p>
-
-            <div className="t4-btnrow">
-              <button className="t4-ghost" type="button" onClick={() => setStep(5)}>
-                <ArrowLeft /> Back to proposal
-              </button>
-              <button className="t4-btn" type="button" onClick={doBuildPackage}>
-                {buildPackage ? <><RefreshCw /> Regenerate build package</> : <>Generate build package <ArrowRight /></>}
-              </button>
             </div>
 
-            {buildPackage && (
-              <>
-                <BuildPackage pkg={buildPackage} />
+            <div className="t4-sec">
+              <SectionHeading icon={ClipboardList}>Developer Build Spec</SectionHeading>
+              <p className="t4-sub" style={{ marginTop: 0 }}>
+                A product spec, technical spec, and build plan you can hand a third-party developer for a scope and a
+                quote. Estimates are preliminary planning ranges.
+              </p>
+              {pkgBusy && (
+                <div className="t4-inline-load"><span className="t4-spin-sm" /> {pkgProgress || 'Writing the build spec...'}</div>
+              )}
+              {pkgError && <p className="t4-save-note" style={{ marginTop: 0 }}>{pkgError}</p>}
+              {buildPackage && (
+                <>
+                  <BuildPackage pkg={buildPackage} />
+                  <div className="t4-btnrow">
+                    {buildPackageText && <CopyBtn text={buildPackageText} label="Copy full spec" />}
+                    {buildPackageText && (
+                      <button
+                        className="t4-ghost"
+                        type="button"
+                        onClick={() => downloadText(`${safeFileName(client.name)}-build-package.md`, buildPackageText)}
+                      >
+                        <Download /> Download spec
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+              {!pkgBusy && (
                 <div className="t4-btnrow">
-                  {buildPackageText && <CopyBtn text={buildPackageText} label="Copy full package" />}
-                  {buildPackageText && (
-                    <button
-                      className="t4-ghost"
-                      type="button"
-                      onClick={() => downloadText(`${safeFileName(client.name)}-build-package.md`, buildPackageText)}
-                    >
-                      <Download /> Download package
-                    </button>
-                  )}
+                  <button
+                    className={buildPackage ? 't4-ghost' : 't4-btn'}
+                    type="button"
+                    onClick={() => {
+                      if (buildPackage && !window.confirm('Regenerate the build spec? This replaces the current version.')) {
+                        return;
+                      }
+                      doBuildPackage();
+                    }}
+                  >
+                    {buildPackage ? <><RefreshCw /> Regenerate build spec</> : <>Generate build spec <ArrowRight /></>}
+                  </button>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         )}
 

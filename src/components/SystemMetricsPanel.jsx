@@ -72,11 +72,6 @@ function fmtPct(rate) {
   return `${Math.round(rate * 100)}%`;
 }
 
-function fmtNum(n) {
-  if (n === null || n === undefined) return '—';
-  return String(n);
-}
-
 export default function SystemMetricsPanel({ getAuthHeaders }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

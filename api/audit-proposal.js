@@ -1,4 +1,5 @@
 import {
+  proposalDraftPrompt,
   proposalPrompt,
   proposalSchema,
 } from './_advisorAuditPrompts.js';
@@ -47,9 +48,15 @@ export default async function handler(req, res) {
     if (!audit.report) return res.status(400).json({ error: 'Generate an audit report before a proposal.' });
     if (audit.report?.geo_audit) return res.status(400).json({ error: 'GEO audits do not use advisor proposals.' });
 
+    // Draft mode: generated right after the first call, from research + discovery
+    // transcript + report only. It is the document the advisor reviews with the
+    // client on the second call. Final mode additionally requires that call's
+    // transcript and lists what changed vs the reviewed draft.
+    const isDraft = body.mode === 'draft';
+
     const readout = await getAuditReadout(auth, audit.id, clean(body.readout_id, 80));
-    if (!readout?.readout_transcript_text) {
-      return res.status(400).json({ error: 'Add the readout transcript before generating a proposal.' });
+    if (!isDraft && !readout?.readout_transcript_text) {
+      return res.status(400).json({ error: 'Add the second-call transcript before generating the final proposal.' });
     }
 
     const input = [
@@ -68,33 +75,38 @@ export default async function handler(req, res) {
       '',
       'Audit report JSON:',
       JSON.stringify(audit.report, null, 2),
-      '',
-      'Readout guide:',
-      readout.readout_guide_text || JSON.stringify(readout.readout_guide_json || {}, null, 2),
-      '',
-      'Readout transcript:',
-      readout.readout_transcript_text || '',
-      '',
-      'Advisor notes and outcome fields:',
-      JSON.stringify({
-        advisor_notes: readout.advisor_notes,
-        client_agreement_level: readout.client_agreement_level,
-        client_interest_level: readout.client_interest_level,
-        selected_next_step: readout.selected_next_step,
-        proposal_requested: readout.proposal_requested,
-        prd_requested: readout.prd_requested,
-        geo_package_discussed: readout.geo_package_discussed,
-        pedigree_demo_discussed: readout.pedigree_demo_discussed,
-        budget_discussed: readout.budget_discussed,
-        decision_maker_identified: readout.decision_maker_identified,
-        timeline_discussed: readout.timeline_discussed,
-        objections: readout.objections,
-        economics_validated: readout.economics_validated,
-        economics_revised: readout.economics_revised,
-        validated_annual_cost: readout.validated_annual_cost,
-        revised_annual_cost: readout.revised_annual_cost,
-      }, null, 2),
     ];
+
+    if (!isDraft) {
+      input.push(
+        '',
+        'Proposal draft reviewed with the client on the second call:',
+        audit.proposal?.proposal_text || clean(body.draft_proposal_text, 60000) || '(no draft was saved)',
+        '',
+        'Second-call transcript:',
+        readout.readout_transcript_text || '',
+        '',
+        'Advisor notes and outcome fields:',
+        JSON.stringify({
+          advisor_notes: readout.advisor_notes,
+          client_agreement_level: readout.client_agreement_level,
+          client_interest_level: readout.client_interest_level,
+          selected_next_step: readout.selected_next_step,
+          proposal_requested: readout.proposal_requested,
+          prd_requested: readout.prd_requested,
+          geo_package_discussed: readout.geo_package_discussed,
+          pedigree_demo_discussed: readout.pedigree_demo_discussed,
+          budget_discussed: readout.budget_discussed,
+          decision_maker_identified: readout.decision_maker_identified,
+          timeline_discussed: readout.timeline_discussed,
+          objections: readout.objections,
+          economics_validated: readout.economics_validated,
+          economics_revised: readout.economics_revised,
+          validated_annual_cost: readout.validated_annual_cost,
+          revised_annual_cost: readout.revised_annual_cost,
+        }, null, 2),
+      );
+    }
 
     if (audit.economic_impact) {
       const ei = audit.economic_impact;
@@ -126,7 +138,7 @@ export default async function handler(req, res) {
     const inputText = input.join('\n');
 
     const proposalJson = await createStructuredResponse({
-      instructions: proposalPrompt,
+      instructions: isDraft ? proposalDraftPrompt : proposalPrompt,
       input: inputText,
       schema: proposalSchema,
       schemaName: 'advisor_proposal',
@@ -136,7 +148,8 @@ export default async function handler(req, res) {
     const proposalText = buildProposalText(proposalJson);
     const valueCase = proposalJson.value_case || null;
     const proposal = await saveAuditProposal(auth, audit.id, {
-      readout_id: readout.id,
+      proposal_id: audit.proposal?.id || undefined,
+      readout_id: readout?.id || null,
       proposal_type: proposalJson.proposal_type,
       proposal_title: proposalJson.proposal_title,
       proposal_json: proposalJson,
@@ -144,7 +157,7 @@ export default async function handler(req, res) {
       proposal_status: 'draft',
       selected_recommendations: body.selected_recommendations,
       pricing_notes: proposalJson.pricing_notes,
-      generated_from_prompt_version: 'proposal_v2',
+      generated_from_prompt_version: isDraft ? 'proposal_draft_v1' : 'proposal_v3',
       economic_impact_id: audit.economic_impact?.id || null,
       includes_value_case: Boolean(valueCase),
       proposal_investment_low: valueCase?.investment_low ?? null,

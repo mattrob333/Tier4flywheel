@@ -387,10 +387,6 @@ function proposalText(audit) {
   return audit.proposal?.proposal_text || '';
 }
 
-function readoutGuideText(audit) {
-  return audit.readout?.readout_guide_text || '';
-}
-
 function formatEconMoney(value, currency = 'USD') {
   if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '';
   const symbol = currency === 'USD' ? '$' : '';
@@ -591,19 +587,6 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
       );
     } catch (err) {
       setError(err.message || 'Could not update sales stage.');
-    } finally {
-      setSavingStageId('');
-    }
-  }
-
-  async function generateReadoutGuide(audit) {
-    setSavingStageId(audit.id);
-    setError('');
-    try {
-      await postJSON('/api/audit-readout-guide', { audit_id: audit.id, readout_id: audit.readout?.id }, getAuthHeaders);
-      await loadAudits();
-    } catch (err) {
-      setError(err.message || 'Could not generate readout guide.');
     } finally {
       setSavingStageId('');
     }
@@ -829,7 +812,6 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
               const followupEmail = audit.followup_email || audit.followupEmail || '';
               const qText = questionsText(audit);
               const pText = proposalText(audit);
-              const rText = readoutGuideText(audit);
               const baseName = safeFileName(`${audit.client_name}-${typeLabel(audit)}`);
               const econ = economicCardData(audit);
               return (
@@ -930,23 +912,12 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                               </button>
                               {!isGeo && (
                                 <>
-                                  <button
-                                    className="audit-history-btn"
-                                    type="button"
-                                    disabled={!audit.report || savingStageId === audit.id}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      generateReadoutGuide(audit);
-                                    }}
-                                  >
-                                    <RefreshCw /> {rText ? 'Regenerate Readout Guide' : 'Generate Readout Guide'}
-                                  </button>
                                   <a
                                     className="audit-history-btn"
                                     href={`/admin/audit?auditId=${encodeURIComponent(audit.id)}`}
                                     onClick={(event) => event.stopPropagation()}
                                   >
-                                    <ExternalLink /> {audit.readout?.readout_transcript_text ? 'Continue Readout' : 'Paste Readout Transcript'}
+                                    <ExternalLink /> {audit.readout?.readout_transcript_text ? 'Open Deliverables' : 'Open Proposal Draft'}
                                   </a>
                                   <button
                                     className="audit-history-btn"
@@ -1053,28 +1024,6 @@ export default function AdminAuditHistory({ getAuthHeaders }) {
                                       }}
                                     >
                                       <Pencil /> View / Edit
-                                    </button>
-                                    <button
-                                      className="audit-history-btn"
-                                      type="button"
-                                      disabled={!econ.row}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        // Wired in Phase 3.6 — adds economics to the readout assistant Card 3.
-                                      }}
-                                    >
-                                      <CheckCircle2 /> Add to Readout
-                                    </button>
-                                    <button
-                                      className="audit-history-btn"
-                                      type="button"
-                                      disabled={!econ.row}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        // Wired in Phase 4 — includes the value case in the proposal.
-                                      }}
-                                    >
-                                      <FilePlus /> Include in Proposal
                                     </button>
                                   </div>
                                 </>

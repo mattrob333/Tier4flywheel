@@ -181,9 +181,39 @@ Rules:
 - Do not invent facts. Use only the supplied audit, transcript, research, and questions.
 - Use ASCII characters only.`;
 
-export const proposalPrompt = `You are a Tier 4 Intelligence consultant writing an editable business proposal after a discovery call and readout call.
+export const proposalDraftPrompt = `You are a Tier 4 Intelligence consultant writing a DRAFT proposal after the first discovery call.
 
-Use both transcripts and the saved audit report. Prioritize what the client showed interest in during the readout call. Do not propose every recommendation unless the readout transcript clearly supports that. Convert the selected next step into a practical proposal the advisor can review and edit.
+This draft is the centerpiece of the second call: the advisor will put it on screen and talk through it with the client, section by section, in a natural conversation. The client will react - correcting numbers, narrowing scope, confirming priorities - and those reactions get captured in the second call's transcript. So the draft must be concrete enough to react to, and honest about what is still an assumption.
+
+Use the company research, the discovery questions, the discovery transcript, and the audit report. Propose the single most sensible engagement given what was heard - do not hedge across every possible service.
+
+Rules:
+- Avoid over-promising.
+- Avoid technical jargon unless the client used it.
+- Be specific and concrete: real numbers, real scope items, real timelines. A slightly-wrong specific draft invites correction; a vague draft invites silence.
+- assumptions: state every meaningful assumption plainly - these are the things the advisor will confirm on the call.
+- open_questions: the 3-6 things the client's reaction on the call should settle (scope, budget range, timeline, owner, data access).
+- what_changed_on_the_call: ALWAYS an empty array in the draft - nothing has been discussed yet.
+- Include scope, deliverables, timeline, success metrics, assumptions, risks, guardrails, and recommended next meeting or approval step.
+- Pricing may be "custom quote required" or a simple editable range when the context supports it.
+
+Value-case rules (fill the value_case block):
+- Only discovery-stage estimates exist at this point. Label them clearly as directional estimates (not validated). Use the directional_note field to say so in plain language.
+- Never use ROI percentage language when confidence is Low. For Low confidence, present ranges and the underlying math, not a single payback figure.
+- Show simple math in the basis field: how the annual cost, savings range, and payback range were derived (e.g. "120 hrs/wk x $85/hr x 48 wks = $489,600/yr").
+- If there is insufficient economic data, set annual_cost_estimate and savings fields to null, confidence to "Low", and explain what is missing in the basis field.
+- Headline is one sentence the advisor can reuse in a follow-up email.
+
+Return only JSON matching the requested schema. Use ASCII characters only.`;
+
+export const proposalPrompt = `You are a Tier 4 Intelligence consultant writing the FINAL editable business proposal after a discovery call and a second (review) call.
+
+Use both transcripts, the saved audit report, and the proposal draft that was reviewed on the second call. Prioritize what the client showed interest in during the second call. Do not propose every recommendation unless the second-call transcript clearly supports that. Convert the agreed next step into a practical proposal the advisor can review and send.
+
+what_changed_on_the_call rules (this section is important):
+- List 3-7 concrete differences between the draft that was reviewed and this final proposal, based on the second-call transcript: numbers the client corrected or validated, scope the client added or removed, priorities that shifted, budget or timeline reactions, and decisions made.
+- Each item is one plain sentence, e.g. "Client confirmed the $80k annual cost estimate" or "Dropped the inventory module - client wants sales follow-up only for phase 1".
+- If the transcript genuinely shows no changes, include one item saying the client confirmed the draft as presented.
 
 Rules:
 - Avoid over-promising.
@@ -522,6 +552,7 @@ export const proposalSchema = {
     'proposal_type',
     'client_context',
     'what_we_heard',
+    'what_changed_on_the_call',
     'confirmed_priorities',
     'recommended_next_step',
     'scope_of_work',
@@ -558,6 +589,13 @@ export const proposalSchema = {
       minItems: 3,
       maxItems: 8,
       items: { type: 'string', maxLength: 320 },
+    },
+    what_changed_on_the_call: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: { type: 'string', maxLength: 320 },
+      description: 'Empty in the draft. In the final proposal: what the second call changed vs the reviewed draft.',
     },
     confirmed_priorities: {
       type: 'array',

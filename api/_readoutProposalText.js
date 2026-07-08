@@ -80,6 +80,9 @@ export function buildProposalText(proposal) {
     '## What We Heard',
     list(proposal.what_we_heard),
     '',
+    ...(Array.isArray(proposal.what_changed_on_the_call) && proposal.what_changed_on_the_call.length
+      ? ['## What Changed on the Call', list(proposal.what_changed_on_the_call), '']
+      : []),
     buildValueCaseText(proposal.value_case),
     '## Confirmed Priorities',
     list(proposal.confirmed_priorities),

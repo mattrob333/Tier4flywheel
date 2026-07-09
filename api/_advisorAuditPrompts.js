@@ -101,6 +101,8 @@ You return THREE separate layers. Keep them strictly separated:
 
 Output hygiene:
 - Return only JSON matching the requested schema.
+- NO REDUNDANCY: never restate the same point in more than one section. The executive summary sets up the findings, it does not repeat them; top_findings must not re-appear verbatim in the scorecard text; recommendations must not restate findings. Each section adds something new.
+- Prefer short, punchy sentences a reader can scan on a shared screen. One idea per sentence.
 - Use ASCII characters only. Write concise plain text, not Markdown.
 - Do not include Markdown headings, URLs, citations, footnotes, bracketed source links, smart quotes, em dashes, or corrupted characters.
 - Complete every sentence. Do not leave text ending with words like "for", "and", "or", "to", "with", or with a comma or colon.`;
@@ -190,6 +192,8 @@ Use the company research, the discovery questions, the discovery transcript, and
 Rules:
 - Avoid over-promising.
 - Avoid technical jargon unless the client used it.
+- NO REDUNDANCY: each point appears in exactly ONE section. what_we_heard is 3-4 short bullets of what the client said; the recommendation and scope must build on those bullets, never restate them. If a sentence could live in two sections, pick one and cut the other.
+- Write for a shared screen: short bullets (under 20 words where possible), one idea per bullet, no filler.
 - Be specific and concrete: real numbers, real scope items, real timelines. A slightly-wrong specific draft invites correction; a vague draft invites silence.
 - assumptions: state every meaningful assumption plainly - these are the things the advisor will confirm on the call.
 - open_questions: the 3-6 things the client's reaction on the call should settle (scope, budget range, timeline, owner, data access).
@@ -218,6 +222,8 @@ what_changed_on_the_call rules (this section is important):
 Rules:
 - Avoid over-promising.
 - Avoid technical jargon unless the client used it.
+- NO REDUNDANCY: each point appears in exactly ONE section. what_we_heard is 3-4 short bullets; the recommendation and scope must build on those bullets, never restate them.
+- Write for a shared screen: short bullets (under 20 words where possible), one idea per bullet, no filler.
 - Clearly mark open questions.
 - Include scope, deliverables, timeline, success metrics, assumptions, risks, guardrails, and recommended next meeting or approval step.
 - Pricing may be "custom quote required" or a simple editable range when the context supports it.
@@ -232,6 +238,37 @@ Value-case rules (fill the value_case block):
 - Headline is one sentence the advisor can reuse in a follow-up email.
 
 Return only JSON matching the requested schema. Use ASCII characters only.`;
+
+export const onePagerPrompt = `You are a Tier 4 Intelligence consultant writing a one-page executive summary the client can forward to their own leadership team.
+
+This is NOT the full report trimmed down. It is a standalone leave-behind: one screen, scannable in 60 seconds, persuasive to someone who was not on the call. The advisor will hand it to the client with "share this with your team."
+
+Use the research, transcripts, report, and proposal supplied. Write for the client's boss, not for Tier 4.
+
+Rules:
+- Plain business English. Zero jargon, zero consulting-speak.
+- headline: one sentence naming the opportunity in the client's own terms.
+- what_we_heard: exactly 3 bullets, each under 18 words, in the client's language.
+- cost_of_problem: one sentence with the number if economics exist; if not, one sentence naming the cost in time or risk. Never invent a number.
+- the_plan: exactly 3 steps, each one line, plain verbs ("Map the intake process", not "Leverage synergies").
+- where_tier4_helps: 2-3 bullets on what Tier 4 specifically does, without product names.
+- next_step: one concrete sentence (the meeting, the pilot, the date-shaped ask).
+- No content may repeat between sections.
+- Use ASCII characters only. Return only JSON matching the requested schema.`;
+
+export const onePagerSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['headline', 'what_we_heard', 'cost_of_problem', 'the_plan', 'where_tier4_helps', 'next_step'],
+  properties: {
+    headline: { type: 'string', maxLength: 200 },
+    what_we_heard: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 140 } },
+    cost_of_problem: { type: 'string', maxLength: 260 },
+    the_plan: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 160 } },
+    where_tier4_helps: { type: 'array', minItems: 2, maxItems: 3, items: { type: 'string', maxLength: 160 } },
+    next_step: { type: 'string', maxLength: 240 },
+  },
+};
 
 export const researchSchema = {
   type: 'object',
@@ -553,7 +590,6 @@ export const proposalSchema = {
     'client_context',
     'what_we_heard',
     'what_changed_on_the_call',
-    'confirmed_priorities',
     'recommended_next_step',
     'scope_of_work',
     'deliverables',
@@ -587,8 +623,8 @@ export const proposalSchema = {
     what_we_heard: {
       type: 'array',
       minItems: 3,
-      maxItems: 8,
-      items: { type: 'string', maxLength: 320 },
+      maxItems: 4,
+      items: { type: 'string', maxLength: 180 },
     },
     what_changed_on_the_call: {
       type: 'array',
@@ -596,12 +632,6 @@ export const proposalSchema = {
       maxItems: 8,
       items: { type: 'string', maxLength: 320 },
       description: 'Empty in the draft. In the final proposal: what the second call changed vs the reviewed draft.',
-    },
-    confirmed_priorities: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 8,
-      items: { type: 'string', maxLength: 320 },
     },
     recommended_next_step: { type: 'string', maxLength: 900 },
     scope_of_work: {

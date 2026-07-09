@@ -84,9 +84,6 @@ export function buildProposalText(proposal) {
       ? ['## What Changed on the Call', list(proposal.what_changed_on_the_call), '']
       : []),
     buildValueCaseText(proposal.value_case),
-    '## Confirmed Priorities',
-    list(proposal.confirmed_priorities),
-    '',
     '## Recommended Next Step',
     proposal.recommended_next_step || '',
     '',
@@ -125,6 +122,33 @@ export function buildProposalText(proposal) {
     '',
     '## Recommended Next Meeting or Approval Step',
     proposal.recommended_next_meeting || '',
+  ].filter((part) => part !== '').join('\n').trim();
+}
+
+export function buildOnePagerText(onePager, clientName = '') {
+  if (!onePager) return '';
+
+  return [
+    `# ${clientName ? `${clientName} - ` : ''}Executive Summary`,
+    '',
+    onePager.headline || '',
+    '',
+    '## What We Heard',
+    list(onePager.what_we_heard),
+    '',
+    '## What It Is Costing You',
+    onePager.cost_of_problem || '',
+    '',
+    '## The Plan',
+    ...(Array.isArray(onePager.the_plan)
+      ? onePager.the_plan.filter(Boolean).map((step, i) => `${i + 1}. ${step}`)
+      : []),
+    '',
+    '## Where Tier 4 Helps',
+    list(onePager.where_tier4_helps),
+    '',
+    '## Next Step',
+    onePager.next_step || '',
   ].filter((part) => part !== '').join('\n').trim();
 }
 

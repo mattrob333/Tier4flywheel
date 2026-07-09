@@ -126,6 +126,10 @@
       "maxDuration": 60,
       "memory": 1024
     },
+    "api/audit-one-pager.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
     "api/audit-build-package-start.js": {
       "maxDuration": 30,
       "memory": 1024

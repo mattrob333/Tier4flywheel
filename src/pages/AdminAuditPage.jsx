@@ -137,6 +137,17 @@ button.t4-step:disabled{cursor:default;opacity:.55}
 .t4-phase .pt{font-weight:700;font-size:14px;margin-bottom:6px;color:#fff}
 .t4-phase ul{margin:0;padding-left:18px;font-size:13px}
 .t4-emailbox{background:var(--t4-panel);border:1px solid var(--t4-line);border-radius:var(--t4-r);padding:16px 18px;white-space:pre-wrap;font-size:13px;margin-top:12px}
+.t4-collapse{border:1px solid var(--t4-line);border-radius:var(--t4-r);margin-bottom:10px;overflow:hidden}
+.t4-collapse-head{display:flex;align-items:center;gap:10px;width:100%;background:var(--t4-panel);border:0;color:var(--t4-txt);font-family:inherit;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;text-align:left}
+.t4-collapse-head:hover{background:rgba(94,192,138,.06)}
+.t4-collapse-chev{color:var(--t4-steel);transition:transform .15s;display:inline-block}
+.t4-collapse-chev.open{transform:rotate(90deg)}
+.t4-collapse-body{padding:4px 18px 14px;border-top:1px solid var(--t4-line)}
+.t4-onepager{background:var(--t4-panel);border:1px solid rgba(201,168,76,.34);border-radius:var(--t4-r);padding:20px 22px;margin-top:12px}
+.t4-onepager h3{margin:0 0 4px;font-size:17px;color:#fff}
+.t4-onepager .op-head{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--t4-amber-dim);margin:14px 0 6px}
+.t4-onepager ul,.t4-onepager ol{margin:0;padding-left:20px}
+.t4-onepager li,.t4-onepager p{font-size:13.5px;color:var(--t4-mut);line-height:1.6;margin:2px 0}
 .t4-note{font-size:12px;color:var(--t4-mut);margin-top:26px;border-top:1px solid var(--t4-line);padding-top:14px}
 .t4-save-note{font-size:12px;color:var(--t4-warn);margin:12px 0 0}
 .t4-typegrid{display:flex;flex-direction:column;gap:10px}
@@ -559,6 +570,154 @@ function downloadText(filename, text, type = 'text/markdown') {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function escHtml(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Minimal converter for the markdown our own text builders emit (headings,
+// bullets, numbered lists, bold/italic) - enough for the print view without
+// pulling in a renderer dependency.
+function mdToHtml(md) {
+  const inline = (s) =>
+    escHtml(s)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/_([^_]+)_/g, '<em>$1</em>');
+  const out = [];
+  let listType = null;
+  const closeList = () => {
+    if (listType) {
+      out.push(listType === 'ul' ? '</ul>' : '</ol>');
+      listType = null;
+    }
+  };
+  for (const raw of String(md || '').split('\n')) {
+    const line = raw.trimEnd();
+    const h = line.match(/^(#{1,3})\s+(.*)/);
+    const ul = line.match(/^-\s+(.*)/);
+    const ol = line.match(/^\d+\.\s+(.*)/);
+    if (h) {
+      closeList();
+      out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
+    } else if (ul) {
+      if (listType !== 'ul') {
+        closeList();
+        out.push('<ul>');
+        listType = 'ul';
+      }
+      out.push(`<li>${inline(ul[1])}</li>`);
+    } else if (ol) {
+      if (listType !== 'ol') {
+        closeList();
+        out.push('<ol>');
+        listType = 'ol';
+      }
+      out.push(`<li>${inline(ol[1])}</li>`);
+    } else if (!line.trim()) {
+      closeList();
+    } else {
+      closeList();
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  closeList();
+  return out.join('\n');
+}
+
+// Opens a letterheaded, print-styled window so the browser's "Save as PDF"
+// produces a client-ready document.
+function printDocument({ title, markdown, clientName = '', author = '' }) {
+  const win = window.open('', '_blank', 'width=900,height=1100');
+  if (!win) {
+    window.alert('Allow pop-ups to print this document.');
+    return;
+  }
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const metaBits = [escHtml(clientName), dateStr, author ? `Prepared by ${escHtml(author)}` : '']
+    .filter(Boolean)
+    .join(' &middot; ');
+  win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(title)}</title><style>
+    body{font-family:Inter,'Helvetica Neue',Arial,sans-serif;color:#16181d;max-width:740px;margin:36px auto;padding:0 26px;line-height:1.55}
+    .lh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #0B1426;padding-bottom:12px}
+    .lh .brand{font-weight:800;font-size:19px;color:#0B1426;letter-spacing:-.01em}
+    .lh .brand span{color:#3fa06c}
+    .lh .meta{font-size:11px;color:#555;text-align:right}
+    h1{font-size:23px;letter-spacing:-.02em;margin:20px 0 4px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#0B1426;border-bottom:1px solid #ddd;padding-bottom:4px;margin:24px 0 8px}
+    h3{font-size:14px;margin:16px 0 6px}
+    p,li{font-size:13px} ul,ol{padding-left:22px;margin:6px 0}
+    .foot{margin-top:34px;border-top:1px solid #ddd;padding-top:10px;font-size:10px;color:#888}
+    @media print{body{margin:12px auto}}
+  </style></head><body>
+    <div class="lh"><div class="brand">TIER <span>4</span> INTELLIGENCE</div><div class="meta">${metaBits}</div></div>
+    ${mdToHtml(markdown)}
+    <div class="foot">Tier 4 Intelligence &middot; Alpharetta, GA &middot; tier4intelligence.com${clientName ? ` &middot; Confidential - prepared for ${escHtml(clientName)}` : ''}</div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  window.setTimeout(() => win.print(), 350);
+}
+
+// Renders proposal markdown as collapsible sections (split on "## " headings)
+// so it stays scannable on a shared screen.
+function CollapsibleMarkdown({ text }) {
+  const sections = useMemo(() => {
+    const parts = String(text || '').split(/\n(?=## )/);
+    return parts.map((part) => {
+      const m = part.match(/^## (.+)\n?/);
+      return m ? { title: m[1].trim(), body: part.slice(m[0].length) } : { title: '', body: part };
+    });
+  }, [text]);
+  const [collapsed, setCollapsed] = useState({});
+
+  if (sections.length <= 1) return <Markdown>{text}</Markdown>;
+
+  return (
+    <div>
+      {sections.map((section, i) =>
+        section.title ? (
+          <div key={i} className="t4-collapse">
+            <button
+              type="button"
+              className="t4-collapse-head"
+              onClick={() => setCollapsed((c) => ({ ...c, [i]: !c[i] }))}
+            >
+              <span className={`t4-collapse-chev${collapsed[i] ? '' : ' open'}`}>&#9656;</span> {section.title}
+            </button>
+            {!collapsed[i] && (
+              <div className="t4-collapse-body">
+                <Markdown>{section.body}</Markdown>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Markdown key={i}>{section.body}</Markdown>
+        ),
+      )}
+    </div>
+  );
+}
+
+// The client-facing executive summary card - the leave-behind an advisor can
+// tell the client to share with their team.
+function OnePagerCard({ onePager }) {
+  if (!onePager) return null;
+  return (
+    <div className="t4-onepager">
+      <h3>{onePager.headline}</h3>
+      <div className="op-head">What We Heard</div>
+      <ul>{(onePager.what_we_heard || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+      <div className="op-head">What It Is Costing You</div>
+      <p>{onePager.cost_of_problem}</p>
+      <div className="op-head">The Plan</div>
+      <ol>{(onePager.the_plan || []).map((item, i) => <li key={i}>{item}</li>)}</ol>
+      <div className="op-head">Where Tier 4 Helps</div>
+      <ul>{(onePager.where_tier4_helps || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+      <div className="op-head">Next Step</div>
+      <p>{onePager.next_step}</p>
+    </div>
+  );
 }
 
 function fmtOverall(value) {
@@ -1656,6 +1815,10 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
   const [pkgError, setPkgError] = useState('');
   const [finalReady, setFinalReady] = useState(false);
   const [showFullReport, setShowFullReport] = useState(false);
+  const [onePager, setOnePager] = useState(null);
+  const [onePagerText, setOnePagerText] = useState('');
+  const [onePagerBusy, setOnePagerBusy] = useState(false);
+  const [onePagerError, setOnePagerError] = useState('');
 
   // Cancellation token for the long-running background polls (report / build
   // package). Bumped by reset() and on unmount so a stale loop can't write an
@@ -1712,6 +1875,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setBuildPackageText(row.proposal?.proposal_json?.build_package_text || '');
         // The proposal is "final" once the second-call transcript has been
         // captured; before that it's the draft the advisor reviews on call 2.
+        setOnePager(row.proposal?.proposal_json?.one_pager || null);
+        setOnePagerText(row.proposal?.proposal_json?.one_pager_text || '');
         const hasFinal = Boolean(
           (row.readout?.readout_transcript_text && row.proposal) || savedPackage,
         );
@@ -1773,6 +1938,9 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
     setPkgError('');
     setFinalReady(false);
     setShowFullReport(false);
+    setOnePager(null);
+    setOnePagerText('');
+    setOnePagerError('');
     if (window.location.search.includes('auditId=')) {
       window.history.replaceState(null, '', '/admin/audit');
     }
@@ -1904,6 +2072,8 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setEconError('');
         setBuildPackage(null);
         setBuildPackageText('');
+        setOnePager(null);
+        setOnePagerText('');
         const savedAudit = await saveAuditMilestone('report_ready', { report: result, followup: '' });
         setStep(4);
         // Everything that lands at the bottom of the report runs automatically,
@@ -1977,10 +2147,29 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
       setProposalJson(result.proposal_json || null);
       setProposalText(result.proposal_text || '');
       setProposalStatus('draft');
+      doOnePager(nextAuditId);
     } catch (error) {
       setDraftError(error.message || 'Could not draft the proposal. Use Regenerate to try again.');
     } finally {
       setDraftBusy(false);
+    }
+  };
+
+  // The executive one-pager: a standalone client leave-behind ("share this
+  // with your team"). Regenerated whenever the proposal changes materially.
+  const doOnePager = async (forcedAuditId) => {
+    setOnePagerBusy(true);
+    setOnePagerError('');
+    try {
+      const nextAuditId = typeof forcedAuditId === 'string' ? forcedAuditId : auditId;
+      if (!nextAuditId) throw new Error('Save the audit before the executive summary.');
+      const result = await postJSON('/api/audit-one-pager', { audit_id: nextAuditId }, getAuthHeaders);
+      setOnePager(result.one_pager || null);
+      setOnePagerText(result.one_pager_text || '');
+    } catch (error) {
+      setOnePagerError(error.message || 'Could not write the executive summary. Use Regenerate to try again.');
+    } finally {
+      setOnePagerBusy(false);
     }
   };
 
@@ -2022,6 +2211,7 @@ function AuditPipeline({ getAuthHeaders, devMode = false, userSlot = null, advan
         setFinalReady(true);
         setStep(5);
         doBuildPackage(nextReadoutId);
+        doOnePager(auditId);
       } finally {
         setReportProgress('');
       }
@@ -2403,7 +2593,7 @@ Looking forward to it.`
                       onChange={(e) => setProposalText(e.target.value)}
                     />
                   ) : (
-                    <Markdown>{proposalText}</Markdown>
+                    <CollapsibleMarkdown text={proposalText} />
                   )}
                   {advanced && proposalJson?.value_case && <ValueCaseCard valueCase={proposalJson.value_case} />}
                   <div className="t4-btnrow">
@@ -2414,6 +2604,20 @@ Looking forward to it.`
                       onClick={() => downloadText(`${safeFileName(client.name)}-proposal-draft.md`, proposalText)}
                     >
                       <Download /> Download draft
+                    </button>
+                    <button
+                      className="t4-ghost"
+                      type="button"
+                      onClick={() =>
+                        printDocument({
+                          title: `${client.name} - Proposal Draft`,
+                          markdown: proposalText,
+                          clientName: client.name,
+                          author: client.author,
+                        })
+                      }
+                    >
+                      Print / Save PDF
                     </button>
                     <button className="t4-ghost" type="button" onClick={() => setProposalEditing((v) => !v)}>
                       {proposalEditing ? 'Preview' : 'Edit'}
@@ -2440,6 +2644,56 @@ Looking forward to it.`
                   </button>
                 </div>
               )}
+            </div>
+
+            <div className="t4-sec">
+              <SectionHeading icon={FileText}>Executive One-Pager <span className="t4-teamtag">Client leave-behind</span></SectionHeading>
+              <p className="t4-sub" style={{ marginTop: 0 }}>
+                A one-screen summary the client can forward to their own team. Hand it over with "share this with
+                your leadership" - it makes the case without you in the room.
+              </p>
+              {onePagerBusy && !onePager && (
+                <div className="t4-inline-load"><span className="t4-spin-sm" /> Writing the executive summary...</div>
+              )}
+              {onePagerError && <p className="t4-save-note" style={{ marginTop: 0 }}>{onePagerError}</p>}
+              {onePager && <OnePagerCard onePager={onePager} />}
+              <div className="t4-btnrow">
+                {onePagerText && <CopyBtn text={onePagerText} label="Copy one-pager" />}
+                {onePagerText && (
+                  <button
+                    className="t4-ghost"
+                    type="button"
+                    onClick={() => downloadText(`${safeFileName(client.name)}-executive-summary.md`, onePagerText)}
+                  >
+                    <Download /> Download
+                  </button>
+                )}
+                {onePagerText && (
+                  <button
+                    className="t4-ghost"
+                    type="button"
+                    onClick={() =>
+                      printDocument({
+                        title: `${client.name} - Executive Summary`,
+                        markdown: onePagerText,
+                        clientName: client.name,
+                        author: client.author,
+                      })
+                    }
+                  >
+                    Print / Save PDF
+                  </button>
+                )}
+                <button className="t4-ghost" type="button" onClick={() => doOnePager()} disabled={onePagerBusy}>
+                  {onePagerBusy ? (
+                    <><span className="t4-spin-sm" /> Writing...</>
+                  ) : onePager ? (
+                    <><RefreshCw /> Regenerate</>
+                  ) : (
+                    'Write the executive summary'
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="t4-sec">
@@ -2554,7 +2808,7 @@ Looking forward to it.`
                   onChange={(e) => setProposalText(e.target.value)}
                 />
               ) : (
-                <Markdown>{proposalText}</Markdown>
+                <CollapsibleMarkdown text={proposalText} />
               )}
               {advanced && proposalJson?.value_case && (
                 <ValueCaseCard valueCase={proposalJson.value_case} />
@@ -2589,6 +2843,20 @@ Looking forward to it.`
                 >
                   <Download /> Download proposal
                 </button>
+                <button
+                  className="t4-ghost"
+                  type="button"
+                  onClick={() =>
+                    printDocument({
+                      title: `${client.name} - Proposal`,
+                      markdown: proposalText,
+                      clientName: client.name,
+                      author: client.author,
+                    })
+                  }
+                >
+                  Print / Save PDF
+                </button>
                 <button className="t4-ghost" type="button" onClick={() => saveProposal(proposalStatus)}>
                   Save edits
                 </button>
@@ -2607,6 +2875,40 @@ Looking forward to it.`
                   }}
                 >
                   <RefreshCw /> Regenerate
+                </button>
+              </div>
+            </div>
+
+            <div className="t4-sec">
+              <SectionHeading icon={FileText}>Executive One-Pager <span className="t4-teamtag">Client leave-behind</span></SectionHeading>
+              <p className="t4-sub" style={{ marginTop: 0 }}>
+                Updated from the final proposal - the one-screen version the client shares with their team.
+              </p>
+              {onePagerBusy && (
+                <div className="t4-inline-load"><span className="t4-spin-sm" /> Updating the executive summary...</div>
+              )}
+              {onePagerError && <p className="t4-save-note" style={{ marginTop: 0 }}>{onePagerError}</p>}
+              {onePager && !onePagerBusy && <OnePagerCard onePager={onePager} />}
+              <div className="t4-btnrow">
+                {onePagerText && <CopyBtn text={onePagerText} label="Copy one-pager" />}
+                {onePagerText && (
+                  <button
+                    className="t4-ghost"
+                    type="button"
+                    onClick={() =>
+                      printDocument({
+                        title: `${client.name} - Executive Summary`,
+                        markdown: onePagerText,
+                        clientName: client.name,
+                        author: client.author,
+                      })
+                    }
+                  >
+                    Print / Save PDF
+                  </button>
+                )}
+                <button className="t4-ghost" type="button" onClick={() => doOnePager()} disabled={onePagerBusy}>
+                  {onePagerBusy ? <><span className="t4-spin-sm" /> Writing...</> : <><RefreshCw /> Regenerate</>}
                 </button>
               </div>
             </div>
@@ -2633,6 +2935,22 @@ Looking forward to it.`
                         onClick={() => downloadText(`${safeFileName(client.name)}-build-package.md`, buildPackageText)}
                       >
                         <Download /> Download spec
+                      </button>
+                    )}
+                    {buildPackageText && (
+                      <button
+                        className="t4-ghost"
+                        type="button"
+                        onClick={() =>
+                          printDocument({
+                            title: `${client.name} - Developer Build Package`,
+                            markdown: buildPackageText,
+                            clientName: client.name,
+                            author: client.author,
+                          })
+                        }
+                      >
+                        Print / Save PDF
                       </button>
                     )}
                   </div>
